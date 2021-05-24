@@ -197,60 +197,57 @@ list 1 2 3
     list 4 5 6
         list 3 2 1
     44 list 500 500 list 5 4 3 list 9 8
-                list 10 11
+                10    11
+      1008
 """
 # s="""
 # list 1 2 list 3 4
 # """
 toks = tokenize_source(s)
-# c=composite_exprs(tokenize_source(s))
-# print(ast(c))
-# sort_composite_args(ast(c))
-# print(tokensatline(3, toks))
-# print(toks)
+
 
 class Block:
-    def __init__(self, head):
-        self.head = head
-        self.tail = [self.head]
-    def add(self, t):
-        self.tail.append(t)
-blocks=[]
+    def __init__(self, kw):
+        self.kw = kw
+        self.content = [self.kw]
+    def append(self, t):
+        self.content.append(t)
 
-for t in toks:
-    if tokisfun(t):
-        B=Block(t)
-        blocks.append(B)
-    x=[b for b in blocks if is_token_in_block(t, b.head)]
-    if x:
-        maxline=max(x, key=lambda b:b.head.line).head.line
-        L=[b for b in x if b.head.line==maxline]
-        maxstart=max(L,key=lambda b:b.head.start)
+def ast(toks):
+    blocks_tracker = []
+    for t in toks:
         if tokisfun(t):
-            maxstart.add(B)
-        else:
-            maxstart.add(t)
+            B = Block(t)
+            blocks_tracker.append(B)
+        wrapping_blocks = [b for b in blocks_tracker if is_token_in_block(t, b.kw)]
+        if wrapping_blocks:
+            maxline = max(wrapping_blocks, key=lambda b: b.kw.line).kw.line
+            bottommost_blocks = [b for b in wrapping_blocks if b.kw.line == maxline]
+            rightmost_block = max(bottommost_blocks, key=lambda b: b.kw.start)
+            rightmost_block.append(B if tokisfun(t) else t)
+    return blocks_tracker[0]
+
+# blocks=[]
+
+# for t in toks:
+    # if tokisfun(t):
+        # B=Block(t)
+        # blocks.append(B)
+    # x=[b for b in blocks if is_token_in_block(t, b.kw)]
+    # if x:
+        # maxline=max(x, key=lambda b:b.kw.line).kw.line
+        # L=[b for b in x if b.kw.line==maxline]
+        # maxstart=max(L,key=lambda b:b.kw.start)
+        # if tokisfun(t):
+            # maxstart.add(B)
+        # else:
+            # maxstart.add(t)
 
 def listify(block, L):
-    for x in block.tail:
+    for x in block.content:
         if isinstance(x, Token):
             L.append(x.label)
         else:
             L.append(listify(x, []))
     return L
-print(listify(blocks[0], []))
-# print(blocks[0].tail)
-
-# for b in blocks:
-    # print(b.tail)
-
-# print((ast(composite_exprs(tokenize_source(s)))))
-
-
-
-
-
-
-
-# for x in composite_exprs(tokenize_source(s)):
-    # print([a.label for a in x])
+print(listify(ast(toks), []))
