@@ -46,17 +46,7 @@ class Token:
     def __repr__(self):
         return f"<{self.label}> L{self.line} S{self.start}"
 
-def resolve_token(t):
-    try:
-        return int(t.label)
-    except ValueError:
-        try:
-            return float(t.label)
-        except ValueError:
-            try:
-                return funcenv[t.label]
-            except KeyError:
-                pass
+
 
 def set_token_value_ip(t):
     try:
@@ -122,31 +112,36 @@ defn meine-funktion
         * p1 1000
       list 1 2 3 4 5 6
 """
+def resolve_token(t):
+    try:
+        return int(t)
+    except ValueError:
+        try:
+            return float(t)
+        except ValueError:
+            try:
+                return funcenv[t]
+            except KeyError:
+                pass
 
 def evalexp(x):
-    try: # a token obj?
-        return x.value
-    except AttributeError: # a list?
-        try:
-            fn, *args = x
-            return evalexp(fn)(*[evalexp(a) for a in args])
-        except KeyError:
-            pass
+    if isinstance(x, list):
+        fn, *args = x
+        return evalexp(fn)(*[evalexp(a) for a in args])
+    else: return resolve_token(x)
+
+
+
 """
 rightmost left-side function gets things,
 if no rightmost left-side, then TOP rightmost leftside etc
 
 """
+
 s="""
-list 1 2 3
-    list 4 5 6
-        list 3 2 1
-    44 list 500 500 list 5 4 3 list 9 8
-                10    11
-      1008
-"""
-s="""
-4
+
+list 2 3 * 4 5
+  4 5 6 7  2 list 1 0.5
 """
 toks = tokenize_source(s)
 # print(toks)
@@ -184,6 +179,5 @@ def listify(block, L):
         else:
             L.append(listify(x, []))
     return L
-
-ast(toks)
-# print(listify(ast(toks), []))
+# print(ast(toks))
+print(evalexp(listify(ast(toks), [])))
