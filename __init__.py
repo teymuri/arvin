@@ -25,14 +25,25 @@ def pret(thing):
     print(thing)
     return thing
 
+def group_case_clauses(clauses, g):
+    if clauses:
+        g.append(clauses[:2])
+        return group_case_clauses(clauses[2:], g)
+    return g
+
+
 funcenv = {
     "*": lambda *args: reduce(lambda x, y: x*y, args),
     "+": lambda *args: sum(args),
     "=": lambda *args: args.count(args[0]) == len(args),
     "pret": pret,
     "list": lambda *args: list(args),
-    "case": None
 }
+specialforms = ("case",)
+
+def isfunc(x): return x in funcenv
+def iskw(tok): 
+    return tok.label in specialforms or tok.label in funcenv
 
 class Token:
     def __init__(self, label, start, end, line):
@@ -47,21 +58,6 @@ class Token:
         return f"<{self.label}> L{self.line} S{self.start}"
 
 
-
-def set_token_value_ip(t):
-    try:
-        t.value = int(t.label)
-    except ValueError:
-        try:
-            t.value = float(t.label)
-        except ValueError:
-            try:
-                t.value = funcenv[t.label]
-            except KeyError:
-                pass
-
-    
-
 def tokisfun(t): return t.label in funcenv
 
 def lines(src): return src.strip().splitlines()
@@ -72,46 +68,21 @@ DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
 def tokenize_source(src):
     toks = []
     for i, line in enumerate(lines(src)):
-        for match in re.finditer(r"([*+]|\w+|{})".format(DECPATT), line):
+        for match in re.finditer(r"([*=+]|\w+|{})".format(
+                DECPATT
+            ), line):
             toks.append(Token(label=match.group(), start=match.start(), end=match.end(), line=i)
             )
     return toks
 
-def tokensatline(line, toks):
-    return [t for t in toks if t.line == line]
 
 
-
-def linekws(linetoks):
-    """Returns a list of kw tokens at current line."""
-    return [t for t in linetoks if tokisfun(t)]
-
-def is_atomic_subordinate(tok, kw):
-    """Is token inside of the kw's block, eg an arg etc
-    """
-    return (not tokisfun(tok)) and is_token_in_block(tok, kw) and (not tok.allocated)
 
 def is_token_in_block(tk, kw):
     """Is tk inside of the kw's block?"""
     return tk.start > kw.start and tk.line >= kw.line
 
-def is_composite_in_block(c1, c2):
-    return is_token_in_block(c1[0], c2[0])
 
-
-"""
-defn meine-funktion
-  p1 p2 p3
-    p4 p5 p6
-    p7 p8 p9
-  block
-    pret list p7 p8
-    map
-      fn
-        p1
-        * p1 1000
-      list 1 2 3 4 5 6
-"""
 def resolve_token(t):
     try:
         return int(t)
@@ -119,30 +90,39 @@ def resolve_token(t):
         try:
             return float(t)
         except ValueError:
-            try:
-                return funcenv[t]
-            except KeyError:
-                pass
+            return funcenv[t]
 
-def evalexp(x):
+
+    
+def eval_(x):
     if isinstance(x, list):
-        fn, *args = x
-        return evalexp(fn)(*[evalexp(a) for a in args])
+        kw, *args = x
+        if kw == "case":
+            for pred, form in group_case_clauses(args, []):
+                if eval_(pred): return eval_(form)
+            return False
+        elif isfunc(kw):
+            return funcenv[kw](*[eval_(a) for a in args])
     else: return resolve_token(x)
 
 
-
+    
 """
 rightmost left-side function gets things,
 if no rightmost left-side, then TOP rightmost leftside etc
 
+
 """
+
 
 s="""
-
-list 2 3 * 4 5
-  4 5 6 7  2 list 1 0.5
+case 
+  = 2 2
+  + 2 2
+  = 4 4 + 2 2
+  * 10 pret 10
 """
+
 toks = tokenize_source(s)
 # print(toks)
 
@@ -156,7 +136,8 @@ class Block:
 def ast(toks):
     blocks_tracker = []
     for t in toks:
-        if tokisfun(t):
+        # if tokisfun(t):
+        if iskw(t):
             B = Block(t)
             blocks_tracker.append(B)
         wrapping_blocks = [b for b in blocks_tracker if is_token_in_block(t, b.kw)]
@@ -164,7 +145,7 @@ def ast(toks):
             maxline = max(wrapping_blocks, key=lambda b: b.kw.line).kw.line
             bottommost_blocks = [b for b in wrapping_blocks if b.kw.line == maxline]
             rightmost_block = max(bottommost_blocks, key=lambda b: b.kw.start)
-            rightmost_block.append(B if tokisfun(t) else t)
+            rightmost_block.append(B if iskw(t) else t)
     try:
         return blocks_tracker[0]
     except IndexError: # If there was no kw, no blocks have been built
@@ -180,4 +161,4 @@ def listify(block, L):
             L.append(listify(x, []))
     return L
 # print(ast(toks))
-print(evalexp(listify(ast(toks), [])))
+print(eval_(listify(ast(toks), [])))
