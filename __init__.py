@@ -25,9 +25,10 @@ def pret(thing):
     print(thing)
     return thing
 
-builtins_env = {
+funcenv = {
     "*": lambda *args: reduce(lambda x, y: x*y, args),
     "+": lambda *args: sum(args),
+    "=": lambda *args: args.count(args[0]) == len(args),
     "pret": pret,
     "list": lambda *args: list(args),
     "case": None
@@ -53,7 +54,7 @@ def resolve_token(t):
             return float(t.label)
         except ValueError:
             try:
-                return builtins_env[t.label]
+                return funcenv[t.label]
             except KeyError:
                 pass
 
@@ -65,13 +66,13 @@ def set_token_value_ip(t):
             t.value = float(t.label)
         except ValueError:
             try:
-                t.value = builtins_env[t.label]
+                t.value = funcenv[t.label]
             except KeyError:
                 pass
 
     
 
-def tokisfun(t): return t.label in builtins_env
+def tokisfun(t): return t.label in funcenv
 
 def lines(src): return src.strip().splitlines()
 
@@ -107,32 +108,7 @@ def is_token_in_block(tk, kw):
 def is_composite_in_block(c1, c2):
     return is_token_in_block(c1[0], c2[0])
 
-def nextindent(i, indents):
-    for idx in sorted(set(indents)):
-        if idx > i:
-            return idx
-    
-def composite_exprs(toks):
-    """
-    Returns a list of composite expressions in the form
-    [kw, p1, p2, p3, ...]
-    """
-    L = []
-    D={}
-    maxline = max(toks, key=lambda t: t.line).line
-    for i in range(maxline, -1, -1):
-        kwtoks = linekws(tokensatline(i, toks))
-        if kwtoks:
-            for kw in sorted(kwtoks, key=lambda t: t.start, reverse=True):
-                set_token_value_ip(kw)
-                x=[kw]
-                for a in [t for t in toks if is_atomic_subordinate(t, kw)]:
-                    a.allocated = True
-                    set_token_value_ip(a)
-                    x.append(a)
-                L.append(x)
-                D[(kw.line, kw.start)] = x
-    return L
+
 """
 defn meine-funktion
   p1 p2 p3
@@ -146,37 +122,6 @@ defn meine-funktion
         * p1 1000
       list 1 2 3 4 5 6
 """
-def ast1(L):
-    i=0
-    while len(L) > 1:
-        # print(">>", i,L[i])
-        block = []
-        for j, compexp in enumerate(L):
-            if is_composite_in_block(compexp, L[i]):
-                block.append(L.pop(j))
-        if block:
-            print(block)
-            block=sorted(block, key=lambda c: c[0].line)
-            block=sorted(block, key=lambda c: c[0].start)
-            L[i].append(list(block))
-        else: i += 1
-    return L
-
-def sort_composite_args(L):
-    print([x for x in L if isinstance(x, list)])
-    
-def ast(atomic_lists):
-    print(">>>>", atomic_lists)
-    while len(atomic_lists) > 1:
-        lst = atomic_lists.pop(0)
-        # print(">",lst)
-        for x in atomic_lists:
-            if is_token_in_block(lst[0], x[0]):
-            # if x[0].start < lst[0].start and x[0].line <= lst[0].line:
-                x.append(lst)
-                break
-    return atomic_lists[0]
-
 
 def evalexp(x):
     try: # a token obj?
@@ -201,12 +146,12 @@ list 1 2 3
       1008
 """
 s="""
-list 1 2
-  list 3 4
-  hi 5
+
+list 3 4 list 56
+      34
 """
 toks = tokenize_source(s)
-
+# print(toks)
 
 class Block:
     def __init__(self, kw):
@@ -222,6 +167,7 @@ def ast(toks):
             B = Block(t)
             blocks_tracker.append(B)
         wrapping_blocks = [b for b in blocks_tracker if is_token_in_block(t, b.kw)]
+        print(t, t.start, wrapping_blocks)
         if wrapping_blocks:
             maxline = max(wrapping_blocks, key=lambda b: b.kw.line).kw.line
             bottommost_blocks = [b for b in wrapping_blocks if b.kw.line == maxline]
@@ -229,23 +175,9 @@ def ast(toks):
             rightmost_block.append(B if tokisfun(t) else t)
     return blocks_tracker[0]
 
-# blocks=[]
-
-# for t in toks:
-    # if tokisfun(t):
-        # B=Block(t)
-        # blocks.append(B)
-    # x=[b for b in blocks if is_token_in_block(t, b.kw)]
-    # if x:
-        # maxline=max(x, key=lambda b:b.kw.line).kw.line
-        # L=[b for b in x if b.kw.line==maxline]
-        # maxstart=max(L,key=lambda b:b.kw.start)
-        # if tokisfun(t):
-            # maxstart.add(B)
-        # else:
-            # maxstart.add(t)
 
 def listify(block, L):
+    """Just for debugging!"""
     for x in block.content:
         if isinstance(x, Token):
             L.append(x.label)
@@ -253,4 +185,4 @@ def listify(block, L):
             L.append(listify(x, []))
     return L
 
-# print(listify(ast(toks), []))
+print(listify(ast(toks), []))
