@@ -200,9 +200,11 @@ list 1 2 3
                 10    11
       1008
 """
-# s="""
-# list 1 2 list 3 4
-# """
+s="""
+list 1 2
+  list 3 4
+  hi 5
+"""
 toks = tokenize_source(s)
 
 
@@ -250,4 +252,5 @@ def listify(block, L):
         else:
             L.append(listify(x, []))
     return L
-print(listify(ast(toks), []))
+
+# print(listify(ast(toks), []))
