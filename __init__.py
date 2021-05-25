@@ -146,9 +146,7 @@ list 1 2 3
       1008
 """
 s="""
-
-list 3 4 list 56
-      34
+4
 """
 toks = tokenize_source(s)
 # print(toks)
@@ -167,13 +165,15 @@ def ast(toks):
             B = Block(t)
             blocks_tracker.append(B)
         wrapping_blocks = [b for b in blocks_tracker if is_token_in_block(t, b.kw)]
-        print(t, t.start, wrapping_blocks)
         if wrapping_blocks:
             maxline = max(wrapping_blocks, key=lambda b: b.kw.line).kw.line
             bottommost_blocks = [b for b in wrapping_blocks if b.kw.line == maxline]
             rightmost_block = max(bottommost_blocks, key=lambda b: b.kw.start)
             rightmost_block.append(B if tokisfun(t) else t)
-    return blocks_tracker[0]
+    try:
+        return blocks_tracker[0]
+    except IndexError: # If there was no kw, no blocks have been built
+        pass
 
 
 def listify(block, L):
@@ -185,4 +185,5 @@ def listify(block, L):
             L.append(listify(x, []))
     return L
 
-print(listify(ast(toks), []))
+ast(toks)
+# print(listify(ast(toks), []))
