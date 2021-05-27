@@ -20,7 +20,7 @@ list 1 2 3
     list 500 500 list 5 4 3 list 9 8
                 list 10 11
 """
-
+_verbose_tokenrepr = False
 
 
 def group_case_clauses(clauses, g):
@@ -58,6 +58,18 @@ class Env:
         self.vars = {}
         self.consts = {}
         self.parenv = parenv
+    def isfunc(self, tok): return tok.label in self.funcs
+    def resolve_token(self, tok):
+        try:
+            return self.funcs[tok.label]
+        except KeyError:
+            try:
+                return self.vars[tok.label]
+            except KeyError:
+                try:
+                    return self.consts[tok.label]
+                except KeyError:
+                    return parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
         if tok.label in self.funcs:
@@ -75,34 +87,32 @@ class Env:
             return self.parenv.getenv(s)
         else:
             raise KeyError
-    
-    # def isblockbuilder(self, s):
-        # return s in tuple(self.funcs.keys()) + NAMING_BLOCK_BUILDERS + NONNAMING_BLOCK_BUILDERS
-
-
-# specialforms = ("case",)
-
-# def isfun(s, env): return s in env["fun"]
-
-# def iskw(tok): 
-    # return tok.label in specialforms or isfun(tok.label)
-
+            
+            
 class Token:
     def __init__(self, label, start, end, line):
         self.label = label
         self.start = start
         self.end = end
         self.line = line
-        self.allocated = False
-        self.value = None
+        # self.allocated = False
+        # self.value = None
     
     def __repr__(self):
-        return f"{self.label}.L{self.line}.S{self.start}"
-        # return f"{self.label}"
+        if _verbose_tokenrepr:
+            return f"{self.label}.L{self.line}.S{self.start}"
+        else:
+            return f"{self.label}"
 
 
-# def tokisfun(t): return t.label in funcenv
-
+class Func:
+    def __init__(self, params, body, env):
+        self.params = params
+        self.body = body
+        self.env = env
+    def __call__(self, *args):
+        return evaltoplevel(self.body, )
+        
 def lines(src): return src.strip().splitlines()
 
 # decimal numbers
@@ -126,30 +136,6 @@ def is_token_in_block(tk, bl):
     return tk.start > bl.kw.start and tk.line >= bl.kw.line
 
 
-def evaltoplevel(x, e):
-    if isinstance(x, list):
-        kw, *args = x
-        # if e.isspecialform(kw):
-        if kw == "case":
-            for pred, form in group_case_clauses(args, []):
-                if evaltoplevel(pred, e): return evaltoplevel(form, e)
-            return False
-        # elif isfun(kw, e):
-        elif e.isfunction(kw):
-            return e.getfunction(kw)(*[evaltoplevel(a, e) for a in args])
-        else:
-            raise SyntaxError
-    else:
-        try:
-            return int(x)
-        except ValueError:
-            try:
-                return float(x)
-            except ValueError:
-                try: # resolving in env
-                    return e.variables[x]
-                except KeyError:
-                    return e.constants[x]
 
 
     
@@ -185,18 +171,18 @@ class Block:
     counter = 0
     def __init__(self, kw, env):
         self.kw = kw
-        self.content = [self.kw]
+        self.cont = [self.kw]
         self.env = env
         self.nth = Block.counter
         Block.counter += 1
     
     def __repr__(self): return f"B{self.nth}"
     def append(self, t):
-        self.content.append(t)
+        self.cont.append(t)
 
 
 def ast(block, L):
-    for x in block.content:
+    for x in block.cont:
         if isinstance(x, Token):
             L.append(x)
         else:
@@ -204,42 +190,7 @@ def ast(block, L):
     return L
 # varlet, funlet
 
-# def currenv(envslist): return envslist[-1]
 
-
-
-# def parse(toks):
-    # """Converts tokens to an AST"""
-    # envs = [Env(parenv=toplevel_env)]
-    # blocktracker = []
-    # nametok = None
-    
-    # for i, t in enumerate(toks):
-        # if env.isblockbuilder(t.label):
-            # B = Block(t)
-            # blocktracker.append(B)
-        
-        # if env.isnaming(t.label): # next token MUST BE the name of this thing!
-            # nametok = toks[i+1]
-        
-        # enclosing_blocks = [b for b in blocktracker if is_token_in_block(t, b)]
-        # if enclosing_blocks: # i!=0
-            # maxline = max(enclosing_blocks, key=lambda b: b.kw.line).kw.line
-            # bottommost_blocks = [b for b in enclosing_blocks if b.kw.line == maxline]
-            # rightmost_block = max(bottommost_blocks, key=lambda b: b.kw.start)
-            # rightmost_block.append(B if env.isblockbuilder(t.label) else t)
-        
-        # try:
-            # if t.label == nametok.label:
-                # if toks[i-1].label == "defun":
-                    # env.block_builders[t.label] = None # actual binding happens later while evaling
-                # nametok = None
-        # except AttributeError: pass
-    
-    # try:
-        # return ast(blocktracker[0], [])
-    # except IndexError: # If there was no kw, no blocks have been built
-        # pass
 
 def bottom_rightmost_enclosing_block(enclosing_blocks):
     # Find the max line
@@ -250,25 +201,23 @@ def bottom_rightmost_enclosing_block(enclosing_blocks):
     return max(bottommost_blocks, key=lambda b: b.kw.start)
 
 # global env has no parent env
-toplevel_block = Block(kw=None, env=Env())
+toplevel_env = Env()
+toplevel_block = Block(kw=None, env=toplevel_env)
 ###########################
 ###########################
-#if not blockbuilder , also cant be naming!
-def parse_toplevel(toks):
+# The ast is passed to eval
+def parse(toks):
     """Converts tokens to an AST"""
     # global toplevel_block
     nametok = None
     currblock = toplevel_block
     blocktracker = []
-    # print(currblock)
     for i, t in enumerate(toks):
-        # print(t, currblock)
         if currblock.env.isblockbuilder(t):
             if is_lexenv_builder(t):
                 # blocktracker.append(Block(t, Env(currblock.env)))
                 B = Block(t, Env(currblock.env))
             else:
-                # blocktracker.append(Block(t, currblock.env))
                 B = Block(t, currblock.env)
         blocktracker.append(B)
         # If this token is a naming kw, the next token MUST BE the name of it!
@@ -293,13 +242,39 @@ def parse_toplevel(toks):
                     toplevel_block.env.funcs[t.label] = None
                 elif toks[i-1].label == "funlet":
                     currblock.env.funcs[t.label] = None
+                # elif toks[i-1].label == "defvar":
+                    # currblock.env.vars[t.label] == None
                 nametok = None
         # If nametok is None
         except AttributeError: pass
     try:
-        return ast(blocktracker[0], [])
+        return blocktracker[0]
     except IndexError: # If there was no kw, no blocks have been built
         pass
+
+def eval_(x, e):
+    if isinstance(x, Block): # think of a Block as list!
+        # kw, args = x.kw, x.content
+        if x.kw == "case":
+            for pred, form in group_case_clauses(x.cont, []):
+                if evaltoplevel(pred, e): return evaltoplevel(form, e)
+            return False
+        
+        elif x.kw.label == "defvar":
+            var, expr = x.cont[1:]
+            x.env.vars[var.label] = eval_(expr, x.env)
+            return x.env.vars
+        
+        elif e.isfunc(x.kw):
+            return e.funcs[x.kw.label](*[eval_(t, x.env) for t in x.cont[1:]])
+        
+        else:
+            raise SyntaxError
+    else: # x is a Token
+        try:
+            return int(x.label)
+        except ValueError:
+            return float(x.label)
 
 
 
@@ -329,10 +304,10 @@ defun fact
        1
 """
 s="""
-defun F0 :x y z
-  a b c
-  :defun F1
-    F0
+defvar v + 3 4 
+           * 10 2
+pret v
 """
 toks = tokenize_source(s)
-print(parse_toplevel(toks))
+print(eval_(parse(toks), toplevel_env))
+# print(ast(parse(toks),[]))
