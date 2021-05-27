@@ -39,9 +39,9 @@ def group_case_clauses(clauses, g):
     return g
 
 SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
-NONNAMING_BLOCK_BUILDERS = ("case",)
-LEXICAL_BLOCK_BUILDERS = ("block", "defun")
-MULTIPLE_VALUE_BINDERS = ("defvar",)
+NONNAMING_BLOCK_BUILDERS = ("case","call")
+LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "function", )
+MULTIPLE_VALUE_BINDERS = ("defvar", "define", "function")
 
 def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
 
@@ -120,14 +120,23 @@ class Token:
             return f"{self.label}"
 
 
-class Func:
-    def __init__(self, params, body, env):
+class Function:
+    
+    def __init__(self, params, body, enclosing_env):
         self.params = params
         self.body = body
-        self.env = env
+        self.enclosing_env = enclosing_env
+    
     def __call__(self, *args):
-        return evaltoplevel(self.body, )
-        
+        assert (len(self.params) == len(args))
+        e = Env(self.enclosing_env)
+        e.vars.update(zip(self.params, args))
+        for expr in self.body[:-1]:
+            eval_(expr, e)
+        return eval_(self.body[-1], e)
+
+
+
 def lines(src): return src.strip().splitlines()
 
 # decimal numbers
@@ -136,9 +145,8 @@ DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
 def tokenize_source(src):
     toks = []
     for i, line in enumerate(lines(src)):
-        for match in re.finditer(r"([*=+-]|\w+|{})".format(
-                DECPATT
-            ), line):
+        # for match in re.finditer(r"([*=+-]|\w+|{})".format(DECPATT), line):
+        for match in re.finditer(r"\S+", line):
             toks.append(Token(label=match.group(), start=match.start(), end=match.end(), line=i)
             )
     return toks
@@ -276,26 +284,37 @@ def parse(toks):
 def eval_(x, e):
     if isinstance(x, Block): # think of a Block as list!
 
-        kwtok, *args = x.cont
+        headtok, body = x.kw, x.cont[1:]
 
-        if x.kw == "case":
-            for pred, form in group_case_clauses(x.cont, []):
-                if evaltoplevel(pred, e): return evaltoplevel(form, e)
-            return False
+        if headtok.label == "case":
+            pass
+            # for pred, form in group_case_clauses(x.cont, []):
+                # if evaltoplevel(pred, e): return evaltoplevel(form, e)
+            # return False
         
-        elif kwtok.label == "defvar":
-            assert all([isinstance(a, Block) for a in args[1:]])
-            for bind in args: # bind is a Block
+        elif headtok.label == "defvar":
+            assert all([isinstance(a, Block) for a in body[1:]])
+            for bind in body: # bind is a Block
                 _, vartok, val = bind.cont
-                # Nicht im globalenv???
+                # Nicht im globalenv??? es ist defvar!
                 x.env.vars[vartok.label] = eval_(val, bind.env)
             return vartok
         
-        elif e.isfunc(x.kw):
-            return e.funcs[x.kw.label](*[eval_(t, x.env) for t in x.cont[1:]])
+        elif headtok.label == "call": # call a function object
+            funcblock, *args = body
+            return eval_(funcblock, e)(*[eval_(a, e) for a in args])
+        
+        elif headtok.label == "function": # create a function object
+            # the first block is a block of params
+            paramsblock, *exprs = body
+            params = paramsblock.cont[1:] # cont[0] => block!
+            return Function([p.label for p in params], exprs, e)
+        
+        elif e.isfunc(headtok):
+            return e.funcs[headtok.label](*[eval_(b, e) for b in body])
         
         else:
-            raise SyntaxError
+            raise SyntaxError(f"{(x, x.cont)} not known")
     else: # x is a Token
         try:
             return int(x.label)
@@ -332,14 +351,35 @@ defun fact
       - n
        1
 """
-s="""
-defvar  block x 8
-    block v + x 2
-              3 * 2 2
-    block jurij * 100 v x
 """
+call
+    function block x y
+        * x y + x y
+    3 4
+define
+    block fact
+        function 
+            block N
+            case = N 1
+                 1
+                 true
+                 * N fact - N 1
+call fact 6
+"""
+# make assignements liek this
+# -> block f1 fn block x y
+    # block var 34
+s="""
+call 
+    function 
+        block N x e
+        * N 100
+    10
+    1
+"""
+
 toks = tokenize_source(s)
-# print(listify(parse(toks),[]))
+print(listify(parse(toks),[]))
 # print(listify(parse(toks),[]))
 print(eval_(parse(toks), toplevel_env))
 # print(listify(parse(toks),[]))
