@@ -5,6 +5,7 @@ BUBU Parser
 """
 
 import re
+import sys
 import operator as op
 from functools import reduce
 
@@ -122,7 +123,7 @@ class Env:
             
             
 class Token:
-    def __init__(self, label, start, end, line):
+    def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
         self.label = label
         self.start = start
         self.end = end
@@ -169,7 +170,7 @@ def tokenize_source(src):
 
 
 
-def is_token_in_block(tk, bl):
+def token_isin_block(tk, bl):
     """Is tk inside of the kw's block?"""
     return tk.start > bl.kw.start and tk.line >= bl.kw.line
 
@@ -216,15 +217,13 @@ class Block:
     def append(self, t): self.cont.append(t)
 
 
-def listify(block, L):
-    for x in block.cont:
+def ast(parsed_block, tree=[]):
+    for x in parsed_block.cont:
         if isinstance(x, Token):
-            L.append(x)
+            tree.append(x)
         else: # Block?
-            L.append(listify(x, []))
-    return L
-# varlet, funlet
-
+            tree.append(ast(x, []))
+    return tree
 
 
 def bottom_rightmost_enclosing_block(enclosing_blocks):
@@ -237,7 +236,8 @@ def bottom_rightmost_enclosing_block(enclosing_blocks):
 
 # global env has no parent env
 toplevel_env = Env()
-toplevel_block = Block(kw=None, env=toplevel_env)
+toplevel_block = Block(kw=Token(), env=toplevel_env)
+# print(toplevel_block.kw.line)
 ###########################
 ###########################
 # The listify is passed to eval
@@ -245,7 +245,7 @@ def parse(toks):
     """Converts tokens to an AST of Tokens/Blocks"""
     nametok = None
     enclosingblock = toplevel_block
-    blocktracker = []
+    blocktracker = [enclosingblock]
     
     for i, t in enumerate(toks):
         # make a block??
@@ -260,8 +260,8 @@ def parse(toks):
         if is_singlename_builder(t): # eg defun
             nametok = toks[i+1]
             
-        enclosing_blocks = [b for b in blocktracker if is_token_in_block(t, b)]
-        if enclosing_blocks: # i!=0
+        enclosing_blocks = [b for b in blocktracker if token_isin_block(t, b)]
+        if enclosing_blocks: # If there are some enclosing blocks (Is this not always true?????????)
             enclosingblock = bottom_rightmost_enclosing_block(enclosing_blocks)
             if enclosingblock.env.isblockbuilder(t):
                 enclosingblock.append(B)
@@ -289,6 +289,7 @@ def parse(toks):
         except AttributeError: pass
     try:
         return blocktracker[0]
+        # return toplevel_block
     except IndexError: # If there was no kw, no blocks have been built
         pass
 
@@ -298,8 +299,12 @@ def eval_(x, e):
 
         car, cdr = x.kw, x.cont[1:]
         # car, cdr = x.kw, x.cont
-
-        if car.label == "case":
+        if car.label == "_TOPLEVEL": # start processing the rest
+            for i in cdr[:-1]:
+                eval_(i, e)
+            return eval_(cdr[-1], e)
+            
+        elif car.label == "case":
             pass
             # for pred, form in group_case_clauses(x.cont, []):
                 # if evaltoplevel(pred, e): return evaltoplevel(form, e)
@@ -390,10 +395,18 @@ call fact 6
 # -> block f1 fn block x y
     # block var 34
 s="""
-map '* list 2 3 4
-    list 3 2 1
++  2 3
+pret * 10 2
+1000
+pret list map '* list 2 3 
+                 list 10 100
+pret list
+map '*
+        list 2 3 4
+        list 10 100 1000
 """
 toks = tokenize_source(s)
+# print([t for t in toks])
 # print(parse(toks))
-print(listify(parse(toks),[]))
+# print(ast(parse(toks))[2])
 print(eval_(parse(toks), toplevel_env))
