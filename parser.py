@@ -60,6 +60,8 @@ def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
 ######### builtin functions
 def sub(*args): return reduce(op.sub, args) if args else 0
 def mul(*args): return reduce(op.mul, args) if args else 1
+def floordiv(*args): return reduce(op.floordiv, args)
+def truediv(*args): return reduce(op.truediv, args)
 def add(*args): return sum(args)
 def eq(*args): return args.count(args[0]) == len(args)
 def pret(thing):
@@ -72,7 +74,9 @@ def map_(fn, *args): return list(map(fn, *args))
 # builtins which DO NOT require a func as argument!
 def builtin_funcs():
     return {
-        "*": mul, "+": add, "-": sub, "=": eq, "pret": pret,
+        "*": mul, "+": add, "-": sub, "=": eq, 
+        "//": floordiv, "/": truediv,
+        "pret": pret,
         "list": list_, "map": map_
     }
 
@@ -395,18 +399,14 @@ call fact 6
 # -> block f1 fn block x y
     # block var 34
 s="""
-+  2 3
-pret * 10 2
-1000
-pret list map '* list 2 3 
-                 list 10 100
-pret list
-map '*
-        list 2 3 4
-        list 10 100 1000
+pret + 137 349
+pret - 1000 334
+pret * 5 99
+pret // 10 5
+pret + 2.7 10
 """
 toks = tokenize_source(s)
 # print([t for t in toks])
 # print(parse(toks))
 # print(ast(parse(toks))[2])
-print(eval_(parse(toks), toplevel_env))
+eval_(parse(toks), toplevel_env)
