@@ -14,6 +14,10 @@ list 1 2 3 * 10 10
  4 5
 """
 s="""
+list '* 2 3
+     4 5
+defun fn 
+'fn
 list 1 2 3
     list 4 5 6
         list 3 2 1
@@ -38,10 +42,12 @@ def group_case_clauses(clauses, g):
         return group_case_clauses(clauses[2:], g)
     return g
 
+HIGHER_ORDER_FUNCTIONS = ("call", "map")
+# def ishigherorder(tok): return tok.label in HIGHER_ORDER_FUNCTIONS
 SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
 NONNAMING_BLOCK_BUILDERS = ("case","call")
-LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "function", )
-MULTIPLE_VALUE_BINDERS = ("defvar", "define", "function")
+LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "fn", )
+MULTIPLE_VALUE_BINDERS = ("defvar", "define")
 
 def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
 
@@ -50,53 +56,63 @@ def is_singlename_builder(tok): return tok.label in SINGLE_NAMING_BLOCK_BUILDERS
 def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
 
 ######### builtin functions
-def sub(*args): return reduce(op.sub, args)
-def mul(*args): return reduce(op.mul, args)
+def sub(*args): return reduce(op.sub, args) if args else 0
+def mul(*args): return reduce(op.mul, args) if args else 1
 def add(*args): return sum(args)
 def eq(*args): return args.count(args[0]) == len(args)
 def pret(thing):
     """Prints and returns the thing."""
     print(thing)
     return thing
-def list_(*args): list(args)
+def list_(*args): return list(args)
+def map_(fn, *args): return list(map(fn, *args))
 
-def _builtin_funcs():
+# builtins which DO NOT require a func as argument!
+def builtin_funcs():
     return {
         "*": mul, "+": add, "-": sub, "=": eq, "pret": pret,
-        "list": list_,
+        "list": list_, "map": map_
     }
 
 class Env:
     def __init__(self, parenv=None):
-        self.funcs = _builtin_funcs()
+        self.builtins = builtin_funcs()
         self.vars = {}
         self.consts = {}
         self.parenv = parenv
-    def isfunc(self, tok): return tok.label in self.funcs
+        
+    # def coerce_to_funobj(self, tok): return self.builtins[tok.label]
+    
+    def isfunc(self, tok): return tok.label in self.builtins
+    
     def resolve_token(self, tok):
-        try:
-            return self.funcs[tok.label]
-        except KeyError:
+        if tok.label.startswith("'"): # return the function object
+            return self.builtins[tok.label[1:]]
+        else:
             try:
-                return self.vars[tok.label]
+                return self.builtins[tok.label]
             except KeyError:
                 try:
-                    return self.consts[tok.label]
+                    return self.vars[tok.label]
                 except KeyError:
-                    return self.parenv.resolve_token(tok)
+                    try:
+                        return self.consts[tok.label]
+                    except KeyError:
+                        return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
-        if tok.label in self.funcs:
+        if tok.label in self.builtins:
             return True
         else:
             if self.parenv:
                 return self.parenv.isblockbuilder(tok)
             else:
                 return tok.label in SINGLE_NAMING_BLOCK_BUILDERS + \
-                    NONNAMING_BLOCK_BUILDERS + MULTIPLE_VALUE_BINDERS
+                    NONNAMING_BLOCK_BUILDERS + MULTIPLE_VALUE_BINDERS + \
+                    HIGHER_ORDER_FUNCTIONS + LEXICAL_BLOCK_BUILDERS
     
     def getenv(self, s):
-        if s in self.funcs or s in self.vars or s in self.consts:
+        if s in self.builtins or s in self.vars or s in self.consts:
             return self
         elif self.parenv:
             return self.parenv.getenv(s)
@@ -110,8 +126,6 @@ class Token:
         self.start = start
         self.end = end
         self.line = line
-        # self.allocated = False
-        # self.value = None
     
     def __repr__(self):
         if _verbose_tokenrepr:
@@ -128,7 +142,7 @@ class Function:
         self.enclosing_env = enclosing_env
     
     def __call__(self, *args):
-        assert (len(self.params) == len(args))
+        assert (len(self.params) == len(args)), f"function expected {len(self.params)} arguments, but got {len(args)}"
         e = Env(self.enclosing_env)
         e.vars.update(zip(self.params, args))
         for expr in self.body[:-1]:
@@ -207,7 +221,7 @@ def listify(block, L):
     for x in block.cont:
         if isinstance(x, Token):
             L.append(x)
-        else:
+        else: # Block?
             L.append(listify(x, []))
     return L
 # varlet, funlet
@@ -233,21 +247,19 @@ def parse(toks):
     # global toplevel_block
     
     nametok = None
-    vartok_monitor = None
     enclosingblock = toplevel_block
     blocktracker = []
-    monitor_multiple_value_binder = None
     
     for i, t in enumerate(toks):
-        
         # make a block??
         if enclosingblock.env.isblockbuilder(t):
             if is_lexenv_builder(t):
                 B = Block(t, Env(enclosingblock.env)) # give it a new env
             else:
                 B = Block(t, enclosingblock.env)
-        blocktracker.append(B)
+            blocktracker.append(B)
 
+        # Monitor next coming token
         if is_singlename_builder(t): # eg defun
             nametok = toks[i+1]
             
@@ -266,10 +278,13 @@ def parse(toks):
                 # coming tokens.
                 # The actual bindings to the objects happen later during evaluation.
                 if toks[i-1].label == "defun":
-                    toplevel_block.env.funcs[t.label] = None
+                    toplevel_block.env.builtins[t.label] = None
                 elif toks[i-1].label == "funlet":
-                    enclosingblock.env.funcs[t.label] = None
+                    enclosingblock.env.builtins[t.label] = None
                 elif toks[i-1].label == "block":
+                    pass
+                elif toks[i-1].label == "map": 
+                    # f_for_map = None
                     pass
                     
                 nametok = None
@@ -284,37 +299,46 @@ def parse(toks):
 def eval_(x, e):
     if isinstance(x, Block): # think of a Block as list!
 
-        headtok, body = x.kw, x.cont[1:]
+        car, cdr = x.kw, x.cont[1:]
+        # car, cdr = x.kw, x.cont
 
-        if headtok.label == "case":
+        if car.label == "case":
             pass
             # for pred, form in group_case_clauses(x.cont, []):
                 # if evaltoplevel(pred, e): return evaltoplevel(form, e)
             # return False
         
-        elif headtok.label == "defvar":
-            assert all([isinstance(a, Block) for a in body[1:]])
-            for bind in body: # bind is a Block
-                _, vartok, val = bind.cont
-                # Nicht im globalenv??? es ist defvar!
-                x.env.vars[vartok.label] = eval_(val, bind.env)
-            return vartok
+        # elif car.label == "defvar":
+            # assert all([isinstance(a, Block) for a in cdr[1:]])
+            # for bind in cdr: # bind is a Block
+                # _, vartok, val = bind.cont
+                # # Nicht im globalenv??? es ist defvar!
+                # x.env.vars[vartok.label] = eval_(val, bind.env)
+            # return vartok
         
-        elif headtok.label == "call": # call a function object
-            funcblock, *args = body
-            return eval_(funcblock, e)(*[eval_(a, e) for a in args])
+        # Higher order functions
+        elif car.label == "call": # call a function object
+            fn, *args = cdr
+            return eval_(fn, e)(*[eval_(a, e) for a in args])
         
-        elif headtok.label == "function": # create a function object
+        elif car.label == "map":
+            fn, *args = cdr
+            return e.builtins[car.label](eval_(fn, e), *[eval_(a, e) for a in args])
+
+        elif car.label == "fn": # create a function object
             # the first block is a block of params
-            paramsblock, *exprs = body
-            params = paramsblock.cont[1:] # cont[0] => block!
+            paramsblock, *exprs = cdr
+            params = paramsblock.cont[1:]
             return Function([p.label for p in params], exprs, e)
         
-        elif e.isfunc(headtok):
-            return e.funcs[headtok.label](*[eval_(b, e) for b in body])
+        elif e.isfunc(car):
+            # return e.builtins[car.label](*[eval_(b, e) for b in cdr])
+            # print(car,cdr)
+            return eval_(car, e)(*[eval_(b, e) for b in cdr])
         
         else:
             raise SyntaxError(f"{(x, x.cont)} not known")
+    
     else: # x is a Token
         try:
             return int(x.label)
@@ -370,16 +394,12 @@ call fact 6
 # -> block f1 fn block x y
     # block var 34
 s="""
-call 
-    function 
-        block N x e
-        * N 100
-    10
-    1
+map fn block x y
+       '*
+    list 2 3 5
+    list 20 30 40
 """
-
 toks = tokenize_source(s)
+# print(parse(toks))
 print(listify(parse(toks),[]))
-# print(listify(parse(toks),[]))
 print(eval_(parse(toks), toplevel_env))
-# print(listify(parse(toks),[]))
