@@ -394,8 +394,8 @@ call fact 6
 # -> block f1 fn block x y
     # block var 34
 s="""
-map fn block x y
-       '*
+map fn block ( )
+       * ( )
     list 2 3 5
     list 20 30 40
 """
