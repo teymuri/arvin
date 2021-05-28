@@ -126,7 +126,7 @@ class Env:
             
             
 class Token:
-    def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
+    def __init__(self, label="_GLOBAL", start=-1, end=sys.maxsize, line=-1):
         self.label = label
         self.start = start
         self.end = end
@@ -238,16 +238,15 @@ def bottom_rightmost_enclosing_block(enclosing_blocks):
     return max(bottommost_blocks, key=lambda b: b.kw.start)
 
 # global env has no parent env
-toplevel_env = Env()
-toplevel_block = Block(kw=Token(), env=toplevel_env)
-# print(toplevel_block.kw.line)
+globalenv = Env()
+globalblock = Block(kw=Token(), env=globalenv)
 ###########################
 ###########################
 # The listify is passed to eval
 def parse(toks):
-    """Converts tokens to an AST of Tokens/Blocks"""
+    """Converts tokens of the source file to an AST of Tokens/Blocks"""
     nametok = None
-    enclosingblock = toplevel_block
+    enclosingblock = globalblock
     blocktracker = [enclosingblock]
     
     for i, t in enumerate(toks):
@@ -278,21 +277,20 @@ def parse(toks):
                 # coming tokens.
                 # The actual bindings to the objects happen later during evaluation.
                 if toks[i-1].label == "define":
-                    toplevel_block.env.builtins[t.label] = None
+                    globalblock.env.builtins[t.label] = None
                 elif toks[i-1].label == "funlet":
                     enclosingblock.env.builtins[t.label] = None
                 elif toks[i-1].label == "block":
                     pass
                 elif toks[i-1].label == "map": 
-                    # f_for_map = None
                     pass
                     
                 nametok = None
         # If nametok is None
         except AttributeError: pass
     try:
-        return blocktracker[0]
-        # return toplevel_block
+        # return blocktracker[0]
+        return globalblock
     except IndexError: # If there was no kw, no blocks have been built
         pass
 
@@ -302,7 +300,7 @@ def eval_(x, e):
 
         car, cdr = x.kw, x.cont[1:]
         # car, cdr = x.kw, x.cont
-        if car.label == "_TOPLEVEL": # start processing the rest
+        if car.label == "_GLOBAL": # start processing the rest
             for i in cdr[:-1]:
                 eval_(i, e)
             return eval_(cdr[-1], e)
@@ -403,9 +401,24 @@ pret - 1000 334
 pret * 5 99
 pret // 10 5
 pret + 2.7 10
+
+pret + 21 35 12 7
+pret * 25 4 12
+pret + * 3 5 
+       - 10 6
+pret + * 3 + * 2 4
+             + 3 5
+       + - 10 7
+         6
+
+pret + * 3
+         + * 2 4
+           + 3 5
+       + - 10 7
+         6
 """
 toks = tokenize_source(s)
 # print([t for t in toks])
 # print(parse(toks))
 # print(ast(parse(toks))[2])
-eval_(parse(toks), toplevel_env)
+eval_(parse(toks), globalenv)
