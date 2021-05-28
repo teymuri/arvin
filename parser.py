@@ -71,7 +71,6 @@ def pret(thing):
 def list_(*args): return list(args)
 def map_(fn, *args): return list(map(fn, *args))
 
-# builtins which DO NOT require a func as argument!
 def builtin_funcs():
     return {
         "*": mul, "+": add, "-": sub, "=": eq, 
