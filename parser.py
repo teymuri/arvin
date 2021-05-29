@@ -227,6 +227,7 @@ def ast(parsed_block, tree=[]):
     return tree
 
 
+
 def bottom_rightmost_enclosing_block(enclosing_blocks):
     # Find the max line
     maxline = max(enclosing_blocks, key=lambda b: b.kw.line).kw.line
@@ -238,6 +239,7 @@ def bottom_rightmost_enclosing_block(enclosing_blocks):
 # global env has no parent env
 globalenv = Env()
 globalblock = Block(kw=Token(), env=globalenv)
+
 ###########################
 ###########################
 # The listify is passed to eval
@@ -416,7 +418,16 @@ pret + * 3
        + - 10 7
          6
 """
-
+s="""
+pret map 
+        fn  block x y
+            call 
+                fn  block N
+                    * N list x
+                y
+        list 1 2 3 4
+        list 1 2 3 4
+"""
 toks = tokenize_source(s)
 # print([t for t in toks])
 # print(parse(toks))
