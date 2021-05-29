@@ -81,21 +81,19 @@ def builtin_funcs():
 
 class Env:
     def __init__(self, parenv=None):
-        self.builtins = builtin_funcs()
+        self.funcs = builtin_funcs()
         self.vars = {}
         self.consts = {}
         self.parenv = parenv
         
-    # def coerce_to_funobj(self, tok): return self.builtins[tok.label]
-    
-    def isfunc(self, tok): return tok.label in self.builtins
+    def isfunc(self, tok): return tok.label in self.funcs
     
     def resolve_token(self, tok):
         if tok.label.startswith("'"): # return the function object
-            return self.builtins[tok.label[1:]]
+            return self.funcs[tok.label[1:]]
         else:
             try:
-                return self.builtins[tok.label]
+                return self.funcs[tok.label]
             except KeyError:
                 try:
                     return self.vars[tok.label]
@@ -106,7 +104,7 @@ class Env:
                         return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
-        if tok.label in self.builtins:
+        if tok.label in self.funcs:
             return True
         else:
             if self.parenv:
@@ -117,7 +115,7 @@ class Env:
                     HIGHER_ORDER_FUNCTIONS + LEXICAL_BLOCK_BUILDERS
     
     def getenv(self, s):
-        if s in self.builtins or s in self.vars or s in self.consts:
+        if s in self.funcs or s in self.vars or s in self.consts:
             return self
         elif self.parenv:
             return self.parenv.getenv(s)
@@ -159,7 +157,7 @@ class Function:
 def lines(src): return src.strip().splitlines()
 
 # decimal numbers
-DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
+# DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
 
 def tokenize_source(src):
     toks = []
@@ -277,9 +275,9 @@ def parse(toks):
                 # coming tokens.
                 # The actual bindings to the objects happen later during evaluation.
                 if toks[i-1].label == "define":
-                    globalblock.env.builtins[t.label] = None
+                    globalblock.env.funcs[t.label] = None
                 elif toks[i-1].label == "funlet":
-                    enclosingblock.env.builtins[t.label] = None
+                    enclosingblock.env.funcs[t.label] = None
                 elif toks[i-1].label == "block":
                     pass
                 elif toks[i-1].label == "map": 
@@ -323,9 +321,10 @@ def eval_(x, e):
         elif car.label == "call": # call a function object
             fn, *args = cdr
             return eval_(fn, e)(*[eval_(a, e) for a in args])
+        
         elif car.label == "map":
             fn, *args = cdr
-            return e.builtins[car.label](eval_(fn, e), *[eval_(a, e) for a in args])
+            return e.funcs["map"](eval_(fn, e), *[eval_(a, e) for a in args])
 
         elif car.label == "fn": # create a function object
             # the first block is a block of params
@@ -334,7 +333,7 @@ def eval_(x, e):
             return Function([p.label for p in params], exprs, e)
         
         elif e.isfunc(car):
-            # return e.builtins[car.label](*[eval_(b, e) for b in cdr])
+            # return e.funcs[car.label](*[eval_(b, e) for b in cdr])
             # print(car,cdr)
             return eval_(car, e)(*[eval_(b, e) for b in cdr])
         
@@ -417,6 +416,7 @@ pret + * 3
        + - 10 7
          6
 """
+
 toks = tokenize_source(s)
 # print([t for t in toks])
 # print(parse(toks))
