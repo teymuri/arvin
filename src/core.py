@@ -329,10 +329,9 @@ def eval_(x, e):
                 return e.resolve_token(x)
 
 
-def evalsrc(src):
-    with open(src, "r") as s:
-        # print(s.read())
-        print(eval_(parse(tokenize_source(s.read())), toplevelenv))
+def evalsrc(path):
+    with open(path, "r") as src:
+        eval_(parse(tokenize_source(src.read())), toplevelenv)
 
 
 
