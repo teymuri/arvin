@@ -32,10 +32,11 @@ def group_case_clauses(clauses, g):
     return g
 
 HIGHER_ORDER_FUNCTIONS = ("call", "map")
+
 # def ishigherorder(tok): return tok.label in HIGHER_ORDER_FUNCTIONS
 SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
 NONNAMING_BLOCK_BUILDERS = ("case","call")
-LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "fn", )
+LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "fn", "defvar")
 MULTIPLE_VALUE_BINDERS = ("defvar", "define")
 
 def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
@@ -224,16 +225,19 @@ def parse(toks):
     tlblock = deepcopy(toplevelblock)
     enclosingblock = tlblock
     blocktracker = [enclosingblock]
+    # multivarbind = None
     
     for i, t in enumerate(toks):
         # make a block??
         if enclosingblock.env.isblockbuilder(t):
             if is_lexenv_builder(t):
                 B = Block(t, Env(enclosingblock.env)) # give it a new env
+                # if is_multiple_value_binder(t): multivarbind = B
             else:
                 B = Block(t, enclosingblock.env)
             blocktracker.append(B)
-
+        
+        
         # Monitor next coming token
         if is_singlename_builder(t): # eg defun
             nametok = toks[i+1]
@@ -241,6 +245,12 @@ def parse(toks):
         enclosing_blocks = [b for b in blocktracker if token_isin_block(t, b)]
         enclosingblock = bottom_rightmost_enclosing_block(enclosing_blocks)
         enclosingblock.append(B if enclosingblock.env.isblockbuilder(t) else t)
+        
+        # if token_isin_block(t, multivarbind):
+            # if enclosingblock.env.isblockbuilder(t):
+                # print(multivarbind, B)
+            # else:
+                # print(multivarbind, t)
         
         # if enclosing_blocks: # If there are some enclosing blocks (Is this not always true?????????)
             # if enclosingblock.env.isblockbuilder(t):
@@ -288,13 +298,10 @@ def eval_(x, e):
                 # if evaltoplevel(pred, e): return evaltoplevel(form, e)
             # return False
         
-        # elif car.label == "defvar":
-            # assert all([isinstance(a, Block) for a in cdr[1:]])
-            # for bind in cdr: # bind is a Block
-                # _, vartok, val = bind.cont
-                # # Nicht im toplevelenv??? es ist defvar!
-                # x.env.vars[vartok.label] = eval_(val, bind.env)
-            # return vartok
+        elif car.label == "defvar":
+            for var, val in pair(cdr):
+                toplevelenv.vars.update([(var.label, eval_(val, e))])
+            return var.label
         
         # Higher order functions
         elif car.label == "call": # call a function object
@@ -349,8 +356,14 @@ def evalsrc(path):
     # else:
         # return str(exp)
 
-# toks = tokenize_source(s)
+s="""
+defvar x 2
+defvar y * x 2
+pret list y x
+"""
+
+toks = tokenize_source(s)
 # print(STRPATT.findall(s))
 # print(parse(toks))
 # print(ast(parse(toks)))
-# eval_(parse(toks), toplevelenv)
+eval_(parse(toks), toplevelenv)
