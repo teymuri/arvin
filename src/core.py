@@ -8,6 +8,7 @@ import re
 import sys
 import operator as op
 from functools import reduce
+from copy import deepcopy
 
 
 
@@ -220,7 +221,8 @@ toplevelblock = Block(kw=Token(), env=toplevelenv)
 def parse(toks):
     """Converts tokens of the source file to an AST of Tokens/Blocks"""
     nametok = None
-    enclosingblock = toplevelblock
+    tlblock = deepcopy(toplevelblock)
+    enclosingblock = tlblock
     blocktracker = [enclosingblock]
     
     for i, t in enumerate(toks):
@@ -263,7 +265,7 @@ def parse(toks):
                 nametok = None
         # If nametok is None
         except AttributeError: pass
-    return toplevelblock
+    return tlblock
     # try:
         # return blocktracker[0]
     # except IndexError: # If there was no kw, no blocks have been built
