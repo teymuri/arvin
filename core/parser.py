@@ -154,10 +154,26 @@ class Function:
 
 
 
-def lines(src): return src.strip().splitlines()
 
 # decimal numbers
 # DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
+STRPATT = re.compile(r'"[^"]*"')
+def tokenize_source(src):
+    """
+    """
+    src = src.strip()
+    str_matches = list(STRPATT.finditer(src))
+    spans = [m.span() for m in str_matches]
+    indices = [0] + [i for s in spans for i in s] + [len(src)]
+    tokens = []
+    for x in list(zip(indices[:-1], indices[1:])):
+        if x in spans: # str match?
+            tokens.append(src[x[0]:x[1]])
+        else:
+            tokens.extend(src[x[0]:x[1]].replace(LPAR, f" {LPAR} ").replace(RPAR, f" {RPAR} ").split())
+    return tokens
+
+def lines(src): return src.strip().splitlines()
 
 def tokenize_source(src):
     toks = []
@@ -263,13 +279,14 @@ def parse(toks):
             nametok = toks[i+1]
             
         enclosing_blocks = [b for b in blocktracker if token_isin_block(t, b)]
-        if enclosing_blocks: # If there are some enclosing blocks (Is this not always true?????????)
-            enclosingblock = bottom_rightmost_enclosing_block(enclosing_blocks)
-            if enclosingblock.env.isblockbuilder(t):
-                enclosingblock.append(B)
-            else:
-                enclosingblock.append(t)
-            # enclosingblock.append(B if enclosingblock.env.isblockbuilder(t) else t)
+        enclosingblock = bottom_rightmost_enclosing_block(enclosing_blocks)
+        enclosingblock.append(B if enclosingblock.env.isblockbuilder(t) else t)
+        
+        # if enclosing_blocks: # If there are some enclosing blocks (Is this not always true?????????)
+            # if enclosingblock.env.isblockbuilder(t):
+                # enclosingblock.append(B)
+            # else:
+                # enclosingblock.append(t)
         # Adding to Env
         try:
             if t.label == nametok.label:
@@ -288,11 +305,11 @@ def parse(toks):
                 nametok = None
         # If nametok is None
         except AttributeError: pass
-    try:
+    return globalblock
+    # try:
         # return blocktracker[0]
-        return globalblock
-    except IndexError: # If there was no kw, no blocks have been built
-        pass
+    # except IndexError: # If there was no kw, no blocks have been built
+        # pass
 
 
 def eval_(x, e):
@@ -393,6 +410,11 @@ define
                  * N fact - N 1
 call fact 6
 """
+"""
+define  type
+define  system
+    module  block   file    foo.bb
+"""
 # make assignements liek this
 # -> block f1 fn block x y
     # block var 34
@@ -423,13 +445,29 @@ pret map
         fn  block x y
             call 
                 fn  block N
-                    * N list x
-                y
+                    * N list 0
+                * x y
         list 1 2 3 4
-        list 1 2 3 4
+        list 2 3 4 5
+"""
+s="""
+pret    call    call    fn  block   n
+                            fn  block    i
+                                + i n
+                        10
+                1
+"""
+s="""
+call
+ call
+  fn block n
+     fn block i
+        pret + i n
+  10
+ 12
 """
 toks = tokenize_source(s)
-# print([t for t in toks])
+# print(STRPATT.findall(s))
 # print(parse(toks))
-# print(ast(parse(toks))[2])
+# print(ast(parse(toks)))
 eval_(parse(toks), globalenv)
