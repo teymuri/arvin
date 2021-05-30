@@ -1,7 +1,7 @@
 
 
 """
-BUBU Parser
+BUBU
 """
 
 import re
@@ -11,21 +11,7 @@ from functools import reduce
 
 
 
-s="""
-list 1 2 3 * 10 10
- 4 5
-"""
-s="""
-list '* 2 3
-     4 5
-defun fn 
-'fn
-list 1 2 3
-    list 4 5 6
-        list 3 2 1
-    list 500 500 list 5 4 3 list 9 8
-                list 10 11
-"""
+
 _verbose_tokenrepr = False
 
 def pair(L):
@@ -124,7 +110,7 @@ class Env:
             
             
 class Token:
-    def __init__(self, label="_GLOBAL", start=-1, end=sys.maxsize, line=-1):
+    def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
         self.label = label
         self.start = start
         self.end = end
@@ -158,20 +144,20 @@ class Function:
 # decimal numbers
 # DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
 STRPATT = re.compile(r'"[^"]*"')
-def tokenize_source(src):
-    """
-    """
-    src = src.strip()
-    str_matches = list(STRPATT.finditer(src))
-    spans = [m.span() for m in str_matches]
-    indices = [0] + [i for s in spans for i in s] + [len(src)]
-    tokens = []
-    for x in list(zip(indices[:-1], indices[1:])):
-        if x in spans: # str match?
-            tokens.append(src[x[0]:x[1]])
-        else:
-            tokens.extend(src[x[0]:x[1]].replace(LPAR, f" {LPAR} ").replace(RPAR, f" {RPAR} ").split())
-    return tokens
+# def tokenize_source(src):
+    # """
+    # """
+    # src = src.strip()
+    # str_matches = list(STRPATT.finditer(src))
+    # spans = [m.span() for m in str_matches]
+    # indices = [0] + [i for s in spans for i in s] + [len(src)]
+    # tokens = []
+    # for x in list(zip(indices[:-1], indices[1:])):
+        # if x in spans: # str match?
+            # tokens.append(src[x[0]:x[1]])
+        # else:
+            # tokens.extend(src[x[0]:x[1]].replace(LPAR, f" {LPAR} ").replace(RPAR, f" {RPAR} ").split())
+    # return tokens
 
 def lines(src): return src.strip().splitlines()
 
@@ -191,34 +177,6 @@ def token_isin_block(tk, bl):
     """Is tk inside of the kw's block?"""
     return tk.start > bl.kw.start and tk.line >= bl.kw.line
 
-
-
-
-    
-"""
-rightmost left-side function gets things,
-if no rightmost left-side, then TOP rightmost leftside etc
-
-
-"""
-
-
-s="""
-case 
-  = 2 2
-  + 2 2
-  = 4 4 + 2 2
-  defun FOO
-    x y
-     r t
-    case = + x y
-           * r t
-         FOO r t x y
-  FOO 1 2 3 4
-
-
-
-"""
 
 
 class Block:
@@ -253,8 +211,8 @@ def bottom_rightmost_enclosing_block(enclosing_blocks):
     return max(bottommost_blocks, key=lambda b: b.kw.start)
 
 # global env has no parent env
-globalenv = Env()
-globalblock = Block(kw=Token(), env=globalenv)
+toplevelenv = Env()
+toplevelblock = Block(kw=Token(), env=toplevelenv)
 
 ###########################
 ###########################
@@ -262,7 +220,7 @@ globalblock = Block(kw=Token(), env=globalenv)
 def parse(toks):
     """Converts tokens of the source file to an AST of Tokens/Blocks"""
     nametok = None
-    enclosingblock = globalblock
+    enclosingblock = toplevelblock
     blocktracker = [enclosingblock]
     
     for i, t in enumerate(toks):
@@ -294,7 +252,7 @@ def parse(toks):
                 # coming tokens.
                 # The actual bindings to the objects happen later during evaluation.
                 if toks[i-1].label == "define":
-                    globalblock.env.funcs[t.label] = None
+                    toplevelblock.env.funcs[t.label] = None
                 elif toks[i-1].label == "funlet":
                     enclosingblock.env.funcs[t.label] = None
                 elif toks[i-1].label == "block":
@@ -305,7 +263,7 @@ def parse(toks):
                 nametok = None
         # If nametok is None
         except AttributeError: pass
-    return globalblock
+    return toplevelblock
     # try:
         # return blocktracker[0]
     # except IndexError: # If there was no kw, no blocks have been built
@@ -317,7 +275,7 @@ def eval_(x, e):
 
         car, cdr = x.kw, x.cont[1:]
         # car, cdr = x.kw, x.cont
-        if car.label == "_GLOBAL": # start processing the rest
+        if car.label == "_TOPLEVEL": # start processing the rest
             for i in cdr[:-1]:
                 eval_(i, e)
             return eval_(cdr[-1], e)
@@ -332,7 +290,7 @@ def eval_(x, e):
             # assert all([isinstance(a, Block) for a in cdr[1:]])
             # for bind in cdr: # bind is a Block
                 # _, vartok, val = bind.cont
-                # # Nicht im globalenv??? es ist defvar!
+                # # Nicht im toplevelenv??? es ist defvar!
                 # x.env.vars[vartok.label] = eval_(val, bind.env)
             # return vartok
         
@@ -369,6 +327,11 @@ def eval_(x, e):
                 return e.resolve_token(x)
 
 
+def evalsrc(src):
+    with open(src, "r") as s:
+        # print(s.read())
+        print(eval_(parse(tokenize_source(s.read())), toplevelenv))
+
 
 
 # def repl(prompt='lis.py> '):
@@ -384,90 +347,9 @@ def eval_(x, e):
         # return '(' + ' '.join(map(schemestr, exp)) + ')' 
     # else:
         # return str(exp)
-s="""
-defun fact
- n
- case = n 1
-    1
-  true
-    * n
-     fact
-      - n
-       1
-"""
-"""
-call
-    function block x y
-        * x y + x y
-    3 4
-define
-    block fact
-        function 
-            block N
-            case = N 1
-                 1
-                 true
-                 * N fact - N 1
-call fact 6
-"""
-"""
-define  type
-define  system
-    module  block   file    foo.bb
-"""
-# make assignements liek this
-# -> block f1 fn block x y
-    # block var 34
-s="""
-pret + 137 349
-pret - 1000 334
-pret * 5 99
-pret // 10 5
-pret + 2.7 10
 
-pret + 21 35 12 7
-pret * 25 4 12
-pret + * 3 5 
-       - 10 6
-pret + * 3 + * 2 4
-             + 3 5
-       + - 10 7
-         6
-
-pret + * 3
-         + * 2 4
-           + 3 5
-       + - 10 7
-         6
-"""
-s="""
-pret map 
-        fn  block x y
-            call 
-                fn  block N
-                    * N list 0
-                * x y
-        list 1 2 3 4
-        list 2 3 4 5
-"""
-s="""
-pret    call    call    fn  block   n
-                            fn  block    i
-                                + i n
-                        10
-                1
-"""
-s="""
-call
- call
-  fn block n
-     fn block i
-        pret + i n
-  10
- 12
-"""
-toks = tokenize_source(s)
+# toks = tokenize_source(s)
 # print(STRPATT.findall(s))
 # print(parse(toks))
 # print(ast(parse(toks)))
-eval_(parse(toks), globalenv)
+# eval_(parse(toks), toplevelenv)
