@@ -130,15 +130,15 @@ class Function:
     def __init__(self, params, body, enclosing_env):
         self.params = params
         self.body = body
-        self.enclosing_env = enclosing_env
+        # self.enclosing_env = enclosing_env
+        self.env = Env(enclosing_env)
     
     def __call__(self, *args):
         assert (len(self.params) == len(args)), f"function expected {len(self.params)} arguments, but got {len(args)}"
-        e = Env(self.enclosing_env)
-        e.vars.update(zip(self.params, args))
-        for expr in self.body[:-1]:
-            eval_(expr, e)
-        return eval_(self.body[-1], e)
+        self.env.vars.update(zip(self.params, args))
+        for b in self.body[:-1]:
+            eval_(b, self.env)
+        return eval_(self.body[-1], self.env)
 
 
 
@@ -292,10 +292,9 @@ def eval_(x, e):
                 eval_(i, e)
             return eval_(cdr[-1], e)
             
-        elif car.label == "case":
-            pass
-            # for pred, form in group_case_clauses(x.cont, []):
-                # if evaltoplevel(pred, e): return evaltoplevel(form, e)
+        # elif car.label == "case":
+            # for pred, form in pair(cdr):
+                # if eval_(pred, e): return eval_(form, e)
             # return False
         
         elif car.label == "defvar": # toplevel var
@@ -304,9 +303,15 @@ def eval_(x, e):
             return var.label
         
         # Higher order functions
-        elif car.label == "call": # call a function object
+        elif car.label == "call": # call a function
             fn, *args = cdr
-            return eval_(fn, e)(*[eval_(a, e) for a in args])
+            # snapshot
+            if isinstance(fn, Block): # Calling fresh anonymus function definition
+                return eval_(fn, fn.env)(*[eval_(a, fn.env) for a in args])
+            else: # Token = saved function name
+                fnobj = e.vars[fn.label]
+                # return eval_(fnobj, fnobj.env)(*[eval_(a, fnobj.env) for a in args])
+                return fnobj(*[eval_(a, fnobj.env) for a in args])
         
         elif car.label == "map":
             fn, *args = cdr
@@ -314,9 +319,9 @@ def eval_(x, e):
 
         elif car.label == "fn": # create a function object
             # the first block is a block of params
-            paramsblock, *exprs = cdr
+            paramsblock, *body = cdr
             params = paramsblock.cont[1:]
-            return Function([p.label for p in params], exprs, e)
+            return Function([p.label for p in params], body, e)
         
         elif e.isfunc(car):
             # return e.funcs[car.label](*[eval_(b, e) for b in cdr])
@@ -357,10 +362,10 @@ def evalsrc(path):
         # return str(exp)
 
 s="""
-defvar x 2 y * x 10 10 + 2 3
-pret list x y
-defvar a * x 100
-pret list a
+defvar f
+    fn block x
+     pret * x 10
+pret x
 """
 
 toks = tokenize_source(s)
