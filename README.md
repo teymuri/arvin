@@ -1,2 +1,2 @@
-![Bubu](docs/Bubu.gif) Bubu
-<img src="docs/BubuWaits.png" width="250" height="250">
+<img src="docs/BubuWaits.png" width="100" height="100">
+# Bubu
