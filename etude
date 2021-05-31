@@ -1,0 +1,242 @@
+(defining a class starts)
+
+define
+    supclass cls1 cls2 cls3
+    myclass
+        define x 123
+
+define
+    for myclass
+    x 123
+
+define myclass-inst myclass
+myclass-inst x => 123
+inc myclass-inst x => 124
+
+(defining a class ends)
+
+(sort of things in bubu):
+system, function, class, stream
+define v1 123
+    v2 34
+    v3 43
+
+define
+    v1 2343
+    f1 function x
+        * x f1 - x 1
+    f2 function y
+        * f1 y v1
+
+define fact
+    function N
+        case = N 1
+            1
+            * N fact - N 1
+
+define 
+    lock true
+    !var 28973
+
+define x 123
+DEFINE NAME WERT
+DEFINE :NAME definition => class
+DEFINE ~NAME definition => system
+
+define mein_set
+    set 2 3 4
+define mein_table
+    tab 2 + 3 4 5 
+        foo "A string, ..."
+mein_table 2 => 12
+mein_table foo => "A String ..."
+
+define
+    (metadata starts here)
+    lock true
+    version "2.3"
+    dependson fooVater
+    (metadata ends here)
+    :foo (dot inicates your defining a class)
+        define lock false
+            versionaslist list 1 2 3
+        define incversionpatch
+            function
+                inc third %versionaslist
+                %versionaslist
+
+define fooinst foo
+foo versionaslist => [1,2,3]
+foo incversionpatch => [1,2,4]
+
+define
+    return struct
+    myclass
+        define ...
+
+define
+    type function
+    fact function n
+            case = n 1
+                1
+                true * n fact - n 1
+
+(Defining a system)
+define
+    type system
+    lock true
+    bubugame
+        define lock true (this is a constant)
+            type string
+            version "3.4.5"
+        define 
+            file1 
+                relpath "setup.bb"
+        define
+            type fileobject
+            dependson "setup.bb"
+            lock true
+            file2 "colors.bb"
+        define main file2
+
+bubugame version => "3.4.5"
+bubugame file1 => FILEOBJECTSTREAM
+bubugame main => runs the system
+
+define NiceError error
+    error
+
+
+define
+    ;metadata
+    lock true
+metadata => {lock:true/false, type:int/str/float/struct/func/.......}
+define
+    lock => true
+    type => integer
+    Foo function x y
+          * x y Foo
+define
+    .lock true
+    .type = void
+    Person class
+        define lock = true
+            type str
+            species "Human"
+        define lock = false
+            type int
+            age 36
+        define type int
+            make_older
+                function D
+                    inc %:age D (% refers to self, note also that inc has no return value!)
+                    %:age
+
+define type Person
+    amir Person
+
+amir
+  age => 36
+amir make_older 1 => 37
+amir age => 37
+
+map amir 
+    list age species => list 37 "Human"
+(make_older is itself a function passing the arg to it)
+map amir list age species make_older 2 age => list 36 "Human" void/38 38
+
+define
+    .type int
+    fact function 
+        N
+        Case = N 1
+            N
+            True
+            * N fact - N 1
+
+define myclass
+    struct
+    define attr1 87
+    define attr2 478
+    define meth1 (output type=integer)
+            function x y
+                * x y 1000
+    define meth2 void
+            function
+
+myclass:meth1 3 4 => 12000
+
+define amir const str "Amir Teymuri"
+define alter integer 36
+
+alter => 36
+amir => "Amir Teymuri"
+
+define type Integer
+    lock true
+    N 123
+
+define
+    type function (redundant!, Bubu can understand this himself!)
+    doc "This is the factorial function."
+    fact function @N
+        case = N 1
+             1
+             true * N fact - N 1
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; class, problem instantiating args -> function args
+define type struct
+    public list foo printfoo
+    (As convention, we name structs +class)
+    +ich
+        define 
+            type Integer
+            lock true
+            Alter 36
+        define type string
+            lock true
+            foo "Hallo Welt!"
+        define type function
+            printfoo
+                function
+                    pret +ich foo
+
+define type +ich
+    amir +ich
+amir printfoo => "Hallo Welt!"
+"Hallo Welt!"
+
+amir printfoo 
+amir foo (both work!, but foo amir would 't)
+map 'amir list printfoo foo Alter => ["Hallo Welt!", "Hallo Welt!", 36]
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Define system
+define
+    type system (provides a protocol)
+    author "Amir Teymuri"
+    license ""
+    dependson pygame
+    public list initpygame
+    mygame
+        define 
+            lock true
+            version "1.2.3"
+        define
+            type function
+            [run] function
+
+mygame run
+
+(In x.bb file we then can write something
+like this:)
+define
+    type function
+    initpygame
+        function
+            pygame Rect 0 0 2 123
+
+map 'mygame list initpygame "Hello Game" => pygame.Rect
+
+map 'pygame
+    list Rect 0 0 2 13
+        Surface 0 0 40 40
