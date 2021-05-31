@@ -298,7 +298,7 @@ def eval_(x, e):
                 # if evaltoplevel(pred, e): return evaltoplevel(form, e)
             # return False
         
-        elif car.label == "defvar":
+        elif car.label == "defvar": # toplevel var
             for var, val in pair(cdr):
                 toplevelenv.vars.update([(var.label, eval_(val, e))])
             return var.label
@@ -357,9 +357,10 @@ def evalsrc(path):
         # return str(exp)
 
 s="""
-defvar x 2
-defvar y * x 2
-pret list y x
+defvar x 2 y * x 10 10 + 2 3
+pret list x y
+defvar a * x 100
+pret list a
 """
 
 toks = tokenize_source(s)
