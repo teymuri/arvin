@@ -1,2 +1,1 @@
-![Bubu](docs/Bubu.gif)
-# Bubu
+![Bubu](docs/Bubu.gif) Bubu
