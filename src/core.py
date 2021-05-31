@@ -66,15 +66,26 @@ def builtin_funcs():
         "pret": pret,
         "list": list_, "map": map_
     }
-
+FUNCOBJ_IDENTIFIER = "'"
 class Env:
     def __init__(self, parenv=None):
         self.funcs = builtin_funcs()
+        # self.funcs = builtin_funcs()
         self.vars = {}
-        self.consts = {}
         self.parenv = parenv
+        if parenv:
+            self.funcs.update(parenv.funcs)
+            self.vars.update(parenv.vars)
         
     def isfunc(self, tok): return tok.label in self.funcs
+    def resolvetok(self, tok):
+        if tok.label.startswith(FUNCOBJ_IDENTIFIER):
+            return self.funcs(tok.label[1:])
+        else:
+            try:
+                return self.funcs[tok.label]
+            except KeyError:
+                return self.vars[tok.label]
     
     def resolve_token(self, tok):
         if tok.label.startswith("'"): # return the function object
@@ -109,7 +120,9 @@ class Env:
             return self.parenv.getenv(s)
         else:
             raise KeyError
-            
+
+toplevelenv = Env()
+
             
 class Token:
     def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
@@ -131,7 +144,9 @@ class Function:
         self.params = params
         self.body = body
         # self.enclosing_env = enclosing_env
-        self.env = Env(enclosing_env)
+        # self.env = Env(enclosing_env)
+        # Create a fresh env at definition time!
+        self.env = Env(parenv=enclosing_env)
     
     def __call__(self, *args):
         assert (len(self.params) == len(args)), f"function expected {len(self.params)} arguments, but got {len(args)}"
@@ -213,7 +228,7 @@ def bottom_rightmost_enclosing_block(enclosing_blocks):
     return max(bottommost_blocks, key=lambda b: b.kw.start)
 
 # global env has no parent env
-toplevelenv = Env()
+
 toplevelblock = Block(kw=Token(), env=toplevelenv)
 
 ###########################
@@ -307,7 +322,8 @@ def eval_(x, e):
             fn, *args = cdr
             # snapshot
             if isinstance(fn, Block): # Calling fresh anonymus function definition
-                return eval_(fn, fn.env)(*[eval_(a, fn.env) for a in args])
+                fnobj = eval_(fn, e)
+                return fnobj(*[eval_(a, e) for a in args])
             else: # Token = saved function name
                 fnobj = e.vars[fn.label]
                 # return eval_(fnobj, fnobj.env)(*[eval_(a, fnobj.env) for a in args])
@@ -338,7 +354,8 @@ def eval_(x, e):
             try:
                 return float(x.label)
             except ValueError:
-                return e.resolve_token(x)
+                # return e.resolve_token(x)
+                return e.resolvetok(x)
 
 
 def evalsrc(path):
@@ -362,10 +379,14 @@ def evalsrc(path):
         # return str(exp)
 
 s="""
-defvar f
-    fn block x
-     pret * x 10
-pret x
+defvar y 1
+defvar f 
+    fn block
+      * y 100
+pret call f
+defvar y 2
+pret call f
+
 """
 
 toks = tokenize_source(s)
