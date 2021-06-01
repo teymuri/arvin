@@ -183,7 +183,10 @@ define
         case = N 1
              1
              true * N fact - N 1
-
+;;;;;type deduction
+define type list
+    VARNAME list 1 2 4
+typeof VARNAME => list
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; class, problem instantiating args -> function args
 define type struct
     public list foo printfoo
