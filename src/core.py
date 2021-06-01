@@ -390,6 +390,8 @@ def eval_(x, e):
                 # return e.resolve_token(x)
                 return e.resolvetok(x)
                 
+def interpret_src(s): return eval_(parse(tokenize_source(s)), toplevelenv)
+
 s="""
 defvar y 1
 defvar f 
@@ -399,10 +401,13 @@ defvar f
 pret call f
 defvar y 2
 pret call f
+pret + 3 * 23 + 1 9 100
 """
 
-toks = tokenize_source(s)
-# print(STRPATT.findall(s))
-# print(parse(toks))
-# print(ast(parse(toks)))
-eval_(parse(toks), toplevelenv)
+
+# toks = tokenize_source(s)
+# # print(STRPATT.findall(s))
+# # print(parse(toks))
+# # print(ast(parse(toks)))
+# eval_(parse(toks), toplevelenv)
+interpret_src(s)
