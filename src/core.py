@@ -136,7 +136,7 @@ HIGHER_ORDER_FUNCTIONS = ("call", "map")
 # def ishigherorder(tok): return tok.label in HIGHER_ORDER_FUNCTIONS
 SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
 NONNAMING_BLOCK_BUILDERS = ("case","call")
-LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "fn", "defvar")
+LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "lambda", "defvar")
 MULTIPLE_VALUE_BINDERS = ("defvar", "define")
 
 def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
@@ -366,7 +366,7 @@ def eval_(x, e):
             fn, *args = cdr
             return e.funcs["map"](eval_(fn, e), *[eval_(a, e) for a in args])
 
-        elif car.label == "fn": # create a function object
+        elif car.label == "lambda": # create a function object
             # the first block is a block of params
             paramsblock, *body = cdr
             params = paramsblock.cont[1:]
@@ -393,9 +393,9 @@ def eval_(x, e):
 s="""
 defvar y 1
 defvar f 
-    fn block
+    lambda block
       * y 100
-        + .5 .25
+        + 1 1 1
 pret call f
 defvar y 2
 pret call f
