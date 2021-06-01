@@ -1,5 +1,3 @@
-
-
 """
 BUBU
 """
@@ -15,6 +13,7 @@ from copy import deepcopy
 
 _verbose_tokenrepr = False
 
+
 def pair(L):
     pairs = []
     s, e = 0, 2
@@ -23,27 +22,6 @@ def pair(L):
         s += 2
         e += 2
     return pairs
-
-
-def group_case_clauses(clauses, g):
-    if clauses:
-        g.append(clauses[:2])
-        return group_case_clauses(clauses[2:], g)
-    return g
-
-HIGHER_ORDER_FUNCTIONS = ("call", "map")
-
-# def ishigherorder(tok): return tok.label in HIGHER_ORDER_FUNCTIONS
-SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
-NONNAMING_BLOCK_BUILDERS = ("case","call")
-LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "fn", "defvar")
-MULTIPLE_VALUE_BINDERS = ("defvar", "define")
-
-def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
-
-def is_singlename_builder(tok): return tok.label in SINGLE_NAMING_BLOCK_BUILDERS
-
-def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
 
 ######### builtin functions
 def sub(*args): return reduce(op.sub, args) if args else 0
@@ -66,6 +44,8 @@ def builtin_funcs():
         "pret": pret,
         "list": list_, "map": map_
     }
+
+
 FUNCOBJ_IDENTIFIER = "'"
 class Env:
     def __init__(self, parenv=None):
@@ -123,21 +103,6 @@ class Env:
 
 toplevelenv = Env()
 
-            
-class Token:
-    def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
-        self.label = label
-        self.start = start
-        self.end = end
-        self.line = line
-    
-    def __repr__(self):
-        if _verbose_tokenrepr:
-            return f"{self.label}.L{self.line}.S{self.start}"
-        else:
-            return f"{self.label}"
-
-
 class Function:
     
     def __init__(self, params, body, enclosing_env):
@@ -154,6 +119,47 @@ class Function:
         for b in self.body[:-1]:
             eval_(b, self.env)
         return eval_(self.body[-1], self.env)
+
+
+
+
+
+
+def group_case_clauses(clauses, g):
+    if clauses:
+        g.append(clauses[:2])
+        return group_case_clauses(clauses[2:], g)
+    return g
+
+HIGHER_ORDER_FUNCTIONS = ("call", "map")
+
+# def ishigherorder(tok): return tok.label in HIGHER_ORDER_FUNCTIONS
+SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
+NONNAMING_BLOCK_BUILDERS = ("case","call")
+LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "fn", "defvar")
+MULTIPLE_VALUE_BINDERS = ("defvar", "define")
+
+def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
+
+def is_singlename_builder(tok): return tok.label in SINGLE_NAMING_BLOCK_BUILDERS
+
+def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
+
+
+class Token:
+    def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
+        self.label = label
+        self.start = start
+        self.end = end
+        self.line = line
+    
+    def __repr__(self):
+        if _verbose_tokenrepr:
+            return f"{self.label}.L{self.line}.S{self.start}"
+        else:
+            return f"{self.label}"
+
+
 
 
 
@@ -297,6 +303,33 @@ def parse(toks):
         # pass
 
 
+
+
+# def evalsrc(path):
+    # with open(path, "r") as src:
+        # eval_(parse(tokenize_source(src.read())), toplevelenv)
+
+
+
+# def repl(prompt='lis.py> '):
+    # "A prompt-read-eval-print loop."
+    # while True:
+        # val = eval(parse(raw_input(prompt)))
+        # if val is not None: 
+            # print(schemestr(val))
+
+# def schemestr(exp):
+    # "Convert a Python object back into a Scheme-readable string."
+    # if isinstance(exp, List):
+        # return '(' + ' '.join(map(schemestr, exp)) + ')' 
+    # else:
+        # return str(exp)
+
+
+
+
+
+
 def eval_(x, e):
     if isinstance(x, Block): # think of a Block as list!
 
@@ -356,37 +389,16 @@ def eval_(x, e):
             except ValueError:
                 # return e.resolve_token(x)
                 return e.resolvetok(x)
-
-
-def evalsrc(path):
-    with open(path, "r") as src:
-        eval_(parse(tokenize_source(src.read())), toplevelenv)
-
-
-
-# def repl(prompt='lis.py> '):
-    # "A prompt-read-eval-print loop."
-    # while True:
-        # val = eval(parse(raw_input(prompt)))
-        # if val is not None: 
-            # print(schemestr(val))
-
-# def schemestr(exp):
-    # "Convert a Python object back into a Scheme-readable string."
-    # if isinstance(exp, List):
-        # return '(' + ' '.join(map(schemestr, exp)) + ')' 
-    # else:
-        # return str(exp)
-
+                
 s="""
 defvar y 1
 defvar f 
     fn block
       * y 100
+        + .5 .25
 pret call f
 defvar y 2
 pret call f
-
 """
 
 toks = tokenize_source(s)
