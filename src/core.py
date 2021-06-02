@@ -167,7 +167,7 @@ class Token:
 # decimal numbers
 # DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
 STRPATT = re.compile(r'"[^"]*"')
-# def tokenize_source(src):
+# def tokenizestr(src):
     # """
     # """
     # src = src.strip()
@@ -184,9 +184,9 @@ STRPATT = re.compile(r'"[^"]*"')
 
 def lines(src): return src.strip().splitlines()
 
-def tokenize_source(src):
+def tokenizestr(s):
     toks = []
-    for i, line in enumerate(lines(src)):
+    for i, line in enumerate(lines(s)):
         # for match in re.finditer(r"([*=+-]|\w+|{})".format(DECPATT), line):
         for match in re.finditer(r"\S+", line):
             toks.append(Token(label=match.group(), start=match.start(), end=match.end(), line=i)
@@ -307,7 +307,7 @@ def parse(toks):
 
 # def evalsrc(path):
     # with open(path, "r") as src:
-        # eval_(parse(tokenize_source(src.read())), toplevelenv)
+        # eval_(parse(tokenizestr(src.read())), toplevelenv)
 
 
 
@@ -390,7 +390,7 @@ def eval_(x, e):
                 # return e.resolve_token(x)
                 return e.resolvetok(x)
                 
-def interpret_src(s): return eval_(parse(tokenize_source(s)), toplevelenv)
+def interpretstr(s): return eval_(parse(tokenizestr(s)), toplevelenv)
 
 s="""
 defvar y 1
@@ -401,13 +401,13 @@ defvar f
 pret call f
 defvar y 2
 pret call f
-pret + 3 * 23 + 1 9 100
+pret + 3 * 23 + 1 9 10
 """
 
 
-# toks = tokenize_source(s)
+# toks = tokenizestr(s)
 # # print(STRPATT.findall(s))
 # # print(parse(toks))
 # # print(ast(parse(toks)))
 # eval_(parse(toks), toplevelenv)
-interpret_src(s)
+interpretstr(s)
