@@ -1,4 +1,17 @@
 
+in x.bbs:
+
+define
+  type system
+  meinsys
+    components
+      file name "foo.bb" dependson list pygame
+      file name "bar.bb" dependson list functools
+
+# module meinsys.foo
+import pygame
+
+
 
 APPEND return toplevel-flattened list
 append list 1 2 3
