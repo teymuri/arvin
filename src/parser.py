@@ -34,7 +34,10 @@ def pret(thing):
     """Prints and returns the thing."""
     print(thing)
     return thing
+
 def list_(*args): return list(args)
+# def pylist(*args): return "[{}]".format(", ".join(args))
+
 def map_(fn, *args): return list(map(fn, *args))
 
 def builtin_funcs():
@@ -149,9 +152,9 @@ def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
 class Token:
     def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
         self.label = label
-        self.start = start
+        self.start = start # start position in the line
         self.end = end
-        self.line = line
+        self.line = line # line number
     
     def __repr__(self):
         if _verbose_tokenrepr:
@@ -167,7 +170,7 @@ class Token:
 # decimal numbers
 # DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
 STRPATT = re.compile(r'"[^"]*"')
-# def tokenizestr(src):
+# def lex(src):
     # """
     # """
     # src = src.strip()
@@ -184,7 +187,8 @@ STRPATT = re.compile(r'"[^"]*"')
 
 def lines(src): return src.strip().splitlines()
 
-def tokenizestr(s):
+def lex(s):
+    """Converts the string into a list of tokens."""
     toks = []
     for i, line in enumerate(lines(s)):
         # for match in re.finditer(r"([*=+-]|\w+|{})".format(DECPATT), line):
@@ -307,7 +311,7 @@ def parse(toks):
 
 # def evalsrc(path):
     # with open(path, "r") as src:
-        # eval_(parse(tokenizestr(src.read())), toplevelenv)
+        # eval_(parse(lex(src.read())), toplevelenv)
 
 
 
@@ -390,7 +394,7 @@ def eval_(x, e):
                 # return e.resolve_token(x)
                 return e.resolvetok(x)
                 
-def interpretstr(s): return eval_(parse(tokenizestr(s)), toplevelenv)
+def interpretstr(s): return eval_(parse(lex(s)), toplevelenv)
 
 s="""
 defvar y 1
@@ -401,11 +405,24 @@ defvar f
 pret call f
 defvar y 2
 pret call f
-pret + 3 * 23 + 1 9 10
+pret 
+ call
+  lambda block N
+         * N list 0 1 2 3
+  3
+pret list list 1 2
+          list 2 3
+          list 3 4
+pret
+ list
+  list 2 3
+  list 2 3
+  list 2 3
+  list 2 3 list 3 4 5
 """
 
 
-# toks = tokenizestr(s)
+# toks = lex(s)
 # # print(STRPATT.findall(s))
 # # print(parse(toks))
 # # print(ast(parse(toks)))

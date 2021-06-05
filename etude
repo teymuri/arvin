@@ -1,3 +1,50 @@
+
+
+APPEND return toplevel-flattened list
+append list 1 2 3
+  list 2 3 4
+  list 5 list 6 7
+(=> L:1 2 3 2 3 4 5 L:6 7)
+pop L:1 2 3 2 3 4 5 L:6 7 (=> L:6 7)
+
+PUSH atom to list
+POP
+
+define
+  tmp true
+  pyappend
+    lambda @L
+      push random 101
+        L
+call
+  lambda @L
+    push random 101
+      L
+  list "First Item"
+
+(=> L."First Item" 67)
+
+  
+
+(Iteration, destructuring)
+iter i 10 pret i
+iter i list 1 2 3 4 pret i
+iter ch "string" pret ch
+iter list i x enum list 3 4 5 6 pret list i x
+=> L.0 3
+   L.1 4
+   L.2 5
+   L.3 6
+iter list i list x y enum list list 1 2 list 2 3 list 3 4 pret i x y=>
+0 1 2
+1 2 3
+2 3 4
+
+bind n 34
+     f lambda block x
+       	      * x n
+  f 10 (is equivalet to call 'f 10)
+
 (defining a class starts)
 
 define
@@ -191,7 +238,8 @@ typeof VARNAME => list
 define type struct
     public list foo printfoo
     (As convention, we name structs +class)
-    +ich
+    ~ich ~sup1 ~sup2
+     define CONS (the __init__)
         define 
             type Integer
             lock true
@@ -243,3 +291,48 @@ map 'mygame list initpygame "Hello Game" => pygame.Rect
 map 'pygame
     list Rect 0 0 2 13
         Surface 0 0 40 40
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+staff
+  x 100 y 100 (Abstände vom Papierrand)
+  width 100 (Alles was in Klammern steht sind Kommentare:
+  die Einheit ist in Pixeln.)
+  content
+    note pitch "d4" dur 4
+    (Die SMT-Sprache nutzt die sog. Prefixnotation.)
+    (Diese Notation wird unten für Dauerangabe exemplarisch vorgeführt.)
+    note pitch "f4" dur + 0.5 0.5 (=> 1)
+    note pitch "a4" dur + 1 1 1 1 (=> 4)
+    note pitch "d5" dur - 3 * 0.5 2 (=> 2)
+    note pitch "b4" dur * 2 + 1 1 (=> 4)
+    note pitch "g4" dur * 2 + .25 .25 * 2 .25 (=> 2)
+    (Nachfolgend werden strings für Dauerangaben verwendet.)
+    (Dies funktioniert da auch für Strings Rules definiert wurde.) 
+    note pitch "e4" dur "ganze" 
+    note pitch "f4" dur "halbe" 
+    note pitch "a4" dur "viertel"
+    note pitch "c4" dur "viertel"
+(((((((https://de.wikipedia.org/wiki/Notensatzprogramm#/media/Datei:Amadeus-input-example.svg)))))))
+define v1
+  voice rest 4
+    note "g4" "q"
+    note "g4" "q."
+    note "a4" "e"
+    barline
+    note "b4" "q"
+    note "b4" "q"
+    note "c5" "q"
+    note "b4" "q"
+    note "a4" "h."
+    rest "q"
+define v2
+  voice note "d4" "h"
+    note "d4" "q"
+    note "g4" "q"
+    note "g4" "q"
+    note "g4" "q"
+    note "g4" "e"
+    note "a4" "e"
+    note "g4" "q"
+    note "f#4" "h."
+staff content clef g acc b4 timesig c v1 v2
