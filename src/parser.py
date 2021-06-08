@@ -136,7 +136,7 @@ HIGHER_ORDER_FUNCTIONS = ("call", "map")
 # def ishigherorder(tok): return tok.label in HIGHER_ORDER_FUNCTIONS
 SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
 NONNAMING_BLOCK_BUILDERS = ("case","call")
-LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "lambda", "defvar")
+LEXICAL_BLOCK_BUILDERS = ("block", "defun", "name", "lambda", "defvar")
 MULTIPLE_VALUE_BINDERS = ("defvar", "define")
 
 def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
@@ -346,16 +346,17 @@ def eval_(x, e):
             for i in cdr[:-1]:
                 eval_(i, e)
             return eval_(cdr[-1], e)
-        elif car.label == "define":
+
+        elif car.label == "name":
             meta, nonmeta = filtermeta(pair(cdr))
             # assignments go into the toplevel env
             if "toplevel" in meta and eval_(meta["toplevel"], toplevelenv):
-                print(meta)
                 for vartok, val in nonmeta:
-                    toplevelenv.vars[vartok.label] = eval_(val, x.env)
+                    toplevelenv.vars[vartok.label] = eval_(val, toplevelenv)
             else:
                 for vartok, val in nonmeta:
                     x.env.parenv.vars[vartok.label] = eval_(val, x.env)
+        
         # elif car.label == "case":
             # for pred, form in pair(cdr):
                 # if eval_(pred, e): return eval_(form, e)
@@ -383,10 +384,12 @@ def eval_(x, e):
             paramsblock, *body = cdr
             params = paramsblock.cont[1:]
             return Function([p.label for p in params], body, e)
+        
         elif e.isfunc(car):
             # return e.funcs[car.label](*[eval_(b, e) for b in cdr])
             # print(car,cdr)
             return eval_(car, e)(*[eval_(b, e) for b in cdr])
+        
         else:
             raise SyntaxError(f"{(x, x.cont)} not known")
     else: # x is a Token
@@ -402,12 +405,9 @@ def eval_(x, e):
 def interpretstr(s): return eval_(parse(lex(s)), toplevelenv)
 
 s="""
-define
-  x * 10 10
-  y define toplevel true v * x x x 3
-pret list v v y
-
-
+name toplevel true x * 10 10
+  
+pret list x
 """
 
 
