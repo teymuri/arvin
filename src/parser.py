@@ -51,15 +51,22 @@ def consts(): return {"true": True, "false": False}
 
 FUNCOBJ_IDENTIFIER = "'"
 class Env:
-    def __init__(self, parenv=None):
+    counter = 0
+    def __init__(self, parenv=None, id_=None):
         self.funcs = builtin_funcs()
         # self.funcs = builtin_funcs()
         self.vars = consts()
         self.parenv = parenv
+        self.id = id_ if id_ else self.id_()
         # if parenv:
         #     self.funcs.update(parenv.funcs)
         #     self.vars.update(parenv.vars)
-        
+    def __repr__(self):
+        return f"<ENV {self.id}>"
+    def id_(self):
+        x = Env.counter
+        Env.counter += 1
+        return x
     def isfunc(self, tok): return tok.label in self.funcs
     def resolvetok(self, tok):
         if tok.label.startswith(FUNCOBJ_IDENTIFIER):
@@ -80,7 +87,6 @@ class Env:
                 try:
                     return self.vars[tok.label]
                 except KeyError:
-                    print(">>>>>>", self.parenv.vars)
                     return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
@@ -102,7 +108,7 @@ class Env:
         else:
             raise KeyError
 
-toplevelenv = Env()
+toplevelenv = Env(id_="TLENV")
 
 class Function:
     
@@ -158,7 +164,7 @@ class Token:
         if _verbose_tokenrepr:
             return f"{self.label}.L{self.line}.S{self.start}"
         else:
-            return f"{self.label}"
+            return f"<Tok {self.label}>"
 
 
 
@@ -213,7 +219,7 @@ class Block:
         self.nth = Block.counter
         Block.counter += 1
     
-    def __repr__(self): return f"B{self.nth}"
+    def __repr__(self): return f"<Block{self.nth}>"
     def append(self, t): self.cont.append(t)
 
 
@@ -245,10 +251,10 @@ toplevelblock = Block(kw=Token(), env=toplevelenv)
 def parse(toks):
     """Converts tokens of the source file to an AST of Tokens/Blocks"""
     nametok = None
-    tlblock = deepcopy(toplevelblock)
+    # tlblock = deepcopy(toplevelblock)
+    tlblock=toplevelblock
     enclosingblock = tlblock
     blocktracker = [enclosingblock]
-    # multivarbind = None
     
     for i, t in enumerate(toks):
         # make a block??
@@ -410,11 +416,16 @@ def eval_(x, e):
 def interpretstr(s): return eval_(parse(lex(s)), toplevelenv)
 
 s="""
-name tl true x0 200 y0 * x0 x0
-name tl true x1 10
-      y1 + x1 10
-  z1 + x0 y0 x1 y1
-pret list x0 y0 x1 y1 z1
+name
+ tl true
+ v1 100
+ v2 name x1 * 10 v1
+      x2 + x1 .5 .5
+
+name tl true x1 + v2 1
+pret * 10 pret + 10 20
+
+pret x1
 """
 
 
