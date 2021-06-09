@@ -80,6 +80,7 @@ class Env:
                 try:
                     return self.vars[tok.label]
                 except KeyError:
+                    print(">>>>>>", self.parenv.vars)
                     return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
@@ -325,7 +326,7 @@ def parse(toks):
         # return '(' + ' '.join(map(schemestr, exp)) + ')' 
     # else:
         # return str(exp)
-META = ("type", "lock", "toplevel")
+META = ("type", "lock", "tl")
 def filtermeta(pairs):
     meta = {}
     nonmeta = []
@@ -350,12 +351,16 @@ def eval_(x, e):
         elif car.label == "name":
             meta, nonmeta = filtermeta(pair(cdr))
             # assignments go into the toplevel env
-            if "toplevel" in meta and eval_(meta["toplevel"], toplevelenv):
+            if "tl" in meta and eval_(meta["tl"], toplevelenv):
                 for vartok, val in nonmeta:
-                    toplevelenv.vars[vartok.label] = eval_(val, toplevelenv)
+                    retval = eval_(val, toplevelenv)
+                    toplevelenv.vars[vartok.label] = retval
+                return retval
             else:
                 for vartok, val in nonmeta:
-                    x.env.parenv.vars[vartok.label] = eval_(val, x.env)
+                    retval = eval_(val, x.env)
+                    x.env.vars[vartok.label] = retval
+                return retval
         
         # elif car.label == "case":
             # for pred, form in pair(cdr):
@@ -405,9 +410,11 @@ def eval_(x, e):
 def interpretstr(s): return eval_(parse(lex(s)), toplevelenv)
 
 s="""
-name toplevel true x * 10 10
-  
-pret list x
+name tl true x0 200 y0 * x0 x0
+name tl true x1 10
+      y1 + x1 10
+  z1 + x0 y0 x1 y1
+pret list x0 y0 x1 y1 z1
 """
 
 
