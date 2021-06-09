@@ -1,5 +1,3 @@
-
-
 """
 BUBU
 """
@@ -15,6 +13,7 @@ from copy import deepcopy
 
 _verbose_tokenrepr = False
 
+
 def pair(L):
     pairs = []
     s, e = 0, 2
@@ -23,27 +22,6 @@ def pair(L):
         s += 2
         e += 2
     return pairs
-
-
-def group_case_clauses(clauses, g):
-    if clauses:
-        g.append(clauses[:2])
-        return group_case_clauses(clauses[2:], g)
-    return g
-
-HIGHER_ORDER_FUNCTIONS = ("call", "map")
-
-# def ishigherorder(tok): return tok.label in HIGHER_ORDER_FUNCTIONS
-SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
-NONNAMING_BLOCK_BUILDERS = ("case","call")
-LEXICAL_BLOCK_BUILDERS = ("block", "defun", "define", "fn", "defvar")
-MULTIPLE_VALUE_BINDERS = ("defvar", "define")
-
-def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
-
-def is_singlename_builder(tok): return tok.label in SINGLE_NAMING_BLOCK_BUILDERS
-
-def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
 
 ######### builtin functions
 def sub(*args): return reduce(op.sub, args) if args else 0
@@ -56,7 +34,10 @@ def pret(thing):
     """Prints and returns the thing."""
     print(thing)
     return thing
+
 def list_(*args): return list(args)
+# def pylist(*args): return "[{}]".format(", ".join(args))
+
 def map_(fn, *args): return list(map(fn, *args))
 
 def builtin_funcs():
@@ -66,16 +47,18 @@ def builtin_funcs():
         "pret": pret,
         "list": list_, "map": map_
     }
+def consts(): return {"true": True, "false": False}
+
 FUNCOBJ_IDENTIFIER = "'"
 class Env:
     def __init__(self, parenv=None):
         self.funcs = builtin_funcs()
         # self.funcs = builtin_funcs()
-        self.vars = {}
+        self.vars = consts()
         self.parenv = parenv
-        if parenv:
-            self.funcs.update(parenv.funcs)
-            self.vars.update(parenv.vars)
+        # if parenv:
+        #     self.funcs.update(parenv.funcs)
+        #     self.vars.update(parenv.vars)
         
     def isfunc(self, tok): return tok.label in self.funcs
     def resolvetok(self, tok):
@@ -97,10 +80,8 @@ class Env:
                 try:
                     return self.vars[tok.label]
                 except KeyError:
-                    try:
-                        return self.consts[tok.label]
-                    except KeyError:
-                        return self.parenv.resolve_token(tok)
+                    print(">>>>>>", self.parenv.vars)
+                    return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
         if tok.label in self.funcs:
@@ -123,21 +104,6 @@ class Env:
 
 toplevelenv = Env()
 
-            
-class Token:
-    def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
-        self.label = label
-        self.start = start
-        self.end = end
-        self.line = line
-    
-    def __repr__(self):
-        if _verbose_tokenrepr:
-            return f"{self.label}.L{self.line}.S{self.start}"
-        else:
-            return f"{self.label}"
-
-
 class Function:
     
     def __init__(self, params, body, enclosing_env):
@@ -158,10 +124,51 @@ class Function:
 
 
 
+
+
+def group_case_clauses(clauses, g):
+    if clauses:
+        g.append(clauses[:2])
+        return group_case_clauses(clauses[2:], g)
+    return g
+
+HIGHER_ORDER_FUNCTIONS = ("call", "map")
+
+# def ishigherorder(tok): return tok.label in HIGHER_ORDER_FUNCTIONS
+SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
+NONNAMING_BLOCK_BUILDERS = ("case","call")
+LEXICAL_BLOCK_BUILDERS = ("block", "defun", "name", "lambda", "defvar")
+MULTIPLE_VALUE_BINDERS = ("defvar", "define")
+
+def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
+
+def is_singlename_builder(tok): return tok.label in SINGLE_NAMING_BLOCK_BUILDERS
+
+def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
+
+
+class Token:
+    def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
+        self.label = label
+        self.start = start # start position in the line
+        self.end = end
+        self.line = line # line number
+    
+    def __repr__(self):
+        if _verbose_tokenrepr:
+            return f"{self.label}.L{self.line}.S{self.start}"
+        else:
+            return f"{self.label}"
+
+
+
+
+
+
 # decimal numbers
 # DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
 STRPATT = re.compile(r'"[^"]*"')
-# def tokenize_source(src):
+# def lex(src):
     # """
     # """
     # src = src.strip()
@@ -178,9 +185,10 @@ STRPATT = re.compile(r'"[^"]*"')
 
 def lines(src): return src.strip().splitlines()
 
-def tokenize_source(src):
+def lex(s):
+    """Converts the string into a list of tokens."""
     toks = []
-    for i, line in enumerate(lines(src)):
+    for i, line in enumerate(lines(s)):
         # for match in re.finditer(r"([*=+-]|\w+|{})".format(DECPATT), line):
         for match in re.finditer(r"\S+", line):
             toks.append(Token(label=match.group(), start=match.start(), end=match.end(), line=i)
@@ -297,70 +305,11 @@ def parse(toks):
         # pass
 
 
-def eval_(x, e):
-    if isinstance(x, Block): # think of a Block as list!
-
-        car, cdr = x.kw, x.cont[1:]
-        # car, cdr = x.kw, x.cont
-        if car.label == "_TOPLEVEL": # start processing the rest
-            for i in cdr[:-1]:
-                eval_(i, e)
-            return eval_(cdr[-1], e)
-            
-        # elif car.label == "case":
-            # for pred, form in pair(cdr):
-                # if eval_(pred, e): return eval_(form, e)
-            # return False
-        
-        elif car.label == "defvar": # toplevel var
-            for var, val in pair(cdr):
-                toplevelenv.vars.update([(var.label, eval_(val, e))])
-            return var.label
-        
-        # Higher order functions
-        elif car.label == "call": # call a function
-            fn, *args = cdr
-            # snapshot
-            if isinstance(fn, Block): # Calling fresh anonymus function definition
-                fnobj = eval_(fn, e)
-                return fnobj(*[eval_(a, e) for a in args])
-            else: # Token = saved function name
-                fnobj = e.vars[fn.label]
-                # return eval_(fnobj, fnobj.env)(*[eval_(a, fnobj.env) for a in args])
-                return fnobj(*[eval_(a, fnobj.env) for a in args])
-        
-        elif car.label == "map":
-            fn, *args = cdr
-            return e.funcs["map"](eval_(fn, e), *[eval_(a, e) for a in args])
-
-        elif car.label == "fn": # create a function object
-            # the first block is a block of params
-            paramsblock, *body = cdr
-            params = paramsblock.cont[1:]
-            return Function([p.label for p in params], body, e)
-        
-        elif e.isfunc(car):
-            # return e.funcs[car.label](*[eval_(b, e) for b in cdr])
-            # print(car,cdr)
-            return eval_(car, e)(*[eval_(b, e) for b in cdr])
-        
-        else:
-            raise SyntaxError(f"{(x, x.cont)} not known")
-    
-    else: # x is a Token
-        try:
-            return int(x.label)
-        except ValueError:
-            try:
-                return float(x.label)
-            except ValueError:
-                # return e.resolve_token(x)
-                return e.resolvetok(x)
 
 
-def evalsrc(path):
-    with open(path, "r") as src:
-        eval_(parse(tokenize_source(src.read())), toplevelenv)
+# def evalsrc(path):
+    # with open(path, "r") as src:
+        # eval_(parse(lex(src.read())), toplevelenv)
 
 
 
@@ -377,20 +326,101 @@ def evalsrc(path):
         # return '(' + ' '.join(map(schemestr, exp)) + ')' 
     # else:
         # return str(exp)
+META = ("type", "lock", "tl")
+def filtermeta(pairs):
+    meta = {}
+    nonmeta = []
+    for tok, val in pairs:
+        if tok.label in META:
+            meta[tok.label] = val
+        else:
+            nonmeta.append((tok, val))
+    return meta, nonmeta
+
+
+
+def eval_(x, e):
+    if isinstance(x, Block): # think of a Block as list!
+        car, cdr = x.kw, x.cont[1:]
+        # car, cdr = x.kw, x.cont
+        if car.label == "_TOPLEVEL": # start processing the rest
+            for i in cdr[:-1]:
+                eval_(i, e)
+            return eval_(cdr[-1], e)
+
+        elif car.label == "name":
+            meta, nonmeta = filtermeta(pair(cdr))
+            # assignments go into the toplevel env
+            if "tl" in meta and eval_(meta["tl"], toplevelenv):
+                for vartok, val in nonmeta:
+                    retval = eval_(val, toplevelenv)
+                    toplevelenv.vars[vartok.label] = retval
+                return retval
+            else:
+                for vartok, val in nonmeta:
+                    retval = eval_(val, x.env)
+                    x.env.vars[vartok.label] = retval
+                return retval
+        
+        # elif car.label == "case":
+            # for pred, form in pair(cdr):
+                # if eval_(pred, e): return eval_(form, e)
+            # return False
+        elif car.label == "defvar": # toplevel var
+            for var, val in pair(cdr):
+                toplevelenv.vars.update([(var.label, eval_(val, e))])
+            return var.label
+        # Higher order functions
+        elif car.label == "call": # call a function
+            fn, *args = cdr
+            # snapshot
+            if isinstance(fn, Block): # Calling fresh anonymus function definition
+                fnobj = eval_(fn, e)
+                return fnobj(*[eval_(a, e) for a in args])
+            else: # Token = saved function name
+                fnobj = e.vars[fn.label]
+                # return eval_(fnobj, fnobj.env)(*[eval_(a, fnobj.env) for a in args])
+                return fnobj(*[eval_(a, fnobj.env) for a in args])
+        elif car.label == "map":
+            fn, *args = cdr
+            return e.funcs["map"](eval_(fn, e), *[eval_(a, e) for a in args])
+        elif car.label == "lambda": # create a function object
+            # the first block is a block of params
+            paramsblock, *body = cdr
+            params = paramsblock.cont[1:]
+            return Function([p.label for p in params], body, e)
+        
+        elif e.isfunc(car):
+            # return e.funcs[car.label](*[eval_(b, e) for b in cdr])
+            # print(car,cdr)
+            return eval_(car, e)(*[eval_(b, e) for b in cdr])
+        
+        else:
+            raise SyntaxError(f"{(x, x.cont)} not known")
+    else: # x is a Token
+        try:
+            return int(x.label)
+        except ValueError:
+            try:
+                return float(x.label)
+            except ValueError:
+                return e.resolve_token(x)
+                # return e.resolvetok(x)
+                
+def interpretstr(s): return eval_(parse(lex(s)), toplevelenv)
 
 s="""
-defvar y 1
-defvar f 
-    fn block
-      * y 100
-pret call f
-defvar y 2
-pret call f
-
+name tl true x0 200 y0 * x0 x0
+name tl true x1 10
+      y1 + x1 10
+  z1 + x0 y0 x1 y1
+pret list x0 y0 x1 y1 z1
 """
 
-toks = tokenize_source(s)
-# print(STRPATT.findall(s))
-# print(parse(toks))
-# print(ast(parse(toks)))
-eval_(parse(toks), toplevelenv)
+
+# toks = lex(s)
+# # print(STRPATT.findall(s))
+# # print(parse(toks))
+# # print(ast(parse(toks)))
+# eval_(parse(toks), toplevelenv)
+interpretstr(s)

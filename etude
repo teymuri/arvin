@@ -1,0 +1,351 @@
+
+in x.bbs:
+
+define
+  type system
+  meinsys
+    components
+      file name "foo.bb" dependson list pygame
+      file name "bar.bb" dependson list functools
+
+# module meinsys.foo
+import pygame
+
+
+
+APPEND return toplevel-flattened list
+append list 1 2 3
+  list 2 3 4
+  list 5 list 6 7
+(=> L:1 2 3 2 3 4 5 L:6 7)
+pop L:1 2 3 2 3 4 5 L:6 7 (=> L:6 7)
+
+PUSH atom to list
+POP
+
+define
+  tmp true
+  pyappend
+    lambda @L
+      push random 101
+        L
+call
+  lambda @L
+    push random 101
+      L
+  list "First Item"
+
+(=> L."First Item" 67)
+
+  
+
+(Iteration, destructuring)
+iter i 10 pret i
+iter i list 1 2 3 4 pret i
+iter ch "string" pret ch
+iter list i x enum list 3 4 5 6 pret list i x
+=> L.0 3
+   L.1 4
+   L.2 5
+   L.3 6
+iter list i list x y enum list list 1 2 list 2 3 list 3 4 pret i x y=>
+0 1 2
+1 2 3
+2 3 4
+
+bind n 34
+     f lambda block x
+       	      * x n
+  f 10 (is equivalet to call 'f 10)
+
+(defining a class starts)
+
+define
+    supclass cls1 cls2 cls3
+    myclass
+        define x 123
+
+define
+    for myclass
+    x 123
+
+define myclass-inst myclass
+myclass-inst x => 123
+inc myclass-inst x => 124
+
+(defining a class ends)
+
+(sort of things in bubu):
+system, function, class, stream
+define v1 123
+    v2 34
+    v3 43
+
+define
+    v1 2343
+    f1 function x
+        * x f1 - x 1
+    f2 function y
+        * f1 y v1
+
+define fact
+    function N
+        case = N 1
+            1
+            * N fact - N 1
+
+define 
+    lock true
+    !var 28973
+
+define x 123
+DEFINE NAME WERT
+DEFINE :NAME definition => class
+DEFINE ~NAME definition => system
+
+define mein_set
+    set 2 3 4
+define mein_table
+    tab 2 + 3 4 5 
+        foo "A string, ..."
+mein_table 2 => 12
+mein_table foo => "A String ..."
+
+define
+    (metadata starts here)
+    lock true
+    version "2.3"
+    dependson fooVater
+    (metadata ends here)
+    :foo (dot inicates your defining a class)
+        define lock false
+            versionaslist list 1 2 3
+        define incversionpatch
+            function
+                inc third %versionaslist
+                %versionaslist
+
+define fooinst foo
+foo versionaslist => [1,2,3]
+foo incversionpatch => [1,2,4]
+
+define
+    return struct
+    myclass
+        define ...
+
+define
+    type function
+    fact function n
+            case = n 1
+                1
+                true * n fact - n 1
+
+(Defining a system)
+define
+    type system
+    lock true
+    bubugame
+        define lock true (this is a constant)
+            type string
+            version "3.4.5"
+        define 
+            file1 
+                relpath "setup.bb"
+        define
+            type fileobject
+            dependson "setup.bb"
+            lock true
+            file2 "colors.bb"
+        define main file2
+
+bubugame version => "3.4.5"
+bubugame file1 => FILEOBJECTSTREAM
+bubugame main => runs the system
+
+define NiceError error
+    error
+
+
+define
+    ;metadata
+    lock true
+metadata => {lock:true/false, type:int/str/float/struct/func/.......}
+define
+    lock => true
+    type => integer
+    Foo function x y
+          * x y Foo
+define
+    .lock true
+    .type = void
+    Person class
+        define lock = true
+            type str
+            species "Human"
+        define lock = false
+            type int
+            age 36
+        define type int
+            make_older
+                function D
+                    inc %:age D (% refers to self, note also that inc has no return value!)
+                    %:age
+
+define type Person
+    amir Person
+
+amir
+  age => 36
+amir make_older 1 => 37
+amir age => 37
+
+map amir 
+    list age species => list 37 "Human"
+(make_older is itself a function passing the arg to it)
+map amir list age species make_older 2 age => list 36 "Human" void/38 38
+
+define
+    .type int
+    fact function 
+        N
+        Case = N 1
+            N
+            True
+            * N fact - N 1
+
+define myclass
+    struct
+    define attr1 87
+    define attr2 478
+    define meth1 (output type=integer)
+            function x y
+                * x y 1000
+    define meth2 void
+            function
+
+myclass:meth1 3 4 => 12000
+
+define amir const str "Amir Teymuri"
+define alter integer 36
+
+alter => 36
+amir => "Amir Teymuri"
+
+define type Integer
+    lock true
+    N 123
+
+define
+    type function (redundant!, Bubu can understand this himself!)
+    doc "This is the factorial function."
+    fact function @N
+        case = N 1
+             1
+             true * N fact - N 1
+;;;;;type deduction
+define type list
+    VARNAME list 1 2 4
+typeof VARNAME => list
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; class, problem instantiating args -> function args
+define type struct
+    public list foo printfoo
+    (As convention, we name structs +class)
+    ~ich ~sup1 ~sup2
+     define CONS (the __init__)
+        define 
+            type Integer
+            lock true
+            Alter 36
+        define type string
+            lock true
+            foo "Hallo Welt!"
+        define type function
+            printfoo
+                function
+                    pret +ich foo
+
+define type +ich
+    amir +ich
+amir printfoo => "Hallo Welt!"
+"Hallo Welt!"
+
+amir printfoo 
+amir foo (both work!, but foo amir would 't)
+map 'amir list printfoo foo Alter => ["Hallo Welt!", "Hallo Welt!", 36]
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Define system
+define
+    type system (provides a protocol)
+    author "Amir Teymuri"
+    license ""
+    dependson pygame
+    public list initpygame
+    mygame
+        define 
+            lock true
+            version "1.2.3"
+        define
+            type function
+            [run] function
+
+mygame run
+
+(In x.bb file we then can write something
+like this:)
+define
+    type function
+    initpygame
+        function
+            pygame Rect 0 0 2 123
+
+map 'mygame list initpygame "Hello Game" => pygame.Rect
+
+map 'pygame
+    list Rect 0 0 2 13
+        Surface 0 0 40 40
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+staff
+  x 100 y 100 (Abstände vom Papierrand)
+  width 100 (Alles was in Klammern steht sind Kommentare:
+  die Einheit ist in Pixeln.)
+  content
+    note pitch "d4" dur 4
+    (Die SMT-Sprache nutzt die sog. Prefixnotation.)
+    (Diese Notation wird unten für Dauerangabe exemplarisch vorgeführt.)
+    note pitch "f4" dur + 0.5 0.5 (=> 1)
+    note pitch "a4" dur + 1 1 1 1 (=> 4)
+    note pitch "d5" dur - 3 * 0.5 2 (=> 2)
+    note pitch "b4" dur * 2 + 1 1 (=> 4)
+    note pitch "g4" dur * 2 + .25 .25 * 2 .25 (=> 2)
+    (Nachfolgend werden strings für Dauerangaben verwendet.)
+    (Dies funktioniert da auch für Strings Rules definiert wurde.) 
+    note pitch "e4" dur "ganze" 
+    note pitch "f4" dur "halbe" 
+    note pitch "a4" dur "viertel"
+    note pitch "c4" dur "viertel"
+(((((((https://de.wikipedia.org/wiki/Notensatzprogramm#/media/Datei:Amadeus-input-example.svg)))))))
+define v1
+  voice rest 4
+    note "g4" "q"
+    note "g4" "q."
+    note "a4" "e"
+    barline
+    note "b4" "q"
+    note "b4" "q"
+    note "c5" "q"
+    note "b4" "q"
+    note "a4" "h."
+    rest "q"
+define v2
+  voice note "d4" "h"
+    note "d4" "q"
+    note "g4" "q"
+    note "g4" "q"
+    note "g4" "q"
+    note "g4" "e"
+    note "a4" "e"
+    note "g4" "q"
+    note "f#4" "h."
+staff content clef g acc b4 timesig c v1 v2
