@@ -47,19 +47,26 @@ def builtin_funcs():
         "pret": pret,
         "list": list_, "map": map_
     }
-def consts(): return {"true": True, "false": False}
+def consts(): return {"true": True, "false": False, "ja": True, "ne": False}
 
 FUNCOBJ_IDENTIFIER = "'"
 class Env:
-    def __init__(self, parenv=None):
+    counter = 0
+    def __init__(self, parenv=None, id_=None):
         self.funcs = builtin_funcs()
         # self.funcs = builtin_funcs()
         self.vars = consts()
         self.parenv = parenv
+        self.id = id_ if id_ else self.id_()
         # if parenv:
         #     self.funcs.update(parenv.funcs)
         #     self.vars.update(parenv.vars)
-        
+    def __repr__(self):
+        return f"(ENV {self.id})"
+    def id_(self):
+        x = Env.counter
+        Env.counter += 1
+        return x
     def isfunc(self, tok): return tok.label in self.funcs
     def resolvetok(self, tok):
         if tok.label.startswith(FUNCOBJ_IDENTIFIER):
@@ -80,7 +87,6 @@ class Env:
                 try:
                     return self.vars[tok.label]
                 except KeyError:
-                    print(">>>>>>", self.parenv.vars)
                     return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
@@ -102,7 +108,7 @@ class Env:
         else:
             raise KeyError
 
-toplevelenv = Env()
+toplevelenv = Env(id_="TL")
 
 class Function:
     
@@ -158,7 +164,7 @@ class Token:
         if _verbose_tokenrepr:
             return f"{self.label}.L{self.line}.S{self.start}"
         else:
-            return f"{self.label}"
+            return f"(Tok {self.label})"
 
 
 
@@ -206,14 +212,17 @@ def token_isin_block(tk, bl):
 
 class Block:
     counter = 0
-    def __init__(self, kw, env):
+    def __init__(self, kw, env, id_=None):
         self.kw = kw
         self.cont = [self.kw]
         self.env = env
-        self.nth = Block.counter
+        self.id = id_ if id_ else self.id()
+
+    def id(self):
+        i = Block.counter
         Block.counter += 1
-    
-    def __repr__(self): return f"B{self.nth}"
+        return i
+    def __repr__(self): return f"(Block {self.id})"
     def append(self, t): self.cont.append(t)
 
 
@@ -228,16 +237,16 @@ def ast(parsed_block, tree=[]):
 
 
 def bottom_rightmost_enclosing_block(enclosing_blocks):
-    # Find the max line
+    # Find the bottom-most line
     maxline = max(enclosing_blocks, key=lambda b: b.kw.line).kw.line
-    # all bottommost blocks
+    # filter all bottommost blocks
     bottommost_blocks = [b for b in enclosing_blocks if b.kw.line == maxline]
-    # return the rightmost of them
+    # get the rightmost one of them
     return max(bottommost_blocks, key=lambda b: b.kw.start)
 
 # global env has no parent env
 
-toplevelblock = Block(kw=Token(), env=toplevelenv)
+toplevelblock = Block(kw=Token(), env=toplevelenv, id_="TL")
 
 ###########################
 ###########################
@@ -245,41 +254,39 @@ toplevelblock = Block(kw=Token(), env=toplevelenv)
 def parse(toks):
     """Converts tokens of the source file to an AST of Tokens/Blocks"""
     nametok = None
-    tlblock = deepcopy(toplevelblock)
+    # tlblock = deepcopy(toplevelblock)
+    tlblock=toplevelblock
     enclosingblock = tlblock
     blocktracker = [enclosingblock]
-    # multivarbind = None
+    X= False
     
     for i, t in enumerate(toks):
         # make a block??
         if enclosingblock.env.isblockbuilder(t):
             if is_lexenv_builder(t):
-                B = Block(t, Env(enclosingblock.env)) # give it a new env
+                B = Block(t, Env(parenv=enclosingblock.env)) # give it a new env
                 # if is_multiple_value_binder(t): multivarbind = B
             else:
                 B = Block(t, enclosingblock.env)
             blocktracker.append(B)
+            X=True
+        else: X= False
         
         
-        # Monitor next coming token
-        if is_singlename_builder(t): # eg defun
-            nametok = toks[i+1]
+        # # Monitor next coming token
+        # if is_singlename_builder(t): # eg defun
+        #     nametok = toks[i+1]
             
-        enclosing_blocks = [b for b in blocktracker if token_isin_block(t, b)]
+        enclosing_blocks = [b for b in blocktracker if token_isin_block(t, b)]        
         enclosingblock = bottom_rightmost_enclosing_block(enclosing_blocks)
-        enclosingblock.append(B if enclosingblock.env.isblockbuilder(t) else t)
-        
-        # if token_isin_block(t, multivarbind):
-            # if enclosingblock.env.isblockbuilder(t):
-                # print(multivarbind, B)
-            # else:
-                # print(multivarbind, t)
-        
-        # if enclosing_blocks: # If there are some enclosing blocks (Is this not always true?????????)
-            # if enclosingblock.env.isblockbuilder(t):
-                # enclosingblock.append(B)
-            # else:
-                # enclosingblock.append(t)
+        print("----", t, enclosing_blocks)
+        if X:
+            enclosingblock.append(B)
+            X=False
+        else:
+            enclosingblock.append(t)
+        # enclosingblock.append(B if enclosingblock.env.isblockbuilder(t) else t)
+
         # Adding to Env
         try:
             if t.label == nametok.label:
@@ -354,13 +361,16 @@ def eval_(x, e):
             if "tl" in meta and eval_(meta["tl"], toplevelenv):
                 for vartok, val in nonmeta:
                     retval = eval_(val, toplevelenv)
+                    # retval = eval_(val, x.env)
                     toplevelenv.vars[vartok.label] = retval
                 return retval
-            else:
+            else:                
                 for vartok, val in nonmeta:
                     retval = eval_(val, x.env)
                     x.env.vars[vartok.label] = retval
+                print(">>>>", x.env, x.env.parenv, x.env.vars)
                 return retval
+            del x
         
         # elif car.label == "case":
             # for pred, form in pair(cdr):
@@ -407,20 +417,31 @@ def eval_(x, e):
                 return e.resolve_token(x)
                 # return e.resolvetok(x)
                 
-def interpretstr(s): return eval_(parse(lex(s)), toplevelenv)
+def interpstr(s):
+    """Interprets the input string"""
+    i = eval_(parse(lex(s)), toplevelenv)
+    print(toplevelenv.vars)
+    return i
 
 s="""
-name tl true x0 200 y0 * x0 x0
-name tl true x1 10
-      y1 + x1 10
-  z1 + x0 y0 x1 y1
-pret list x0 y0 x1 y1 z1
-"""
+name
+ tl true
+ v1 100
+ v2 name x1 * 10 v1
 
+name tl ja
+  x1 pret + v2 1
+  x2 name mytempvar * pret x1
+                      1000
+"""
+s="""
+name foo 3
+name bar foo
+"""
 
 # toks = lex(s)
 # # print(STRPATT.findall(s))
 # # print(parse(toks))
 # # print(ast(parse(toks)))
 # eval_(parse(toks), toplevelenv)
-interpretstr(s)
+interpstr(s)
