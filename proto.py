@@ -93,7 +93,7 @@ class Env:
                     return self.vars[tok.label]
                 except KeyError:
                     if self == tlenv: # if already at the top, token couldn't be resolved!
-                        raise NameError(f"unbound name {tok.label}")
+                        raise NameError(f"name {tok.label} is unaccessible")
                     else:
                         return self.parenv.resolve_token(tok)
     
