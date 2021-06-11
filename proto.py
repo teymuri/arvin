@@ -18,7 +18,8 @@ _verbose_tokenrepr = False
 
 
 def pair(L):
-    assert len(L)%2 == 0, f"Wrong number of items to pair: {L}"
+    assert len(L)%2 == 0, f"""List can't be arranged in pairs:
+    {L}"""
     pairs = []
     s, e = 0, 2
     for _ in range(len(L)//2):
