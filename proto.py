@@ -73,14 +73,14 @@ class Env:
         Env.counter += 1
         return x
     def isfunc(self, tok): return tok.label in self.funcs
-    def resolvetok(self, tok):
-        if tok.label.startswith(FUNCOBJ_IDENTIFIER):
-            return self.funcs(tok.label[1:])
-        else:
-            try:
-                return self.funcs[tok.label]
-            except KeyError:
-                return self.vars[tok.label]
+    # def resolvetok(self, tok):
+    #     if tok.label.startswith(FUNCOBJ_IDENTIFIER):
+    #         return self.funcs(tok.label[1:])
+    #     else:
+    #         try:
+    #             return self.funcs[tok.label]
+    #         except KeyError:
+    #             return self.vars[tok.label]
     
     def resolve_token(self, tok):
         if tok.label.startswith("'"): # return the function object
@@ -92,7 +92,10 @@ class Env:
                 try:
                     return self.vars[tok.label]
                 except KeyError:
-                    return self.parenv.resolve_token(tok)
+                    if self == tlenv: # if already at the top, token couldn't be resolved!
+                        raise NameError(f"unbound name {tok.label}")
+                    else:
+                        return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
         if tok.label in self.funcs:

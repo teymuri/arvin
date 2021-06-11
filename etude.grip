@@ -2,5 +2,15 @@
 
 
 
-name tl ja x * 2 2 2
-pret x
+name tl ja
+ x list * 2 2 2
+        + 1 1
+ y list x x x
+
+pret list x y
+
+name tl ja
+ a list x x
+ x a
+
+pret list a x y
