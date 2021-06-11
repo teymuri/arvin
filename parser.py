@@ -1,7 +1,7 @@
 """
 BUBU
 """
-
+print("Grid Processor")
 import re
 import sys
 import operator as op
