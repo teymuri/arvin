@@ -390,7 +390,6 @@ def eval_(x, e):
                     retval = eval_(val, x.env)
                     x.env.vars[vartok.label] = retval
                 return retval
-            del x
         
         # elif car.label == "case":
             # for pred, form in pair(cdr):
@@ -442,26 +441,14 @@ def interpstr(s):
     i = eval_(parse(lex(s)), toplevelenv)
     return i
 
-s="""
-name
- tl true
- v1 100
- v2 name x1 * 10 v1
-pret v2
-name tl ja
-  x1 + v2 1
-  x2 name mytempvar * x1 1000
-pret x2
-"""
-s="""
-name tl ja foo 3
-pret 
- name foo 5
-  bar * foo 10
 
-pret foo
-  
 
-"""
+import argparse
+argparser = argparse.ArgumentParser(description='Process some integers.')
+argparser.add_argument("src")
+args = argparser.parse_args()
+with open(args.src, "r") as src:
+    interpstr(src.read())
 
-interpstr(s)
+
+
