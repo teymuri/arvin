@@ -113,7 +113,8 @@ class Env:
         else:
             raise KeyError
 
-toplevelenv = Env(id_="TL")
+# The Toplevel Environment
+tlenv = Env(id_="TL")
 
 class Function:
     
@@ -261,9 +262,9 @@ def enclosing_block(tok, blocks): # blocks is a list
 #     # get the rightmost one of them
 #     return max(bottommost_blocks, key=lambda b: b.kw.start)
 
-# global env has no parent env
 
-toplevelblock = Block(kw=Token(), env=toplevelenv, id_="TL")
+# The Toplevel Block
+tlblock = Block(kw=Token(), env=tlenv, id_="TL")
 
 ###########################
 ###########################
@@ -271,11 +272,11 @@ toplevelblock = Block(kw=Token(), env=toplevelenv, id_="TL")
 def parse(toks):
     """Converts tokens of the source file to an AST of Tokens/Blocks"""
     # nametok = None
-    # # tlblock = deepcopy(toplevelblock)
-    # tlblock=toplevelblock
+    # # tlblock = deepcopy(tlblock)
+    # tlblock=tlblock
     # enclosingblock = tlblock
     # blocktracker = [enclosingblock]
-    blocktracker = [toplevelblock]
+    blocktracker = [tlblock]
     # X= False
     
     for i, t in enumerate(toks):
@@ -316,7 +317,7 @@ def parse(toks):
         #         # coming tokens.
         #         # The actual bindings to the objects happen later during evaluation.
         #         if toks[i-1].label == "define":
-        #             toplevelblock.env.funcs[t.label] = None
+        #             tlblock.env.funcs[t.label] = None
         #         elif toks[i-1].label == "funlet":
         #             enclosingblock.env.funcs[t.label] = None
         #         elif toks[i-1].label == "block":
@@ -327,7 +328,7 @@ def parse(toks):
         #         nametok = None
         # # If nametok is None
         # except AttributeError: pass
-    return toplevelblock
+    return tlblock
     # try:
         # return blocktracker[0]
     # except IndexError: # If there was no kw, no blocks have been built
@@ -338,7 +339,7 @@ def parse(toks):
 
 # def evalsrc(path):
     # with open(path, "r") as src:
-        # eval_(parse(lex(src.read())), toplevelenv)
+        # eval_(parse(lex(src.read())), tlenv)
 
 
 
@@ -380,11 +381,11 @@ def eval_(x, e):
         elif car.label == "name":
             meta, nonmeta = filtermeta(pair(cdr))
             # assignments go into the toplevel env
-            if "tl" in meta and eval_(meta["tl"], toplevelenv):
+            if "tl" in meta and eval_(meta["tl"], tlenv):
                 for vartok, val in nonmeta:
-                    retval = eval_(val, toplevelenv)
+                    retval = eval_(val, tlenv)
                     # retval = eval_(val, x.env)
-                    toplevelenv.vars[vartok.label] = retval
+                    tlenv.vars[vartok.label] = retval
                 return retval
             else:                
                 for vartok, val in nonmeta:
@@ -398,7 +399,7 @@ def eval_(x, e):
             # return False
         elif car.label == "defvar": # toplevel var
             for var, val in pair(cdr):
-                toplevelenv.vars.update([(var.label, eval_(val, e))])
+                tlenv.vars.update([(var.label, eval_(val, e))])
             return var.label
         # Higher order functions
         elif car.label == "call": # call a function
@@ -439,7 +440,7 @@ def eval_(x, e):
                 
 def interpstr(s):
     """Interprets the input string"""
-    i = eval_(parse(lex(s)), toplevelenv)
+    i = eval_(parse(lex(s)), tlenv)
     return i
 
 
