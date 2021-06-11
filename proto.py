@@ -244,17 +244,17 @@ def rightmost_block(bottommost_bs):
     # get the rightmost one of them
     return max(bottommost_bs, key=lambda b: b.kw.start)
 
-def enblock(tok, blocks): # blocks is a list
+def enclosing_block(tok, blocks): # blocks is a list
     """Returns token's enclosing block."""
     return rightmost_block(bottommost_blocks([b for b in blocks if token_isin_block(tok, b)]))
 
-def bottom_rightmost_enclosing_block(enclosing_blocks):
-    # Find the bottom-most line
-    maxline = max(enclosing_blocks, key=lambda b: b.kw.line).kw.line
-    # filter all bottommost blocks
-    bottommost_blocks = [b for b in enclosing_blocks if b.kw.line == maxline]
-    # get the rightmost one of them
-    return max(bottommost_blocks, key=lambda b: b.kw.start)
+# def bottom_rightmost_enclosing_block(enclosing_blocks):
+#     # Find the bottom-most line
+#     maxline = max(enclosing_blocks, key=lambda b: b.kw.line).kw.line
+#     # filter all bottommost blocks
+#     bottommost_blocks = [b for b in enclosing_blocks if b.kw.line == maxline]
+#     # get the rightmost one of them
+#     return max(bottommost_blocks, key=lambda b: b.kw.start)
 
 # global env has no parent env
 
@@ -265,23 +265,23 @@ toplevelblock = Block(kw=Token(), env=toplevelenv, id_="TL")
 # The listify is passed to eval
 def parse(toks):
     """Converts tokens of the source file to an AST of Tokens/Blocks"""
-    nametok = None
-    # tlblock = deepcopy(toplevelblock)
-    tlblock=toplevelblock
-    enclosingblock = tlblock
-    blocktracker = [enclosingblock]
+    # nametok = None
+    # # tlblock = deepcopy(toplevelblock)
+    # tlblock=toplevelblock
+    # enclosingblock = tlblock
+    # blocktracker = [enclosingblock]
     blocktracker = [toplevelblock]
     # X= False
     
     for i, t in enumerate(toks):
-        enclosingblock = enblock(t, blocktracker)
+        enblock = enclosing_block(t, blocktracker)
         # make a block??
-        if enclosingblock.env.isblockbuilder(t):
+        if enblock.env.isblockbuilder(t):
             if is_lexenv_builder(t):
-                B = Block(t, Env(parenv=enclosingblock.env)) # give it a new env
+                B = Block(t, Env(parenv=enblock.env)) # give it a new env
                 # if is_multiple_value_binder(t): multivarbind = B
             else:
-                B = Block(t, enclosingblock.env)
+                B = Block(t, enblock.env)
             blocktracker.append(B)
         #     X=True
         # else: X= False
@@ -302,27 +302,27 @@ def parse(toks):
         #     X=False
         # else:
         #     enclosingblock.append(t)
-        enclosingblock.append(B if enclosingblock.env.isblockbuilder(t) else t)
+        enblock.append(B if enblock.env.isblockbuilder(t) else t)
 
-        # Adding to Env
-        try:
-            if t.label == nametok.label:
-                # Create placeholders, so that the parser knows about these names while parsing
-                # coming tokens.
-                # The actual bindings to the objects happen later during evaluation.
-                if toks[i-1].label == "define":
-                    toplevelblock.env.funcs[t.label] = None
-                elif toks[i-1].label == "funlet":
-                    enclosingblock.env.funcs[t.label] = None
-                elif toks[i-1].label == "block":
-                    pass
-                elif toks[i-1].label == "map": 
-                    pass
+        # # Adding to Env
+        # try:
+        #     if t.label == nametok.label:
+        #         # Create placeholders, so that the parser knows about these names while parsing
+        #         # coming tokens.
+        #         # The actual bindings to the objects happen later during evaluation.
+        #         if toks[i-1].label == "define":
+        #             toplevelblock.env.funcs[t.label] = None
+        #         elif toks[i-1].label == "funlet":
+        #             enclosingblock.env.funcs[t.label] = None
+        #         elif toks[i-1].label == "block":
+        #             pass
+        #         elif toks[i-1].label == "map": 
+        #             pass
                     
-                nametok = None
-        # If nametok is None
-        except AttributeError: pass
-    return tlblock
+        #         nametok = None
+        # # If nametok is None
+        # except AttributeError: pass
+    return toplevelblock
     # try:
         # return blocktracker[0]
     # except IndexError: # If there was no kw, no blocks have been built
@@ -446,13 +446,17 @@ name
 pret v2
 name tl ja
   x1 + v2 1
-  x2 name mytempvar * x1
-                    1000
+  x2 name mytempvar * x1 1000
+pret x2
+"""
+s="""
+name tl ja foo 3
+pret 
+ name foo 5
+  bar * foo 10
+pret foo
+  
 
 """
-# s="""
-# name tl ja foo 3
-# name bar foo
-# """
 
 interpstr(s)
