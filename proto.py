@@ -1,7 +1,10 @@
 """
 This is a prototype for the grip programming language.
 """
+print("********************************")
 print("*** Grid Processor Prototype ***")
+print("********************************")
+
 import re
 import sys
 import operator as op
@@ -15,6 +18,7 @@ _verbose_tokenrepr = False
 
 
 def pair(L):
+    assert len(L)%2 == 0, f"Wrong number of items to pair: {L}"
     pairs = []
     s, e = 0, 2
     for _ in range(len(L)//2):
@@ -454,6 +458,7 @@ name tl ja foo 3
 pret 
  name foo 5
   bar * foo 10
+
 pret foo
   
 
