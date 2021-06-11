@@ -1,7 +1,7 @@
 """
-BUBU
+This is a prototype for the grip programming language.
 """
-print("Grid Processor")
+print("*** Grid Processor Prototype ***")
 import re
 import sys
 import operator as op
@@ -234,7 +234,19 @@ def ast(parsed_block, tree=[]):
             tree.append(ast(x, []))
     return tree
 
+def bottommost_blocks(enclosing_blocks):
+    # Find the bottom-most line
+    maxline = max(enclosing_blocks, key=lambda b: b.kw.line).kw.line
+    # filter all bottommost blocks
+    return [b for b in enclosing_blocks if b.kw.line == maxline]
 
+def rightmost_block(bottommost_bs):
+    # get the rightmost one of them
+    return max(bottommost_bs, key=lambda b: b.kw.start)
+
+def enblock(tok, blocks): # blocks is a list
+    """Returns token's enclosing block."""
+    return rightmost_block(bottommost_blocks([b for b in blocks if token_isin_block(tok, b)]))
 
 def bottom_rightmost_enclosing_block(enclosing_blocks):
     # Find the bottom-most line
@@ -258,9 +270,11 @@ def parse(toks):
     tlblock=toplevelblock
     enclosingblock = tlblock
     blocktracker = [enclosingblock]
-    X= False
+    blocktracker = [toplevelblock]
+    # X= False
     
     for i, t in enumerate(toks):
+        enclosingblock = enblock(t, blocktracker)
         # make a block??
         if enclosingblock.env.isblockbuilder(t):
             if is_lexenv_builder(t):
@@ -269,23 +283,26 @@ def parse(toks):
             else:
                 B = Block(t, enclosingblock.env)
             blocktracker.append(B)
-            X=True
-        else: X= False
+        #     X=True
+        # else: X= False
         
         
         # # Monitor next coming token
         # if is_singlename_builder(t): # eg defun
         #     nametok = toks[i+1]
-            
-        enclosing_blocks = [b for b in blocktracker if token_isin_block(t, b)]        
-        enclosingblock = bottom_rightmost_enclosing_block(enclosing_blocks)
-        print("----", t, enclosing_blocks)
-        if X:
-            enclosingblock.append(B)
-            X=False
-        else:
-            enclosingblock.append(t)
-        # enclosingblock.append(B if enclosingblock.env.isblockbuilder(t) else t)
+        #############################
+        # enclosing_blocks = [b for b in blocktracker if token_isin_block(t, b)]
+        # bottommost_bs = bottommost_blocks(enclosing_blocks)
+        # enclosingblock = rightmost_block(bottommost_bs)
+        #########################
+        # enclosingblock = bottom_rightmost_enclosing_block(enclosing_blocks)
+        # print("----", t, enclosingblock)
+        # if X:
+        #     enclosingblock.append(B)
+        #     X=False
+        # else:
+        #     enclosingblock.append(t)
+        enclosingblock.append(B if enclosingblock.env.isblockbuilder(t) else t)
 
         # Adding to Env
         try:
@@ -368,7 +385,6 @@ def eval_(x, e):
                 for vartok, val in nonmeta:
                     retval = eval_(val, x.env)
                     x.env.vars[vartok.label] = retval
-                print(">>>>", x.env, x.env.parenv, x.env.vars)
                 return retval
             del x
         
@@ -420,7 +436,6 @@ def eval_(x, e):
 def interpstr(s):
     """Interprets the input string"""
     i = eval_(parse(lex(s)), toplevelenv)
-    print(toplevelenv.vars)
     return i
 
 s="""
@@ -428,20 +443,16 @@ name
  tl true
  v1 100
  v2 name x1 * 10 v1
-
+pret v2
 name tl ja
-  x1 pret + v2 1
-  x2 name mytempvar * pret x1
-                      1000
-"""
-s="""
-name foo 3
-name bar foo
-"""
+  x1 + v2 1
+  x2 name mytempvar * x1
+                    1000
 
-# toks = lex(s)
-# # print(STRPATT.findall(s))
-# # print(parse(toks))
-# # print(ast(parse(toks)))
-# eval_(parse(toks), toplevelenv)
+"""
+# s="""
+# name tl ja foo 3
+# name bar foo
+# """
+
 interpstr(s)
