@@ -2,12 +2,12 @@
 
 
 
-name tl ja
+name tl ne
  x list * 2 2 2
         + 1 1
  y list x x x
 
-pret list x y
+pret list y x
 
 name tl ja
  a list x x
