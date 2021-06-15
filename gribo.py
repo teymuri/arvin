@@ -1,8 +1,8 @@
 """
-This is a prototype for the grip programming language.
+This is a prototype for the gribo programming language.
 """
 print("********************************")
-print("*** Grid Processor Prototype ***")
+print("*** Grid Board Prototype ***")
 print("********************************")
 
 import re
