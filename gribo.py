@@ -392,7 +392,7 @@ def tok_is_nondata(tok):
             return True
     
 
-IMPLICIT_LIST_IDENTIFIER = "@"
+IMPLICIT_LIST_IDENTIFIER = "~"
 def eval_(x, e):
     if isinstance(x, Block): # think of a Block as list!
         car, cdr = x.head, x.body[1:]
@@ -412,7 +412,7 @@ def eval_(x, e):
                 evalenv = x.env
             for b in nonmeta:
                 if not tok_is_nondata(b.head):
-                    raise NameError(f"{b.head} can't be an identifier")
+                    raise NameError(f"name {b.head} is number")
                 if (b.head.label.startswith(IMPLICIT_LIST_IDENTIFIER)):
                     # implicit_list
                     retval = []

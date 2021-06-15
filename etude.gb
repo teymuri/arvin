@@ -3,16 +3,19 @@
 name tl + .5 2 .5
   x * 10 10
      4
-  @y x x x
+  ~y x x x
      x + x x
      x x 1
-  @p1 y y
+  ~p1 y y
    1 2 3
 
 pret y
 pret p1
 
-pret name
-       tl ja
-       @il 1 2 3 4
-       8 7
+name tl ja
+  x 1
+  ~y x x + x x x
+         200
+  y y y y
+
+pret y
