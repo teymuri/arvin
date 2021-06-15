@@ -377,6 +377,21 @@ def filtermeta(nameblocks):
             nonmeta.append(b)
     return meta, nonmeta
 
+def tok_to_int(tok): return int(tok.label)
+def tok_to_float(tok): return float(tok.label)
+def tok_is_nondata(tok):
+    """Returns true if token is a true identifier!"""
+    try:
+        int(tok.label)
+        return False
+    except ValueError:
+        try:
+            float(tok.label)
+            return False
+        except ValueError:
+            return True
+    
+
 IMPLICIT_LIST_IDENTIFIER = "@"
 def eval_(x, e):
     if isinstance(x, Block): # think of a Block as list!
@@ -396,6 +411,8 @@ def eval_(x, e):
             else:
                 evalenv = x.env
             for b in nonmeta:
+                if not tok_is_nondata(b.head):
+                    raise NameError(f"{b.head} can't be an identifier")
                 if (b.head.label.startswith(IMPLICIT_LIST_IDENTIFIER)):
                     # implicit_list
                     retval = []

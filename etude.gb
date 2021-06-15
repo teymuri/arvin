@@ -6,6 +6,13 @@ name tl + .5 2 .5
   @y x x x
      x + x x
      x x 1
+  @p1 y y
+   1 2 3
 
+pret y
+pret p1
 
-pret y 
+pret name
+       tl ja
+       @il 1 2 3 4
+       8 7
