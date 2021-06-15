@@ -377,7 +377,7 @@ def filtermeta(nameblocks):
             nonmeta.append(b)
     return meta, nonmeta
 
-
+IMPLICIT_LIST_IDENTIFIER = "@"
 def eval_(x, e):
     if isinstance(x, Block): # think of a Block as list!
         car, cdr = x.head, x.body[1:]
@@ -396,7 +396,7 @@ def eval_(x, e):
             else:
                 evalenv = x.env
             for b in nonmeta:
-                if (b.head.label.startswith("@")):
+                if (b.head.label.startswith(IMPLICIT_LIST_IDENTIFIER)):
                     # implicit_list
                     retval = []
                     for val in b.body[1:]:
