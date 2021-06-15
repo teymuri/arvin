@@ -1,4 +1,53 @@
 
+(dynamic dispatching, polymorphism)
+objA meth
+objB meth
+
+(Implicit List Creation with special Token @)
+(Wenn @ vor einem Namen kommt, packt alles was demnächst
+in seinem Block vorkommt in eine Liste)
+name @il 1 2 3 4 5 6 (=> L 1 2 3 4 5 6, return value ist the value of the named,
+NOT value of the last
+thing passed in!)
+
+
+(function params)
+name
+ fn
+  lambda
+   # name p1 (defaults to null)
+     name p2 50 (defaults to 50)
+     name @p3 (defaults to list)
+ 
+
+
+(One look, two behaviours!)
+name X1 10
+name X2 lambda
+X1 (=> referencing the variable)
+X2 (=> calling the function)
+
+
+(Stream-based classes)
+name type struct
+     Hello
+	name meth1 lambda "Hello"
+	name bye lambda "Goodbye"
+	name meth2 lambda @str
+	           	  strcat str " World!"
+	name att1 "Hello"
+	name const true bye "Bye"
+
+name tl ja hi Hello
+hi meth1 meth2 (=> "Hello World!")
+hi att1 meth2 (=> "Hello World!")
+hi bye meth2 (...wait! Wie weisst hi ob bye die methode oder die attribute gemeint ist???)
+(Besser keine separate ns für funktionen und variablen)
+((((((()))))))
+
+
+
+
 in x.bbs:
 
 define

@@ -5,12 +5,11 @@
 name tl ne
  x list * 2 2 2
         + 1 1
- y list x x x
 
-pret list y x
+pret list
 
 name tl ja
- a list x x
+ a list 1 2 3
  x a
 
-pret list a x y
+pret list a x
