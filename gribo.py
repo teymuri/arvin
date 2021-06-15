@@ -1,9 +1,10 @@
 """
 This is a prototype for the gribo programming language.
 """
-print("********************************")
-print("*** Grid Board Prototype ***")
-print("********************************")
+print("((((((((((((((((()))))))))))))))))")
+print("(((((( Grid Board Prototype ))))))")
+print("((((((((((((((((()))))))))))))))))")
+
 
 import re
 import sys
@@ -161,9 +162,9 @@ def is_singlename_builder(tok): return tok.label in SINGLE_NAMING_BLOCK_BUILDERS
 
 def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
 
-
+TOPLEVEL_LABEL = "TL"
 class Token:
-    def __init__(self, label="_TOPLEVEL", start=-1, end=sys.maxsize, line=-1):
+    def __init__(self, label=TOPLEVEL_LABEL, start=-1, end=sys.maxsize, line=-1):
         self.label = label
         self.start = start # start position in the line
         self.end = end
@@ -214,16 +215,16 @@ def lex(s):
 
 
 def token_isin_block(tk, bl):
-    """Is tk inside of the kw's block?"""
-    return tk.start > bl.kw.start and tk.line >= bl.kw.line
+    """Is tk inside of the head's block?"""
+    return tk.start > bl.head.start and tk.line >= bl.head.line
 
 
 
 class Block:
     counter = 0
-    def __init__(self, kw, env, id_=None):
-        self.kw = kw
-        self.cont = [self.kw]
+    def __init__(self, head, env, id_=None):
+        self.head = head
+        self.body = [self.head]
         self.env = env
         self.id = id_ if id_ else self.id()
 
@@ -232,11 +233,11 @@ class Block:
         Block.counter += 1
         return i
     def __repr__(self): return f"(Block {self.id})"
-    def append(self, t): self.cont.append(t)
+    def append(self, t): self.body.append(t)
 
 
 def ast(parsed_block, tree=[]):
-    for x in parsed_block.cont:
+    for x in parsed_block.body:
         if isinstance(x, Token):
             tree.append(x)
         else: # Block?
@@ -245,13 +246,13 @@ def ast(parsed_block, tree=[]):
 
 def bottommost_blocks(enclosing_blocks):
     # Find the bottom-most line
-    maxline = max(enclosing_blocks, key=lambda b: b.kw.line).kw.line
+    maxline = max(enclosing_blocks, key=lambda b: b.head.line).head.line
     # filter all bottommost blocks
-    return [b for b in enclosing_blocks if b.kw.line == maxline]
+    return [b for b in enclosing_blocks if b.head.line == maxline]
 
 def rightmost_block(bottommost_bs):
     # get the rightmost one of them
-    return max(bottommost_bs, key=lambda b: b.kw.start)
+    return max(bottommost_bs, key=lambda b: b.head.start)
 
 def enclosing_block(tok, blocks): # blocks is a list
     """Returns token's enclosing block."""
@@ -259,59 +260,55 @@ def enclosing_block(tok, blocks): # blocks is a list
 
 # def bottom_rightmost_enclosing_block(enclosing_blocks):
 #     # Find the bottom-most line
-#     maxline = max(enclosing_blocks, key=lambda b: b.kw.line).kw.line
+#     maxline = max(enclosing_blocks, key=lambda b: b.head.line).head.line
 #     # filter all bottommost blocks
-#     bottommost_blocks = [b for b in enclosing_blocks if b.kw.line == maxline]
+#     bottommost_blocks = [b for b in enclosing_blocks if b.head.line == maxline]
 #     # get the rightmost one of them
-#     return max(bottommost_blocks, key=lambda b: b.kw.start)
+#     return max(bottommost_blocks, key=lambda b: b.head.start)
 
 
 # The Toplevel Block
-tlblock = Block(kw=Token(), env=tlenv, id_="TL")
+tlblock = Block(head=Token(), env=tlenv, id_=TOPLEVEL_LABEL)
 
 ###########################
 ###########################
-# The listify is passed to eval
+# Return an AST
 def parse(toks):
-    """Converts tokens of the source file to an AST of Tokens/Blocks"""
+    """Converts tokens of the source file into an AST of Tokens/Blocks"""
     # nametok = None
     # # tlblock = deepcopy(tlblock)
     # tlblock=tlblock
     # enclosingblock = tlblock
     # blocktracker = [enclosingblock]
     blocktracker = [tlblock]
-    # X= False
     
     for i, t in enumerate(toks):
         enblock = enclosing_block(t, blocktracker)
-        # make a block??
+        # Shall we create a new Block?
         if enblock.env.isblockbuilder(t):
             if is_lexenv_builder(t):
                 B = Block(t, Env(parenv=enblock.env)) # give it a new env
-                # if is_multiple_value_binder(t): multivarbind = B
             else:
                 B = Block(t, enblock.env)
             blocktracker.append(B)
-        #     X=True
-        # else: X= False
         
-        
-        # # Monitor next coming token
-        # if is_singlename_builder(t): # eg defun
-        #     nametok = toks[i+1]
-        #############################
-        # enclosing_blocks = [b for b in blocktracker if token_isin_block(t, b)]
-        # bottommost_bs = bottommost_blocks(enclosing_blocks)
-        # enclosingblock = rightmost_block(bottommost_bs)
-        #########################
-        # enclosingblock = bottom_rightmost_enclosing_block(enclosing_blocks)
-        # print("----", t, enclosingblock)
-        # if X:
-        #     enclosingblock.append(B)
-        #     X=False
+        elif enblock.head.label == "name":
+            B = Block(t, enblock.env)
+            blocktracker.append(B)
+
+        # enblock.append(B if enblock.env.isblockbuilder(t) or enblock.head.label == "name" else t)
+            
+        if enblock.env.isblockbuilder(t):
+            enblock.append(B)
+        elif enblock.head.label == "name":
+            enblock.append(B)
+        else:
+            enblock.append(t)
+
+        # if B in blocktracker:
+        #     enblock.append(t)
         # else:
-        #     enclosingblock.append(t)
-        enblock.append(B if enblock.env.isblockbuilder(t) else t)
+        #     enblock.append(B)
 
         # # Adding to Env
         # try:
@@ -334,7 +331,7 @@ def parse(toks):
     return tlblock
     # try:
         # return blocktracker[0]
-    # except IndexError: # If there was no kw, no blocks have been built
+    # except IndexError: # If there was no head, no blocks have been built
         # pass
 
 
@@ -370,31 +367,58 @@ def filtermeta(pairs):
             nonmeta.append((tok, val))
     return meta, nonmeta
 
+def filtermeta(nameblocks):
+    meta = {}
+    nonmeta = []
+    for b in nameblocks:
+        if b.head.label in META:
+            meta[b.head.label] = b.body[1:]
+        else:
+            nonmeta.append(b)
+    return meta, nonmeta
 
 
 def eval_(x, e):
     if isinstance(x, Block): # think of a Block as list!
-        car, cdr = x.kw, x.cont[1:]
-        # car, cdr = x.kw, x.cont
-        if car.label == "_TOPLEVEL": # start processing the rest
+        car, cdr = x.head, x.body[1:]
+        # car, cdr = x.head, x.body
+        if car.label == TOPLEVEL_LABEL: # start processing the rest
             for i in cdr[:-1]:
                 eval_(i, e)
             return eval_(cdr[-1], e)
 
         elif car.label == "name":
-            meta, nonmeta = filtermeta(pair(cdr))
+            # meta, nonmeta = filtermeta(pair(cdr))
+            meta, nonmeta = filtermeta(cdr)
             # assignments go into the toplevel env
-            if "tl" in meta and eval_(meta["tl"], tlenv):
-                for vartok, val in nonmeta:
-                    retval = eval_(val, tlenv)
-                    # retval = eval_(val, x.env)
-                    tlenv.vars[vartok.label] = retval
-                return retval
-            else:                
-                for vartok, val in nonmeta:
-                    retval = eval_(val, x.env)
-                    x.env.vars[vartok.label] = retval
-                return retval
+            if "tl" in meta and all([eval_(x, e) for x in meta["tl"]]):
+                evalenv = tlenv
+            else:
+                evalenv = x.env
+            for b in nonmeta:
+                if (b.head.label.startswith("@")):
+                    # implicit_list
+                    retval = []
+                    for val in b.body[1:]:
+                        retval.append(eval_(val, evalenv))
+                    evalenv.vars[b.head.label[1:]] = retval
+                else:
+                    for val in b.body[1:]:
+                        retval = eval_(val, evalenv)
+                    evalenv.vars[b.head.label] = retval
+            return retval
+
+                # for vartok, val in nonmeta:
+                #     retval = eval_(val, tlenv)
+                #     tlenv.vars[vartok.label] = retval
+                
+                # return retval
+            # else:                
+            #     for b in nonmeta:
+            #         for val in b.body[1:]:
+            #             retval = eval_(val, x.env)
+            #         x.env.vars[b.head.label] = retval
+            #     return retval
         
         # elif car.label == "case":
             # for pred, form in pair(cdr):
@@ -421,7 +445,7 @@ def eval_(x, e):
         elif car.label == "lambda": # create a function object
             # the first block is a block of params
             paramsblock, *body = cdr
-            params = paramsblock.cont[1:]
+            params = paramsblock.body[1:]
             return Function([p.label for p in params], body, e)
         
         elif e.isfunc(car):
@@ -430,7 +454,7 @@ def eval_(x, e):
             return eval_(car, e)(*[eval_(b, e) for b in cdr])
         
         else:
-            raise SyntaxError(f"{(x, x.cont)} not known")
+            raise SyntaxError(f"{(x, x.body)} not known")
     else: # x is a Token
         try:
             return int(x.label)
@@ -447,9 +471,8 @@ def interpstr(s):
     return i
 
 
-
 import argparse
-argparser = argparse.ArgumentParser(description='Process some integers.')
+argparser = argparse.ArgumentParser(description='Process Source.')
 argparser.add_argument("src")
 args = argparser.parse_args()
 with open(args.src, "r") as src:
@@ -457,3 +480,15 @@ with open(args.src, "r") as src:
 
 
 
+s="""
+pret
+ name tl 1
+  x + 1 * 10 3
+  y * 100 x
+  @z 2 3 5 6
+   + 1 9
+   1
+
+"""
+# print(parse(lex(s)).body[1].body[1].body)
+# interpstr(s)

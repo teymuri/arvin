@@ -1,15 +1,11 @@
 
 
+name tl + .5 .5
+  x * 10 10
+     4
+  @y x x x
+     x + x x
+     x x 1
 
 
-name tl ne
- x list * 2 2 2
-        + 1 1
-
-pret list
-
-name tl ja
- a list 1 2 3
- x a
-
-pret list a x
+pret y
