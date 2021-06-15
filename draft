@@ -5,7 +5,7 @@ objB meth
 
 (Implicit List Creation with special Token @)
 (Wenn @ vor einem Namen kommt, packt alles was demnächst
-in seinem Block vorkommt in eine Liste)
+in Name's Block vorkommt in eine Liste)
 name @il 1 2 3 4 5 6 (=> L 1 2 3 4 5 6, return value ist the value of the named,
 NOT value of the last
 thing passed in!)
