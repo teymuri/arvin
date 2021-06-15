@@ -1,6 +1,6 @@
 
 
-name tl + .5 .5
+name tl + .5 2 .5
   x * 10 10
      4
   @y x x x
@@ -8,4 +8,4 @@ name tl + .5 .5
      x x 1
 
 
-pret y
+pret y 
