@@ -392,7 +392,7 @@ def tok_is_nondata(tok):
             return True
     
 
-IMPLICIT_LIST_IDENTIFIER = "~"
+IMPLICIT_LIST_IDENTIFIER = "+"
 def eval_(x, e):
     if isinstance(x, Block): # think of a Block as list!
         car, cdr = x.head, x.body[1:]
