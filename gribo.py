@@ -420,8 +420,12 @@ def eval_(x, e):
                         retval.append(eval_(val, evalenv))
                     evalenv.vars[b.head.label[1:]] = retval
                 else:
-                    for val in b.body[1:]:
-                        retval = eval_(val, evalenv)
+                    vals = b.body[1:]
+                    if vals: # There are any values to be assigned to the name?
+                        for val in vals:
+                            retval = eval_(val, evalenv)
+                    else: # No values => Null
+                        retval = None
                     evalenv.vars[b.head.label] = retval
             return retval
 
@@ -498,14 +502,10 @@ with open(args.src, "r") as src:
 
 
 s="""
-pret
- name tl 1
-  x + 1 * 10 3
-  y * 100 x
-  @z 2 3 5 6
-   + 1 9
-   1
-
+name tl ja
+  x
+  y 4
+   8
 """
-# print(parse(lex(s)).body[1].body[1].body)
+# print(parse(lex(s)).body[1].body[3].body)
 # interpstr(s)

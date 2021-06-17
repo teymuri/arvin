@@ -1,5 +1,13 @@
 
 
+name tl ja
+  y 10
+  +x *
+      y 3
+  x
+pret x
+
+
 name tl pret                                          + .5 2 .5
   x * 10 10
      4
@@ -16,6 +24,6 @@ name tl ja
   x 1
   +y x x + x x x
           200
-  y y y y
+  +y y y y
 pret x
 pret y
