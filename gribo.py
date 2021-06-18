@@ -494,10 +494,12 @@ def interpstr(s):
 
 import argparse
 argparser = argparse.ArgumentParser(description='Process Source.')
-argparser.add_argument("src")
+argparser.add_argument("-s", nargs="+", required=True)
 args = argparser.parse_args()
-with open(args.src, "r") as src:
-    interpstr(src.read())
+for src in args.s:
+    print(src)
+    with open(src, "r") as s:
+        interpstr(s.read())
 
 
 
