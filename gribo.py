@@ -410,8 +410,6 @@ def eval_(x, e):
             return Function([p.label for p in params], body, e)
         
         elif e.isfunc(car):
-            # return e.funcs[car.label](*[eval_(b, e) for b in cdr])
-            # print(car,cdr)
             return eval_(car, e)(*[eval_(b, e) for b in cdr])
         
         else:
@@ -423,9 +421,7 @@ def eval_(x, e):
             try:
                 return float(x.label)
             except ValueError:
-                print("==============", x, e)
                 return e.resolve_token(x)
-                # return e.resolvetok(x)
                 
 def interpstr(s):
     """Interprets the input string"""
