@@ -74,14 +74,6 @@ class Env:
         Env.counter += 1
         return x
     def isfunc(self, tok): return tok.label in self.funcs
-    # def resolvetok(self, tok):
-    #     if tok.label.startswith(FUNCOBJ_IDENTIFIER):
-    #         return self.funcs(tok.label[1:])
-    #     else:
-    #         try:
-    #             return self.funcs[tok.label]
-    #         except KeyError:
-    #             return self.vars[tok.label]
     
     def resolve_token(self, tok):
         if tok.label.startswith("'"): # return the function object
@@ -94,7 +86,7 @@ class Env:
                     return self.vars[tok.label]
                 except KeyError:
                     if self == tlenv: # if already at the top, token couldn't be resolved!
-                        raise NameError(f"name {tok.label} is unaccessible")
+                        raise NameError(f"name {tok.label} is not defined")
                     else:
                         return self.parenv.resolve_token(tok)
     
@@ -275,11 +267,6 @@ tlblock = Block(head=Token(), env=tlenv, id_=TOPLEVEL_LABEL)
 # Return an AST
 def parse(toks):
     """Converts tokens of the source file into an AST of Tokens/Blocks"""
-    # nametok = None
-    # # tlblock = deepcopy(tlblock)
-    # tlblock=tlblock
-    # enclosingblock = tlblock
-    # blocktracker = [enclosingblock]
     blocktracker = [tlblock]
     
     for i, t in enumerate(toks):
@@ -292,11 +279,12 @@ def parse(toks):
                 B = Block(t, enblock.env)
             blocktracker.append(B)
         
-        elif enblock.head.label == "name":
-            B = Block(t, enblock.env)
+        elif enblock.head.label == "name": # Is token an arg to name?
+            # This is only a pseudo-block, the idea is to pack
+            # pairs of args to name into blocks instead of pairing them
+            # into lists.
+            B = Block(t, env=enblock.env)
             blocktracker.append(B)
-
-        # enblock.append(B if enblock.env.isblockbuilder(t) or enblock.head.label == "name" else t)
             
         if enblock.env.isblockbuilder(t):
             enblock.append(B)
@@ -305,41 +293,7 @@ def parse(toks):
         else:
             enblock.append(t)
 
-        # if B in blocktracker:
-        #     enblock.append(t)
-        # else:
-        #     enblock.append(B)
-
-        # # Adding to Env
-        # try:
-        #     if t.label == nametok.label:
-        #         # Create placeholders, so that the parser knows about these names while parsing
-        #         # coming tokens.
-        #         # The actual bindings to the objects happen later during evaluation.
-        #         if toks[i-1].label == "define":
-        #             tlblock.env.funcs[t.label] = None
-        #         elif toks[i-1].label == "funlet":
-        #             enclosingblock.env.funcs[t.label] = None
-        #         elif toks[i-1].label == "block":
-        #             pass
-        #         elif toks[i-1].label == "map": 
-        #             pass
-                    
-        #         nametok = None
-        # # If nametok is None
-        # except AttributeError: pass
     return tlblock
-    # try:
-        # return blocktracker[0]
-    # except IndexError: # If there was no head, no blocks have been built
-        # pass
-
-
-
-
-# def evalsrc(path):
-    # with open(path, "r") as src:
-        # eval_(parse(lex(src.read())), tlenv)
 
 
 
@@ -405,46 +359,32 @@ def eval_(x, e):
         elif car.label == "name":
             # meta, nonmeta = filtermeta(pair(cdr))
             meta, nonmeta = filtermeta(cdr)
-            # assignments go into the toplevel env
+            # All x are evaled in THEIR OWN envs!
+            # We only differentiate btwn where names should be written (tl or lexical)!!
             if "tl" in meta and all([eval_(x, e) for x in meta["tl"]]):
-                evalenv = tlenv
+                write_env = tlenv
             else:
-                evalenv = x.env
+                write_env = x.env # name env
             for b in nonmeta:
                 if not tok_is_nondata(b.head):
                     raise NameError(f"name {b.head} is number")
-                if (b.head.label.startswith(IMPLICIT_LIST_IDENTIFIER)):
+                if b.head.label.startswith(IMPLICIT_LIST_IDENTIFIER):
                     # implicit_list
                     retval = []
                     for val in b.body[1:]:
-                        retval.append(eval_(val, evalenv))
-                    evalenv.vars[b.head.label[1:]] = retval
+                        retval.append(eval_(val, x.env))
+                    write_env.vars[b.head.label[1:]] = retval
                 else:
                     vals = b.body[1:]
                     if vals: # There are any values to be assigned to the name?
                         for val in vals:
-                            retval = eval_(val, evalenv)
+                            # retval = eval_(val, write_env)
+                            retval = eval_(val, x.env)
                     else: # No values => Null
                         retval = None
-                    evalenv.vars[b.head.label] = retval
+                    write_env.vars[b.head.label] = retval
             return retval
 
-                # for vartok, val in nonmeta:
-                #     retval = eval_(val, tlenv)
-                #     tlenv.vars[vartok.label] = retval
-                
-                # return retval
-            # else:                
-            #     for b in nonmeta:
-            #         for val in b.body[1:]:
-            #             retval = eval_(val, x.env)
-            #         x.env.vars[b.head.label] = retval
-            #     return retval
-        
-        # elif car.label == "case":
-            # for pred, form in pair(cdr):
-                # if eval_(pred, e): return eval_(form, e)
-            # return False
         elif car.label == "defvar": # toplevel var
             for var, val in pair(cdr):
                 tlenv.vars.update([(var.label, eval_(val, e))])
@@ -483,6 +423,7 @@ def eval_(x, e):
             try:
                 return float(x.label)
             except ValueError:
+                print("==============", x, e)
                 return e.resolve_token(x)
                 # return e.resolvetok(x)
                 
@@ -496,7 +437,6 @@ import argparse
 argparser = argparse.ArgumentParser(description='Process Source.')
 argparser.add_argument("-s", nargs="+", required=True)
 args = argparser.parse_args()
-
 # Eval lang-core first
 for src in ["toplevel.gb"]:
     with open(src, "r") as s:
@@ -509,10 +449,13 @@ for src in args.s:
 
 
 s="""
-name tl ja
-  x
-  y 4
-   8
+name tl ne
+  x 10
+  y name tl ne
+      a * x x
+      b name tl ja
+          foo + a x
+pret foo
 """
 # print(parse(lex(s)).body[1].body[3].body)
 # interpstr(s)

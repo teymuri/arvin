@@ -1,3 +1,6 @@
 
-name tl ja
-  max 10
+name
+  tmp1 10
+  tmp2 name
+        tl ja
+        var * tmp1 20
