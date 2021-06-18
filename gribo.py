@@ -1,9 +1,12 @@
+
+
 """
 This is a prototype for the gribo programming language.
 """
-print("((((((((((((((((()))))))))))))))))")
+
+
 print("(((((( Grid Board Prototype ))))))")
-print("((((((((((((((((()))))))))))))))))")
+
 
 
 import re

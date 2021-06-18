@@ -1,6 +1,9 @@
 
 name
   tmp1 10
-  tmp2 name
-        tl ja
-        var * tmp1 20
+  - name
+      tmp2 * tmp1 20
+      tmp3 name tl ja
+             var + tmp2 10
+      
+      
