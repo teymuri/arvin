@@ -496,8 +496,13 @@ import argparse
 argparser = argparse.ArgumentParser(description='Process Source.')
 argparser.add_argument("-s", nargs="+", required=True)
 args = argparser.parse_args()
+
+# Eval lang-core first
+for src in ["toplevel.gb"]:
+    with open(src, "r") as s:
+        interpstr(s.read())
+# Jetzt das _Zeug vom user
 for src in args.s:
-    print(src)
     with open(src, "r") as s:
         interpstr(s.read())
 

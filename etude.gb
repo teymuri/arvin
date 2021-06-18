@@ -1,4 +1,4 @@
-
-
 name tl ja
-  x 100
+  max * max
+       20
+pret max
