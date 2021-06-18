@@ -1,11 +1,11 @@
 
 
 """
-This is a prototype for the gribo programming language.
+This is a prototype for the let programming language.
 """
 
 
-print("(((((( Grid Board Prototype ))))))")
+print("(((((( let it be ... ))))))")
 
 
 
@@ -437,7 +437,7 @@ argparser = argparse.ArgumentParser(description='Process Source.')
 argparser.add_argument("-s", nargs="+", required=True)
 args = argparser.parse_args()
 # Eval lang-core first
-for src in ["toplevel.gb"]:
+for src in ["toplevel.let"]:
     with open(src, "r") as s:
         interpstr(s.read())
 # Jetzt das _Zeug vom user
