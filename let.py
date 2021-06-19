@@ -21,16 +21,16 @@ from copy import deepcopy
 _verbose_tokenrepr = False
 
 
-def pair(L):
-    assert len(L)%2 == 0, f"""List can't be arranged in pairs:
-    {L}"""
-    pairs = []
-    s, e = 0, 2
-    for _ in range(len(L)//2):
-        pairs.append(L[s:e])
-        s += 2
-        e += 2
-    return pairs
+# def pair(L):
+#     assert len(L)%2 == 0, f"""List can't be arranged in pairs:
+#     {L}"""
+#     pairs = []
+#     s, e = 0, 2
+#     for _ in range(len(L)//2):
+#         pairs.append(L[s:e])
+#         s += 2
+#         e += 2
+#     return pairs
 
 ######### builtin functions
 def sub(*args): return reduce(op.sub, args) if args else 0
@@ -137,11 +137,11 @@ class Function:
 
 
 
-def group_case_clauses(clauses, g):
-    if clauses:
-        g.append(clauses[:2])
-        return group_case_clauses(clauses[2:], g)
-    return g
+# def group_case_clauses(clauses, g):
+#     if clauses:
+#         g.append(clauses[:2])
+#         return group_case_clauses(clauses[2:], g)
+#     return g
 
 HIGHER_ORDER_FUNCTIONS = ("call", "map")
 
@@ -295,11 +295,9 @@ def parse(toks):
             # This is only a pseudo-block, the idea is to pack
             # pairs of args to name into blocks instead of pairing them
             # into lists.
-            print("??", t, enblock)
             B = Block(t, env=enblock.env)
             blocktracker.append(B)
-        elif t.label == LCOMM:
-            print(">>>", t)
+        elif t.label == LCOMM: pass
         ################################
         if enblock.env.isblockbuilder(t):
             enblock.append(B)
@@ -376,7 +374,6 @@ def eval_(x, e):
                         retval.append(eval_(val, x.env))
                     write_env.vars[b.head.label[1:]] = retval
                 else:
-                    print(">>", b.body)
                     vals = b.body[1:]
                     if vals: # There are any values to be assigned to the name?
                         for val in vals:
@@ -447,14 +444,6 @@ def interpstr(s):
 
 
 s="""
-
-name
-  tmp1 10
-  tmp2 name tl ja
-	 global 1
-
-"""
-s="""
 name
   tmp1 10
   TMP name
@@ -463,6 +452,51 @@ name
                var + tmp2 10
 pret var
 """
+
+# s="""
+# name
+#   tmp1 10
+#   tmp2 name tl ja
+#          global 11
+# """
+
+# s="""
+# name
+#   tmp1 10
+#   tmp2 name tl ja
+#          global 1
+# """
+
+s="""
+name
+  tmp1 10
+  tmp2 name
+         tmp3 * tmp1 20
+         tmp4 name
+	        tmp5 name tl ja
+	               global 1
+"""
+s="""
+name
+  tmp1 10
+  tmp2 name 
+         tmp3 pret * tmp1 20
+         tmp4 name
+                tmp5 name tl ja
+                       global + tmp1 tmp3 * tmp1 10
+pret global
+"""
+
+# s="""
+# name
+#   tmp1 10
+#   tmp2 name
+#          tmp3 * tmp1 20
+#          tmp4 name
+# 	        tmp5 name tl ja
+# 	               global 1
+# """
+
 # print(rmcomm(s))
-print(parse(lex(s)).body[1].body)
+# print(parse(lex(s)).body[1].body)
 interpstr(s)
