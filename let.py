@@ -428,18 +428,18 @@ def interpstr(s):
     return i
 
 
-# import argparse
-# argparser = argparse.ArgumentParser(description='Process Source.')
-# argparser.add_argument("-s", nargs="+", required=True)
-# args = argparser.parse_args()
-# # Eval lang-core first
-# for src in ["toplevel.let"]:
-#     with open(src, "r") as s:
-#         interpstr(s.read())
-# # Jetzt das _Zeug vom user
-# for src in args.s:
-#     with open(src, "r") as s:
-#         interpstr(s.read())
+import argparse
+argparser = argparse.ArgumentParser(description='Process Source.')
+argparser.add_argument("-s", nargs="+", required=True)
+args = argparser.parse_args()
+# Eval lang-core first
+for src in ["toplevel.let"]:
+    with open(src, "r") as s:
+        interpstr(s.read())
+# Jetzt das _Zeug vom user
+for src in args.s:
+    with open(src, "r") as s:
+        interpstr(s.read())
 
 
 
@@ -499,4 +499,4 @@ pret global
 
 # print(rmcomm(s))
 # print(parse(lex(s)).body[1].body)
-interpstr(s)
+# interpstr(s)
