@@ -4,14 +4,9 @@ name
   tmp2 name
          tmp3 * tmp1 20
          tmp4 name
-                tmp5 name
+                tmp5 name tl ja
                        tmp6 + tmp1 tmp3
-                       tmp7 name tl ja
-                              global + tmp1 tmp3 tmp6 
-                       
-
-                
-                     
-
-      
-      
+                       tmp7 name
+                              +tmp8 tmp1 tmp3 tmp6
+                              tmp9 name tl ja
+                                     global tmp8
