@@ -45,7 +45,7 @@ def pret(thing):
     return thing
 
 def list_(*args): return list(args)
-# def pylist(*args): return "[{}]".format(", ".join(args))
+
 
 def map_(fn, *args): return list(map(fn, *args))
 
@@ -76,31 +76,31 @@ class Env:
         x = Env.counter
         Env.counter += 1
         return x
-    def isfunc(self, tok): return tok.label in self.funcs
+    def isfunc(self, tok): return tok.string in self.funcs
     
     def resolve_token(self, tok):
-        if tok.label.startswith("'"): # return the function object
-            return self.funcs[tok.label[1:]]
+        if tok.string.startswith("'"): # return the function object
+            return self.funcs[tok.string[1:]]
         else:
             try:
-                return self.funcs[tok.label]
+                return self.funcs[tok.string]
             except KeyError:
                 try:
-                    return self.vars[tok.label]
+                    return self.vars[tok.string]
                 except KeyError:
                     if self == tlenv: # if already at the top, token couldn't be resolved!
-                        raise NameError(f"name {tok.label} is not defined")
+                        raise NameError(f"name {tok.string} is not defined")
                     else:
                         return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
-        if tok.label in self.funcs:
+        if tok.string in self.funcs:
             return True
         else:
             if self.parenv:
                 return self.parenv.isblockbuilder(tok)
             else:
-                return tok.label in SINGLE_NAMING_BLOCK_BUILDERS + \
+                return tok.string in SINGLE_NAMING_BLOCK_BUILDERS + \
                     NONNAMING_BLOCK_BUILDERS + MULTIPLE_VALUE_BINDERS + \
                     HIGHER_ORDER_FUNCTIONS + LEXICAL_BLOCK_BUILDERS
     
@@ -145,72 +145,82 @@ class Function:
 
 HIGHER_ORDER_FUNCTIONS = ("call", "map")
 
-# def ishigherorder(tok): return tok.label in HIGHER_ORDER_FUNCTIONS
+# def ishigherorder(tok): return tok.string in HIGHER_ORDER_FUNCTIONS
 SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
 NONNAMING_BLOCK_BUILDERS = ("case","call")
 LEXICAL_BLOCK_BUILDERS = ("block", "defun", "name", "lambda", "defvar")
 MULTIPLE_VALUE_BINDERS = ("defvar", "define")
 
-def is_multiple_value_binder(tok): return tok.label in MULTIPLE_VALUE_BINDERS
+def is_multiple_value_binder(tok): return tok.string in MULTIPLE_VALUE_BINDERS
 
-def is_singlename_builder(tok): return tok.label in SINGLE_NAMING_BLOCK_BUILDERS
+def is_singlename_builder(tok): return tok.string in SINGLE_NAMING_BLOCK_BUILDERS
 
-def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
+def is_lexenv_builder(tok): return tok.string in LEXICAL_BLOCK_BUILDERS
 
-TOPLEVEL_LABEL = "TL"
+TL_STR = "TL"
 class Token:
     id_ = 0
-    def __init__(self, label=TOPLEVEL_LABEL, start=-1, end=sys.maxsize, line=-1):
-        self.label = label
+    def __init__(self, string=TL_STR, start=-1, end=sys.maxsize, line=-1):
+        self.string = string
         self.start = start # start position in the line
         self.end = end
         self.line = line # line number
         self.id = Token.id_
+        self.commidx = None # Comment index, will be set only if token is a comment start/end
         Token.id_ += 1
     def __repr__(self):
         if _verbose_tokenrepr:
-            return f"{self.label}.L{self.line}.S{self.start}"
+            return f"{self.string}.L{self.line}.S{self.start}"
         else:
-            return f"(Token{self.id} {self.label})"
+            return f"<Token{self.id} {self.string}>"
 
 
 
 
 
 
-# decimal numbers
-# DECPATT = r"[+-]?((\d+(\.\d*)?)|(\.\d+))"
+
 STRPATT = re.compile(r'"[^"]*"')
-# def lex(src):
-    # """
-    # """
-    # src = src.strip()
-    # str_matches = list(STRPATT.finditer(src))
-    # spans = [m.span() for m in str_matches]
-    # indices = [0] + [i for s in spans for i in s] + [len(src)]
-    # tokens = []
-    # for x in list(zip(indices[:-1], indices[1:])):
-        # if x in spans: # str match?
-            # tokens.append(src[x[0]:x[1]])
-        # else:
-            # tokens.extend(src[x[0]:x[1]].replace(LPAR, f" {LPAR} ").replace(RPAR, f" {RPAR} ").split())
-    # return tokens
 
 def lines(src): return src.strip().splitlines()
 
-LCOMM, RCOMM = "(", ")"
-COMMENTPATT = r"\(([\s\S]*?)\)"
 
-def rmcomm(s):
-    print(list(re.finditer(COMMENTPATT, s)))
+LCOMM = "("
+RCOMM = ")"
+TOKPATT = r"(\(|\)|[\w\d\+\*\-\.\\]+)"
 
-# Tokenizing
-def lex(s):
+
+def set_commidx_ip(tokens):
+    """
+    Mark openings and closings of lists, eg [[]] ->
+    [open0, open1, close1, close0]
+    """
+    L = []
+    i = 0
+    # x = []
+    for tok in tokens:
+        if tok.string == LCOMM:
+            tok.commidx = i
+            # L.append((tok, i))
+            i += 1
+        elif tok.string == RCOMM:
+            i -= 1
+            # L.append((tok, i))  
+            tok.commidx = i
+        else:
+            # L.append(tok)
+            pass
+    # return L
+
+
+# Lexer
+def tokenize_str(s):
     """Converts the string into a list of tokens."""
     toks = []
     for i, line in enumerate(lines(s)):
-        for match in re.finditer(r"\S+", line):
-            toks.append(Token(label=match.group(), start=match.start(), end=match.end(), line=i)
+        # for match in re.finditer(r"\S+", line):
+        for match in re.finditer(TOKPATT, line):
+            toks.append(Token(string=match.group(), start=match.start(), end=match.end(), line=i)
             )
     return toks
 
@@ -271,7 +281,7 @@ def enclosing_block(tok, blocks): # blocks is a list
 
 
 # The Toplevel Block
-tlblock = Block(head=Token(), env=tlenv, id_=TOPLEVEL_LABEL)
+tlblock = Block(head=Token(), env=tlenv, id_=TL_STR)
 
 ###########################
 ###########################
@@ -291,17 +301,17 @@ def parse(toks):
                 B = Block(t, enblock.env)
             blocktracker.append(B)
         
-        elif enblock.head.label == "name": # Is token an arg to name?
+        elif enblock.head.string == "name": # Is token an arg to name?
             # This is only a pseudo-block, the idea is to pack
             # pairs of args to name into blocks instead of pairing them
             # into lists.
             B = Block(t, env=enblock.env)
             blocktracker.append(B)
-        elif t.label == LCOMM: pass
+        elif t.string == LCOMM: pass
         ################################
         if enblock.env.isblockbuilder(t):
             enblock.append(B)
-        elif enblock.head.label == "name": # args to name
+        elif enblock.head.string == "name": # args to name
             enblock.append(B)
         else:
             enblock.append(t)
@@ -314,8 +324,8 @@ def filtermeta(pairs):
     meta = {}
     nonmeta = []
     for tok, val in pairs:
-        if tok.label in META:
-            meta[tok.label] = val
+        if tok.string in META:
+            meta[tok.string] = val
         else:
             nonmeta.append((tok, val))
     return meta, nonmeta
@@ -324,22 +334,22 @@ def filtermeta(nameblocks):
     meta = {}
     nonmeta = []
     for b in nameblocks:
-        if b.head.label in META:
-            meta[b.head.label] = b.body[1:]
+        if b.head.string in META:
+            meta[b.head.string] = b.body[1:]
         else:
             nonmeta.append(b)
     return meta, nonmeta
 
-def tok_to_int(tok): return int(tok.label)
-def tok_to_float(tok): return float(tok.label)
+def tok_to_int(tok): return int(tok.string)
+def tok_to_float(tok): return float(tok.string)
 def tok_is_nondata(tok):
     """Returns true if token is a true identifier!"""
     try:
-        int(tok.label)
+        int(tok.string)
         return False
     except ValueError:
         try:
-            float(tok.label)
+            float(tok.string)
             return False
         except ValueError:
             return True
@@ -350,12 +360,12 @@ def eval_(x, e):
     if isinstance(x, Block): # think of a Block as list!
         car, cdr = x.head, x.body[1:]
         # car, cdr = x.head, x.body
-        if car.label == TOPLEVEL_LABEL: # start processing the rest
+        if car.string == TL_STR: # start processing the rest
             for i in cdr[:-1]:
                 eval_(i, e)
             return eval_(cdr[-1], e)
 
-        elif car.label == "name":
+        elif car.string == "name":
             # meta, nonmeta = filtermeta(pair(cdr))
             meta, nonmeta = filtermeta(cdr)
             # All x are evaled in THEIR OWN envs!
@@ -367,12 +377,12 @@ def eval_(x, e):
             for b in nonmeta:
                 if not tok_is_nondata(b.head):
                     raise NameError(f"name {b.head} is number")
-                if b.head.label.startswith(IMPLICIT_LIST_IDENTIFIER):
+                if b.head.string.startswith(IMPLICIT_LIST_IDENTIFIER):
                     # implicit_list
                     retval = []
                     for val in b.body[1:]:
                         retval.append(eval_(val, x.env))
-                    write_env.vars[b.head.label[1:]] = retval
+                    write_env.vars[b.head.string[1:]] = retval
                 else:
                     vals = b.body[1:]
                     if vals: # There are any values to be assigned to the name?
@@ -381,32 +391,32 @@ def eval_(x, e):
                             retval = eval_(val, x.env)
                     else: # No values => Null
                         retval = None
-                    write_env.vars[b.head.label] = retval
+                    write_env.vars[b.head.string] = retval
             return retval
 
-        elif car.label == "defvar": # toplevel var
+        elif car.string == "defvar": # toplevel var
             for var, val in pair(cdr):
-                tlenv.vars.update([(var.label, eval_(val, e))])
-            return var.label
+                tlenv.vars.update([(var.string, eval_(val, e))])
+            return var.string
         # Higher order functions
-        elif car.label == "call": # call a function
+        elif car.string == "call": # call a function
             fn, *args = cdr
             # snapshot
             if isinstance(fn, Block): # Calling fresh anonymus function definition
                 fnobj = eval_(fn, e)
                 return fnobj(*[eval_(a, e) for a in args])
             else: # Token = saved function name
-                fnobj = e.vars[fn.label]
+                fnobj = e.vars[fn.string]
                 # return eval_(fnobj, fnobj.env)(*[eval_(a, fnobj.env) for a in args])
                 return fnobj(*[eval_(a, fnobj.env) for a in args])
-        elif car.label == "map":
+        elif car.string == "map":
             fn, *args = cdr
             return e.funcs["map"](eval_(fn, e), *[eval_(a, e) for a in args])
-        elif car.label == "lambda": # create a function object
+        elif car.string == "lambda": # create a function object
             # the first block is a block of params
             paramsblock, *body = cdr
             params = paramsblock.body[1:]
-            return Function([p.label for p in params], body, e)
+            return Function([p.string for p in params], body, e)
         
         elif e.isfunc(car):
             return eval_(car, e)(*[eval_(b, e) for b in cdr])
@@ -415,17 +425,33 @@ def eval_(x, e):
             raise SyntaxError(f"{(x, x.body)} not known")
     else: # x is a Token
         try:
-            return int(x.label)
+            return int(x.string)
         except ValueError:
             try:
-                return float(x.label)
+                return float(x.string)
             except ValueError:
                 return e.resolve_token(x)
-                
+
+def rmcomm(toks):
+    set_commidx_ip(toks)
+    incomment = False
+    noncomms = []
+    for t in toks:
+        if t.commidx == 0:
+            if incomment: # End of outer block comment
+                incomment = False
+            else: # start of outer block comment
+                incomment = True
+        else:
+            if not incomment:
+                noncomms.append(t)
+    return noncomms
+
+
 def interpstr(s):
     """Interprets the input string"""
-    i = eval_(parse(lex(s)), tlenv)
-    return i
+    # return eval_(parse(tokenize_str(s)), tlenv)
+    return eval_(parse(rmcomm(tokenize_str(s))), tlenv)
 
 
 import argparse
@@ -477,26 +503,21 @@ name
 	               global 1
 """
 s="""
-name
-  tmp1 10
-  tmp2 name 
-         tmp3 pret * tmp1 20
-         tmp4 name
-                tmp5 name tl ja
-                       global + tmp1 tmp3 * tmp1 10
-pret global
+name tl ja
+  b + 1 1 1 * 2 3
+      1 
+      (1 1)
+      2
+
+
+pret b
 """
+# 
+#   a + 2 (1 1 1) 
+        
+    
 
-# s="""
-# name
-#   tmp1 10
-#   tmp2 name
-#          tmp3 * tmp1 20
-#          tmp4 name
-# 	        tmp5 name tl ja
-# 	               global 1
-# """
 
-# print(rmcomm(s))
-# print(parse(lex(s)).body[1].body)
+# print(rmcomm(tokenize_str(s)))
+# print(parse(tokenize_str(s)).body[1].body)
 # interpstr(s)
