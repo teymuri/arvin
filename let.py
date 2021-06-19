@@ -159,17 +159,19 @@ def is_lexenv_builder(tok): return tok.label in LEXICAL_BLOCK_BUILDERS
 
 TOPLEVEL_LABEL = "TL"
 class Token:
+    id_ = 0
     def __init__(self, label=TOPLEVEL_LABEL, start=-1, end=sys.maxsize, line=-1):
         self.label = label
         self.start = start # start position in the line
         self.end = end
         self.line = line # line number
-    
+        self.id = Token.id_
+        Token.id_ += 1
     def __repr__(self):
         if _verbose_tokenrepr:
             return f"{self.label}.L{self.line}.S{self.start}"
         else:
-            return f"(Tok {self.label})"
+            return f"(Token{self.id} {self.label})"
 
 
 
@@ -196,11 +198,17 @@ STRPATT = re.compile(r'"[^"]*"')
 
 def lines(src): return src.strip().splitlines()
 
+LCOMM, RCOMM = "(", ")"
+COMMENTPATT = r"\(([\s\S]*?)\)"
+
+def rmcomm(s):
+    print(list(re.finditer(COMMENTPATT, s)))
+
+# Tokenizing
 def lex(s):
     """Converts the string into a list of tokens."""
     toks = []
     for i, line in enumerate(lines(s)):
-        # for match in re.finditer(r"([*=+-]|\w+|{})".format(DECPATT), line):
         for match in re.finditer(r"\S+", line):
             toks.append(Token(label=match.group(), start=match.start(), end=match.end(), line=i)
             )
@@ -227,7 +235,7 @@ class Block:
         i = Block.counter
         Block.counter += 1
         return i
-    def __repr__(self): return f"(Block {self.id})"
+    def __repr__(self): return f"(Block{self.id} @{self.head})"
     def append(self, t): self.body.append(t)
 
 
@@ -274,9 +282,10 @@ def parse(toks):
     
     for i, t in enumerate(toks):
         enblock = enclosing_block(t, blocktracker)
-        # Shall we create a new Block?
+        # Create a new block if ...
         if enblock.env.isblockbuilder(t):
             if is_lexenv_builder(t):
+                
                 B = Block(t, Env(parenv=enblock.env)) # give it a new env
             else:
                 B = Block(t, enblock.env)
@@ -286,34 +295,23 @@ def parse(toks):
             # This is only a pseudo-block, the idea is to pack
             # pairs of args to name into blocks instead of pairing them
             # into lists.
+            print("??", t, enblock)
             B = Block(t, env=enblock.env)
             blocktracker.append(B)
-            
+        elif t.label == LCOMM:
+            print(">>>", t)
+        ################################
         if enblock.env.isblockbuilder(t):
             enblock.append(B)
-        elif enblock.head.label == "name":
+        elif enblock.head.label == "name": # args to name
             enblock.append(B)
         else:
             enblock.append(t)
 
     return tlblock
 
-
-
-# def repl(prompt='lis.py> '):
-    # "A prompt-read-eval-print loop."
-    # while True:
-        # val = eval(parse(raw_input(prompt)))
-        # if val is not None: 
-            # print(schemestr(val))
-
-# def schemestr(exp):
-    # "Convert a Python object back into a Scheme-readable string."
-    # if isinstance(exp, List):
-        # return '(' + ' '.join(map(schemestr, exp)) + ')' 
-    # else:
-        # return str(exp)
 META = ("type", "lock", "tl")
+
 def filtermeta(pairs):
     meta = {}
     nonmeta = []
@@ -378,6 +376,7 @@ def eval_(x, e):
                         retval.append(eval_(val, x.env))
                     write_env.vars[b.head.label[1:]] = retval
                 else:
+                    print(">>", b.body)
                     vals = b.body[1:]
                     if vals: # There are any values to be assigned to the name?
                         for val in vals:
@@ -432,29 +431,38 @@ def interpstr(s):
     return i
 
 
-import argparse
-argparser = argparse.ArgumentParser(description='Process Source.')
-argparser.add_argument("-s", nargs="+", required=True)
-args = argparser.parse_args()
-# Eval lang-core first
-for src in ["toplevel.let"]:
-    with open(src, "r") as s:
-        interpstr(s.read())
-# Jetzt das _Zeug vom user
-for src in args.s:
-    with open(src, "r") as s:
-        interpstr(s.read())
+# import argparse
+# argparser = argparse.ArgumentParser(description='Process Source.')
+# argparser.add_argument("-s", nargs="+", required=True)
+# args = argparser.parse_args()
+# # Eval lang-core first
+# for src in ["toplevel.let"]:
+#     with open(src, "r") as s:
+#         interpstr(s.read())
+# # Jetzt das _Zeug vom user
+# for src in args.s:
+#     with open(src, "r") as s:
+#         interpstr(s.read())
 
 
 
 s="""
-name tl ne
-  x 10
-  y name tl ne
-      a * x x
-      b name tl ja
-          foo + a x
-pret foo
+
+name
+  tmp1 10
+  tmp2 name tl ja
+	 global 1
+
 """
-# print(parse(lex(s)).body[1].body[3].body)
-# interpstr(s)
+s="""
+name
+  tmp1 10
+  TMP name
+        tmp2 * tmp1 20
+        tmp3 name tl ja
+               var + tmp2 10
+pret var
+"""
+# print(rmcomm(s))
+print(parse(lex(s)).body[1].body)
+interpstr(s)
