@@ -134,15 +134,6 @@ class Function:
 
 
 
-
-
-
-# def group_case_clauses(clauses, g):
-#     if clauses:
-#         g.append(clauses[:2])
-#         return group_case_clauses(clauses[2:], g)
-#     return g
-
 HIGHER_ORDER_FUNCTIONS = ("call", "map")
 
 # def ishigherorder(tok): return tok.string in HIGHER_ORDER_FUNCTIONS
@@ -187,32 +178,24 @@ def lines(src): return src.strip().splitlines()
 
 LCOMM = "("
 RCOMM = ")"
-TOKPATT = r"(\(|\)|[\w\d\+\*\-\.\\]+)"
-
-
 def set_commidx_ip(tokens):
     """
     Mark openings and closings of lists, eg [[]] ->
     [open0, open1, close1, close0]
     """
-    L = []
     i = 0
-    # x = []
     for tok in tokens:
         if tok.string == LCOMM:
             tok.commidx = i
-            # L.append((tok, i))
             i += 1
         elif tok.string == RCOMM:
             i -= 1
-            # L.append((tok, i))  
             tok.commidx = i
         else:
-            # L.append(tok)
             pass
-    # return L
 
-
+# Handle (&) as single tokens, anything else as one token
+TOKPATT = r"(\(|\)|[\w\d\+\*\-\.\\]+)"
 # Lexer
 def tokenize_str(s):
     """Converts the string into a list of tokens."""
@@ -294,8 +277,7 @@ def parse(toks):
         enblock = enclosing_block(t, blocktracker)
         # Create a new block if ...
         if enblock.env.isblockbuilder(t):
-            if is_lexenv_builder(t):
-                
+            if is_lexenv_builder(t):                
                 B = Block(t, Env(parenv=enblock.env)) # give it a new env
             else:
                 B = Block(t, enblock.env)
@@ -307,7 +289,6 @@ def parse(toks):
             # into lists.
             B = Block(t, env=enblock.env)
             blocktracker.append(B)
-        elif t.string == LCOMM: pass
         ################################
         if enblock.env.isblockbuilder(t):
             enblock.append(B)
@@ -315,7 +296,6 @@ def parse(toks):
             enblock.append(B)
         else:
             enblock.append(t)
-
     return tlblock
 
 META = ("type", "lock", "tl")

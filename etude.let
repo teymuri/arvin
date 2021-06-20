@@ -1,3 +1,23 @@
 
-pret global
-pret list (tmp6) tmp7
+
+
+(pret global)
+
+
+(pret list tmp6 tmp7)
+
+name tl ja
+  foo tmp6
+
+(Wir deklarieren
+im Prinzip mit jedem Operator
+einen Block!)
+(Ein Konstrukt zum schließen von Blocks wäre gut)
+(Sowas wie + 1 2 3 4;
+; sagt der Block ist zu Ende!)
+pret
+  + 1 1 1
+    1 1
+    * 10 10;
+    1 2 3
+    2
