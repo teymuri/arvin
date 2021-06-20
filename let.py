@@ -193,9 +193,10 @@ def set_commidx_ip(tokens):
             tok.commidx = i
         else:
             pass
-
+BLOCKCUT = ";" # in tokpatt damit!??
 # Handle (&) as single tokens, anything else as one token
-TOKPATT = r"(\(|\)|[\w\d\+\*\-\.\\]+)"
+TOKPATT = r"(\(|\)|[\w\d\+\*\-\.\\]+|;)"
+
 # Lexer
 def tokenize_str(s):
     """Converts the string into a list of tokens."""
@@ -228,40 +229,47 @@ class Block:
         i = Block.counter
         Block.counter += 1
         return i
-    def __repr__(self): return f"(Block{self.id} @{self.head})"
+    def __repr__(self): return f"<Block{self.id} @{self.head}>"
     def append(self, t): self.body.append(t)
 
 
-def ast(parsed_block, tree=[]):
-    for x in parsed_block.body:
-        if isinstance(x, Token):
-            tree.append(x)
-        else: # Block?
-            tree.append(ast(x, []))
-    return tree
+# def ast(parsed_block, tree=[]):
+#     for x in parsed_block.body:
+#         if isinstance(x, Token):
+#             tree.append(x)
+#         else: # Block?
+#             tree.append(ast(x, []))
+#     return tree
+
+
 
 def bottommost_blocks(enclosing_blocks):
     # Find the bottom-most line
     maxline = max(enclosing_blocks, key=lambda b: b.head.line).head.line
     # filter all bottommost blocks
     return [b for b in enclosing_blocks if b.head.line == maxline]
+# def bottommost_blocks(idx_blocks):
+#     # Find the bottom-most line
+#     maxline = max(idx_blocks, key=lambda b: b[1].head.line)[1].head.line
+#     # filter all bottommost blocks
+#     # print([ib for ib in idx_blocks if ib[1].head.line == maxline])
+#     return [ib for ib in idx_blocks if ib[1].head.line == maxline]
 
-def rightmost_block(bottommost_bs):
+def rightmost_block(bottommosts):
     # get the rightmost one of them
-    return max(bottommost_bs, key=lambda b: b.head.start)
+    return max(bottommosts, key=lambda b: b.head.start)
+# def rightmost_block(bottommosts):
+#     # get the rightmost one of them
+#     return max(bottommosts, key=lambda b: b[1].head.start)
 
 def enclosing_block(tok, blocks): # blocks is a list
     """Returns token's enclosing block."""
     return rightmost_block(bottommost_blocks([b for b in blocks if token_isin_block(tok, b)]))
-
-# def bottom_rightmost_enclosing_block(enclosing_blocks):
-#     # Find the bottom-most line
-#     maxline = max(enclosing_blocks, key=lambda b: b.head.line).head.line
-#     # filter all bottommost blocks
-#     bottommost_blocks = [b for b in enclosing_blocks if b.head.line == maxline]
-#     # get the rightmost one of them
-#     return max(bottommost_blocks, key=lambda b: b.head.start)
-
+# def enclosing_block(tok, blocks): # blocks is a list
+#     """Returns token's enclosing block."""
+#     return rightmost_block(
+#         bottommost_blocks(
+#             [ib for ib in blocks.items() if token_isin_block(tok, ib[1])]))
 
 # The Toplevel Block
 tlblock = Block(head=Token(), env=tlenv, id_=TL_STR)
@@ -272,30 +280,43 @@ tlblock = Block(head=Token(), env=tlenv, id_=TL_STR)
 def parse(toks):
     """Converts tokens of the source file into an AST of Tokens/Blocks"""
     blocktracker = [tlblock]
+    # blocks = {0: tlblock}
     
     for i, t in enumerate(toks):
-        enblock = enclosing_block(t, blocktracker)
-        # Create a new block if ...
-        if enblock.env.isblockbuilder(t):
-            if is_lexenv_builder(t):                
-                B = Block(t, Env(parenv=enblock.env)) # give it a new env
+        # block_idx, enblock = enclosing_block(t, blocks)
+        # enblock = enclosing_block(t, blocktracker)
+        # 
+        if t.string == BLOCKCUT: #close the block of THE PREVIOUS token (not of the blockcut token itself!!!)
+            enblock = enclosing_block(toks[i-1], blocktracker)
+            # print(">>", t, enblock, enblock.id)
+            # print(blocktracker)
+            for j, b in enumerate(blocktracker):
+                if b.id == enblock.id:
+                    # by removing the block in question from the blocktracker list,
+                    # we prevent it from becoming an enclosing block for anything else.
+                    del blocktracker[j]
+            # print(blocktracker)
+        else: # create a new block if ...
+            enblock = enclosing_block(t, blocktracker)
+            if enblock.env.isblockbuilder(t):
+                if is_lexenv_builder(t):                
+                    B = Block(t, Env(parenv=enblock.env)) # give it a new env
+                else:
+                    B = Block(t, enblock.env)
+                blocktracker.append(B)
+            elif enblock.head.string == "name": # Is token an arg to name?
+                # This is only a pseudo-block, the idea is to pack
+                # pairs of args to name into blocks instead of pairing them
+                # into lists.
+                B = Block(t, env=enblock.env)
+                blocktracker.append(B)
+            ################################
+            if enblock.env.isblockbuilder(t):
+                enblock.append(B)
+            elif enblock.head.string == "name": # args to name
+                enblock.append(B)
             else:
-                B = Block(t, enblock.env)
-            blocktracker.append(B)
-        
-        elif enblock.head.string == "name": # Is token an arg to name?
-            # This is only a pseudo-block, the idea is to pack
-            # pairs of args to name into blocks instead of pairing them
-            # into lists.
-            B = Block(t, env=enblock.env)
-            blocktracker.append(B)
-        ################################
-        if enblock.env.isblockbuilder(t):
-            enblock.append(B)
-        elif enblock.head.string == "name": # args to name
-            enblock.append(B)
-        else:
-            enblock.append(t)
+                enblock.append(t)
     return tlblock
 
 META = ("type", "lock", "tl")
@@ -320,8 +341,8 @@ def filtermeta(nameblocks):
             nonmeta.append(b)
     return meta, nonmeta
 
-def tok_to_int(tok): return int(tok.string)
-def tok_to_float(tok): return float(tok.string)
+
+
 def tok_is_nondata(tok):
     """Returns true if token is a true identifier!"""
     try:
@@ -413,6 +434,7 @@ def eval_(x, e):
                 return e.resolve_token(x)
 
 def rmcomm(toks):
+    """Removes comments from tokens"""
     set_commidx_ip(toks)
     incomment = False
     noncomms = []
@@ -483,21 +505,14 @@ name
 	               global 1
 """
 s="""
-name tl ja
-  b + 1 1 1 * 2 3
-      1 
-      (1 1)
-      2
-
-
-pret b
+pret
+ + 1 1 1
+   * 2 3
+   1; 10
+    2
 """
-# 
-#   a + 2 (1 1 1) 
-        
-    
 
 
-# print(rmcomm(tokenize_str(s)))
-# print(parse(tokenize_str(s)).body[1].body)
+# print(tokenize_str(s))
+# print(parse(tokenize_str(s)).body[1].body[1].body)
 # interpstr(s)
