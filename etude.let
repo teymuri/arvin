@@ -23,7 +23,7 @@ name tl ja
       x x
         + x x
         x x
-name tl ja
+name tl ne
   +x
-   1 2 3 (;) 4
-pret x
+   1 2 3; 4
+pret list x amir
