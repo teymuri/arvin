@@ -16,10 +16,14 @@ einen Block!)
 (Sowas wie + 1 2 3 4;
 ; sagt der Block ist zu Ende!)
 name tl ja
-  x 2
-pret
-  + x x
-    * x x
-    x x
-      + x x;
+  x 10
+  amir
+    + x x
+      * x x
       x x
+        + x x
+        x x
+name tl ja
+  +x
+   1 2 3 (;) 4
+pret x
