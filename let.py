@@ -195,7 +195,8 @@ def set_commidx_ip(tokens):
             pass
 BLOCKCUT = ";" # in tokpatt damit!??
 # Handle (&) as single tokens, anything else as one token
-TOKPATT = r"(\(|\)|[\w\d\+\*\-\.\\]+|;)"
+# All valid tokens
+TOKPATT = r"(\(|\)|;|[\w\d.+\-*=]+)"
 
 # Lexer
 def tokenize_str(s):
