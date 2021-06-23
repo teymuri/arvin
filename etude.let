@@ -15,7 +15,8 @@ einen Block!)
 (Ein Konstrukt zum schließen von Blocks wäre gut)
 (Sowas wie + 1 2 3 4;
 ; sagt der Block ist zu Ende!)
-name tl ja
+name
+  tl ja
   x 10
   amir
     + x x
@@ -23,8 +24,7 @@ name tl ja
       x x
         + x x
         x x
-name tl ne
-  +x
-   1 2 3; 4
-pret list x amir
+name tl ja
+  x x
+pret x
 
