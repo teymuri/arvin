@@ -121,13 +121,14 @@ class Function:
     def __init__(self, params, body, enclosing_env):
         self.params = params
         self.body = body
-        # self.enclosing_env = enclosing_env
-        # self.env = Env(enclosing_env)
         # Create a fresh env at definition time!
         self.env = Env(parenv=enclosing_env)
     
     def __call__(self, *args):
-        assert (len(self.params) == len(args)), f"function expected {len(self.params)} arguments, but got {len(args)}"
+        for x in self.params.body[1:]:
+            print(x)
+        assert (len(self.params) == len(args)), \
+            f"passed {len(args)} args to a lambda with {len(self.params)} params"
         self.env.vars.update(zip(self.params, args))
         for b in self.body[:-1]:
             eval_(b, self.env)
@@ -415,19 +416,21 @@ def eval_(x, e, access_from_parenv=None):
             return e.funcs["map"](eval_(fn, e), *[eval_(a, e) for a in args])
         
         elif car.string == "lambda": # create a function object
-            try:
-                # params_blocks = extract_params_block(cdr)
-                params, actions = extract_params_actions(cdr)
-            except IndexError:
-                params = None
-            if params:
-                params_toks = []
-                for name_block in params.body[1:]:
-                    params_toks.extend([b.head for b in name_block.body[1:]])
-                    eval_(name_block, e, x.env)
-                F = Function([ptok.string for ptok in params_toks], actions, e)
-                print(F.params, F.body)
-                return F
+            params, actions = extract_params_actions(cdr)
+            return Function(params, actions, e)
+            # try:
+            #     # params_blocks = extract_params_block(cdr)
+            #     params, actions = extract_params_actions(cdr)
+            # except IndexError:
+            #     params = None
+            # if params:
+            #     params_toks = []
+            #     for name_block in params.body[1:]:
+            #         params_toks.extend(name_block.body[1:])
+            #         eval_(name_block, e, x.env)
+            #     F = Function([ptok for ptok in params_toks], actions, e)
+            #     return F
+            
             # the first block is a block of params
             # params_blocks, *body = cdr
             # params = params_blocks.body[1:]
@@ -457,7 +460,10 @@ def extract_params_actions(blocks):
     for i, b in enumerate(blocks):
         if b.head.string == "@":
             params_idx = i
-    return blocks[params_idx], blocks[(params_idx+1):]
+    if params_idx is not None:
+        return blocks[params_idx], blocks[(params_idx+1):]
+    else:
+        return [], blocks
 
 def rmcomm(toks):
     """Removes comments from tokens"""
@@ -545,7 +551,9 @@ name tl ja
     lambda
       @ name
           a 3
-      pret * a 100
+         b a
+       name xc 23
+      pret a
 call fn
 """
 
