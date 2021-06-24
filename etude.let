@@ -25,6 +25,11 @@ name
         + x x
         x x
 name tl ja
-  x x
-pret x
-
+  +x x x x x
+  +y 1 2 3
+    4 5 6
+  +a 3 4 5
+    2 3 4 5
+    null
+pret list x y a
+  

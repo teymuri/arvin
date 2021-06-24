@@ -56,7 +56,8 @@ def builtin_funcs():
         "pret": pret,
         "list": list_, "map": map_
     }
-def consts(): return {"true": True, "false": False, "ja": True, "ne": False}
+def consts(): return {"true": True, "false": False, "ja": True, "ne": False,
+                      "null": []}
 
 FUNCOBJ_IDENTIFIER = "'"
 class Env:
@@ -392,14 +393,15 @@ def eval_(x, e):
                             # retval = eval_(val, write_env)
                             retval = eval_(val, x.env)
                     else: # No values => Null
-                        retval = None
+                        retval = []
                     write_env.vars[b.head.string] = retval
             return retval
 
-        elif car.string == "defvar": # toplevel var
-            for var, val in pair(cdr):
-                tlenv.vars.update([(var.string, eval_(val, e))])
-            return var.string
+        # elif car.string == "defvar": # toplevel var
+        #     for var, val in pair(cdr):
+        #         tlenv.vars.update([(var.string, eval_(val, e))])
+        #     return var.string
+
         # Higher order functions
         elif car.string == "call": # call a function
             fn, *args = cdr
@@ -506,11 +508,7 @@ name
 	               global 1
 """
 s="""
-pret
- + 1 1 1
-   * 2 3
-   1; 10
-    2
+name x 10
 """
 
 

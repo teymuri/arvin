@@ -12,13 +12,10 @@ thing passed in!)
 
 
 (function params)
-name
- fn
-  lambda
-   # name p1 (defaults to null)
-     name p2 50 (defaults to 50)
-     name @p3 (defaults to list)
- 
+lambda
+  #name x
+
+
 fn 1 2 3 4 5 6
 
 (One look, two behaviours!)
