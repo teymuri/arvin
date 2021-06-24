@@ -167,13 +167,6 @@ class Token:
             return f"<Token{self.id} {self.string}>"
 
 
-
-
-
-
-
-STRPATT = re.compile(r'"[^"]*"')
-
 def lines(src): return src.strip().splitlines()
 
 
@@ -197,7 +190,7 @@ def set_commidx_ip(tokens):
 BLOCKCUT = ";" # in tokpatt damit!??
 # Handle (&) as single tokens, anything else as one token
 # All valid tokens
-TOKPATT = r"(\(|\)|;|[\w\d.+\-*=]+)"
+TOKPATT = r"(\(|\)|;|@|[\w\d.+\-*=]+)"
 
 # Lexer
 def tokenize_str(s):
@@ -231,7 +224,7 @@ class Block:
         i = Block.counter
         Block.counter += 1
         return i
-    def __repr__(self): return f"<Block{self.id} @{self.head}>"
+    def __repr__(self): return f"<Block{self.id} HEAD:{self.head}>"
     def append(self, t): self.body.append(t)
 
 
@@ -289,8 +282,7 @@ def parse(toks):
         # enblock = enclosing_block(t, blocktracker)
         # 
         if t.string == BLOCKCUT: #close the block of THE PREVIOUS token (not of the blockcut token itself!!!)
-            enblock = enclosing_block(toks[i-1], blocktracker)
-            # print(">>", t, enblock, enblock.id)
+            enblock = enclosing_block(toks[i-1], blocktracker)            
             # print(blocktracker)
             for j, b in enumerate(blocktracker):
                 if b.id == enblock.id:
@@ -300,7 +292,7 @@ def parse(toks):
             # print(blocktracker)
         else: # create a new block if ...
             enblock = enclosing_block(t, blocktracker)
-            if enblock.env.isblockbuilder(t):
+            if enblock.env.isblockbuilder(t) or (t.string=="@" and enblock.head.string == "lambda"):
                 if is_lexenv_builder(t):                
                     B = Block(t, Env(parenv=enblock.env)) # give it a new env
                 else:
@@ -312,10 +304,13 @@ def parse(toks):
                 # into lists.
                 B = Block(t, env=enblock.env)
                 blocktracker.append(B)
+            
             ################################
-            if enblock.env.isblockbuilder(t):
+            if enblock.env.isblockbuilder(t) or (t.string=="@" and enblock.head.string == "lambda"):
                 enblock.append(B)
             elif enblock.head.string == "name": # args to name
+                enblock.append(B)
+            elif enblock.head.string == "@": # args to lambda
                 enblock.append(B)
             else:
                 enblock.append(t)
@@ -359,7 +354,8 @@ def tok_is_nondata(tok):
     
 
 IMPLICIT_LIST_IDENTIFIER = "+"
-def eval_(x, e):
+PARAMS_IDENTIFIER = "#"
+def eval_(x, e, access_from_parenv=None):
     if isinstance(x, Block): # think of a Block as list!
         car, cdr = x.head, x.body[1:]
         # car, cdr = x.head, x.body
@@ -390,11 +386,12 @@ def eval_(x, e):
                     vals = b.body[1:]
                     if vals: # There are any values to be assigned to the name?
                         for val in vals:
-                            # retval = eval_(val, write_env)
                             retval = eval_(val, x.env)
                     else: # No values => Null
                         retval = []
                     write_env.vars[b.head.string] = retval
+            if access_from_parenv:
+                access_from_parenv.vars.update(write_env.vars)
             return retval
 
         # elif car.string == "defvar": # toplevel var
@@ -416,11 +413,26 @@ def eval_(x, e):
         elif car.string == "map":
             fn, *args = cdr
             return e.funcs["map"](eval_(fn, e), *[eval_(a, e) for a in args])
+        
         elif car.string == "lambda": # create a function object
+            try:
+                # params_blocks = extract_params_block(cdr)
+                params, actions = extract_params_actions(cdr)
+            except IndexError:
+                params = None
+            if params:
+                params_toks = []
+                for name_block in params.body[1:]:
+                    params_toks.extend([b.head for b in name_block.body[1:]])
+                    eval_(name_block, e, x.env)
+                F = Function([ptok.string for ptok in params_toks], actions, e)
+                print(F.params, F.body)
+                return F
             # the first block is a block of params
-            paramsblock, *body = cdr
-            params = paramsblock.body[1:]
-            return Function([p.string for p in params], body, e)
+            # params_blocks, *body = cdr
+            # params = params_blocks.body[1:]
+            # print(x.env.vars)
+            # return Function([p.string for p in params], body, e)
         
         elif e.isfunc(car):
             return eval_(car, e)(*[eval_(b, e) for b in cdr])
@@ -435,6 +447,17 @@ def eval_(x, e):
                 return float(x.string)
             except ValueError:
                 return e.resolve_token(x)
+
+def extract_params_block(blocks):
+    """Last param block counts"""
+    return list(filter(lambda b: b.head.string == "@", blocks))[-1]
+
+def extract_params_actions(blocks):
+    params_idx = None
+    for i, b in enumerate(blocks):
+        if b.head.string == "@":
+            params_idx = i
+    return blocks[params_idx], blocks[(params_idx+1):]
 
 def rmcomm(toks):
     """Removes comments from tokens"""
@@ -459,18 +482,18 @@ def interpstr(s):
     return eval_(parse(rmcomm(tokenize_str(s))), tlenv)
 
 
-import argparse
-argparser = argparse.ArgumentParser(description='Process Source.')
-argparser.add_argument("-s", nargs="+", required=True)
-args = argparser.parse_args()
-# Eval lang-core first
-for src in ["toplevel.let"]:
-    with open(src, "r") as s:
-        interpstr(s.read())
-# Jetzt das _Zeug vom user
-for src in args.s:
-    with open(src, "r") as s:
-        interpstr(s.read())
+# import argparse
+# argparser = argparse.ArgumentParser(description='Process Source.')
+# argparser.add_argument("-s", nargs="+", required=True)
+# args = argparser.parse_args()
+# # Eval lang-core first
+# for src in ["toplevel.let"]:
+#     with open(src, "r") as s:
+#         interpstr(s.read())
+# # Jetzt das _Zeug vom user
+# for src in args.s:
+#     with open(src, "r") as s:
+#         interpstr(s.read())
 
 
 
@@ -508,10 +531,24 @@ name
 	               global 1
 """
 s="""
-name x 10
+lambda
+  @ name
+     x 100
+     y x
+    name c
+      +L 1 2 3 4
+  * x 8
 """
-
+s="""
+name tl ja
+  fn
+    lambda
+      @ name
+          a 3
+      pret * a 100
+call fn
+"""
 
 # print(tokenize_str(s))
 # print(parse(tokenize_str(s)).body[1].body[1].body)
-# interpstr(s)
+interpstr(s)
