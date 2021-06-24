@@ -311,8 +311,8 @@ def parse(toks):
                 enblock.append(B)
             elif enblock.head.string == "name": # args to name
                 enblock.append(B)
-            elif enblock.head.string == "@": # args to lambda
-                enblock.append(B)
+            # elif enblock.head.string == "@": # args to lambda
+            #     enblock.append(B)
             else:
                 enblock.append(t)
     return tlblock
@@ -353,6 +353,10 @@ def tok_is_nondata(tok):
         except ValueError:
             return True
     
+class Void:
+    def __init__(self):
+        self.value = []
+
 
 IMPLICIT_LIST_IDENTIFIER = "+"
 PARAMS_IDENTIFIER = "#"
@@ -385,11 +389,12 @@ def eval_(x, e, access_from_parenv=None):
                     write_env.vars[b.head.string[1:]] = retval
                 else:
                     vals = b.body[1:]
+                    print(b.body)
                     if vals: # There are any values to be assigned to the name?
                         for val in vals:
                             retval = eval_(val, x.env)
                     else: # No values => Null
-                        retval = []
+                        retval = Void()
                     write_env.vars[b.head.string] = retval
             if access_from_parenv:
                 access_from_parenv.vars.update(write_env.vars)
@@ -556,7 +561,11 @@ name tl ja
       pret a
 call fn
 """
-
+s="""
+name tl ja
+  x
+pret x
+"""
 # print(tokenize_str(s))
 # print(parse(tokenize_str(s)).body[1].body[1].body)
 interpstr(s)
