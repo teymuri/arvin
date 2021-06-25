@@ -2,6 +2,8 @@
 
 (in sym branch)
 
+(jetzt in lambda)
+
 
 sort list 2 4 3 1 5 :fn '<
 filter list 2 4 3 1 5
