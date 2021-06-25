@@ -200,12 +200,13 @@ def set_commidx_ip(tokens):
             tok.commidx = i
         else:
             pass
-BLOCKCUT = ";" # in tokpatt damit!??
-KW = ":"
+
+PARSER_BLOCKCUT_IDENT = ";" # in tokpatt damit!??
+PARSER_KEYWORD_IDENT = ":"
 # Handle (&) as single tokens, anything else as one token
 # All valid tokens
-TOKPATT = r"(\(|\)|;|:|[\w\d.+\-*=]+)"
-TOKENS_PATT = r"({}|{}|{}|{}|[\w\d.+\-*=]+)".format("\(", "\)", BLOCKCUT, KW)
+# TOKPATT = r"(\(|\)|;|:|[\w\d.+\-*=]+)"
+TOKENS_PATT = r"({}|{}|{}|{}|[\w\d.+\-*=]+)".format("\(", "\)", PARSER_BLOCKCUT_IDENT, PARSER_KEYWORD_IDENT)
 
 # Lexer
 def tokenize_str(s):
@@ -296,7 +297,7 @@ def parse(toks):
         # block_idx, enblock = enclosing_block(t, blocks)
         # enblock = enclosing_block(t, blocktracker)
         # 
-        if t.string == BLOCKCUT: #close the block of THE PREVIOUS token (not of the blockcut token itself!!!)
+        if t.string == PARSER_BLOCKCUT_IDENT: #close the block of THE PREVIOUS token (not of the blockcut token itself!!!)
             enblock = enclosing_block(toks[i-1], blocktracker)            
             # print(blocktracker)
             for j, b in enumerate(blocktracker):
@@ -308,7 +309,7 @@ def parse(toks):
         ########### Making of a new BLOCK #################
         else: # create a new block if ...
             enblock = enclosing_block(t, blocktracker)
-            if enblock.env.isblockbuilder(t) or (t.string==KW and enblock.head.string == "lambda"):
+            if enblock.env.isblockbuilder(t) or (t.string==PARSER_KEYWORD_IDENT and enblock.head.string == "lambda"):
                 if is_lexenv_builder(t):                
                     B = Block(t, Env(parenv=enblock.env)) # give it a new env
                 else:
@@ -321,7 +322,7 @@ def parse(toks):
                 B = Block(t, env=enblock.env)
                 blocktracker.append(B)
             ################################
-            if enblock.env.isblockbuilder(t) or (t.string == KW and enblock.head.string == "lambda"):
+            if enblock.env.isblockbuilder(t) or (t.string == PARSER_KEYWORD_IDENT and enblock.head.string == "lambda"):
                 enblock.append(B)
             elif enblock.head.string == "name": # args to name
                 enblock.append(B)
@@ -435,6 +436,8 @@ def eval_(x, e, access_from_parenv=None):
         
         elif car.string == "lambda": # create a function object
             params_blocks, actions_blocks = extract_params_actions(cdr)
+            print(params_blocks)
+            print(actions_blocks)
             return Function(params_blocks, actions_blocks, e)
             # try:
             #     # params_blocks = extract_params_block(cdr)
@@ -469,20 +472,28 @@ def eval_(x, e, access_from_parenv=None):
             except ValueError:
                 return e.resolve_token(x)
 
-# def extract_params_block(blocks):
-#     """Last param block counts"""
-#     return list(filter(lambda b: b.head.string == "@", blocks))[-1]
-
 def extract_params_actions(blocks):
-    params_idx = None
-    # Find the last kw block
-    for i, b in enumerate(blocks):
-        if b.head.string == KW:
-            params_idx = i
-    if params_idx is not None:
-        return blocks[params_idx], blocks[(params_idx+1):]
-    else:                       # Function has no parameters
-        return [], blocks
+    """Returns a list of params  blocks and a list of action blocks."""
+    param_blocks = []
+    action_blocks = []
+    for b in blocks:
+        if b.head.string == PARSER_KEYWORD_IDENT: # kw ident has special meaning in the context of lambda
+            param_blocks.append(b)
+        else:
+            action_blocks.append(b)
+    return param_blocks, action_blocks
+
+
+# def extract_params_actions(blocks):
+#     params_idx = None
+#     # Find the last kw block
+#     for i, b in enumerate(blocks):
+#         if b.head.string == PARSER_KEYWORD_IDENT:
+#             params_idx = i
+#     if params_idx is not None:
+#         return blocks[params_idx], blocks[(params_idx+1):]
+#     else:                       # Function has no parameters (a nullary)
+#         return [], blocks
 
 def rmcomm(toks):
     """Removes comments from tokens"""
@@ -507,18 +518,18 @@ def interpstr(s):
     return eval_(parse(rmcomm(tokenize_str(s))), tlenv)
 
 
-import argparse
-argparser = argparse.ArgumentParser(description='Process Source.')
-argparser.add_argument("-s", nargs="+", required=True)
-args = argparser.parse_args()
-# Eval lang-core first
-for src in ["toplevel.let"]:
-    with open(src, "r") as s:
-        interpstr(s.read())
-# Jetzt das _Zeug vom user
-for src in args.s:
-    with open(src, "r") as s:
-        interpstr(s.read())
+# import argparse
+# argparser = argparse.ArgumentParser(description='Process Source.')
+# argparser.add_argument("-s", nargs="+", required=True)
+# args = argparser.parse_args()
+# # Eval lang-core first
+# for src in ["toplevel.let"]:
+#     with open(src, "r") as s:
+#         interpstr(s.read())
+# # Jetzt das _Zeug vom user
+# for src in args.s:
+#     with open(src, "r") as s:
+#         interpstr(s.read())
 
 
 
@@ -563,17 +574,32 @@ lambda
     name c
       +L 1 2 3 4
   * x 8
+name 
+ &rest 1 2 3
 """
 s="""
 name tl ja 
  F
   lambda
-   : name x 23
-       y 
-     name +rest
+   @ :x name
+         x + 2 3 4
+         y * x 1000
+     :y 3
+     :&rest
+
+
+
+   :x 23
+   :y 
+   :+rest
+   + x y
+    4 5 6 7
+   pret * 3 4 5
+     1 2
+   :foo 9
 (call F)
 """
 # print(tokenize_str(s))
-# print(parse(tokenize_str(s)).body[1].body)
+print(parse(tokenize_str(s)).body)
 
 # interpstr(s)
