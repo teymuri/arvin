@@ -1,4 +1,21 @@
 
+sort list 2 4 3 1 5 :fn '<
+filter list 2 4 3 1 5
+  :fn lambda :x :y 
+
+lambda
+  : name x
+      y 34
+      +rest
+
+f 1 2 3 4 5 => :x 1 :y 2 :rest 3 4 5
+f :y 1 2 3 4 5 => :x null :y 1 :rest 2 3 4 5
+f 1 2 3 4 5
+f 1 2 3 4 5
+f 1 2 3 4 5
+f 1 2 3 4 5
+
+
 (dynamic dispatching, polymorphism)
 objA meth
 objB meth

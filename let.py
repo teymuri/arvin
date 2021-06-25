@@ -117,18 +117,30 @@ class Env:
 tlenv = Env(id_="TL")
 
 class Function:
-    
-    def __init__(self, params, body, enclosing_env):
-        self.params = params
-        self.body = body
+
+    # params is a block of one or more name blocks
+    def __init__(self, params, actions, enclosing_env):
         # Create a fresh env at definition time!
         self.env = Env(parenv=enclosing_env)
+        # self.params = params
+        self.params = [eval_(name, None, self.env) for name in params.body[1:]]
+        print(self.params)
+        print(self.env.vars)
+        self.actions = actions
+    
+    def init_params(self):
+        """Counts non-initialized parameters"""
+        non = 0
+        for name_block in self.params.body[1:]:
+            for paramblock in name_block.body[1:]:
+                if len(paramblock.body[1:]) == 0:
+                    # no default vals supplied
+                    non += 1
+        return non
     
     def __call__(self, *args):
-        for x in self.params.body[1:]:
-            print(x)
         assert (len(self.params) == len(args)), \
-            f"passed {len(args)} args to a lambda with {len(self.params)} params"
+            f"passed {len(args)} args to a function with arity {len(self.params)}"
         self.env.vars.update(zip(self.params, args))
         for b in self.body[:-1]:
             eval_(b, self.env)
@@ -189,9 +201,11 @@ def set_commidx_ip(tokens):
         else:
             pass
 BLOCKCUT = ";" # in tokpatt damit!??
+KW = ":"
 # Handle (&) as single tokens, anything else as one token
 # All valid tokens
-TOKPATT = r"(\(|\)|;|@|[\w\d.+\-*=]+)"
+TOKPATT = r"(\(|\)|;|:|[\w\d.+\-*=]+)"
+TOKENS_PATT = r"({}|{}|{}|{}|[\w\d.+\-*=]+)".format("\(", "\)", BLOCKCUT, KW)
 
 # Lexer
 def tokenize_str(s):
@@ -199,7 +213,7 @@ def tokenize_str(s):
     toks = []
     for i, line in enumerate(lines(s)):
         # for match in re.finditer(r"\S+", line):
-        for match in re.finditer(TOKPATT, line):
+        for match in re.finditer(TOKENS_PATT, line):
             toks.append(Token(string=match.group(), start=match.start(), end=match.end(), line=i)
             )
     return toks
@@ -291,9 +305,10 @@ def parse(toks):
                     # we prevent it from becoming an enclosing block for anything else.
                     del blocktracker[j]
             # print(blocktracker)
+        ########### Making of a new BLOCK #################
         else: # create a new block if ...
             enblock = enclosing_block(t, blocktracker)
-            if enblock.env.isblockbuilder(t) or (t.string=="@" and enblock.head.string == "lambda"):
+            if enblock.env.isblockbuilder(t) or (t.string==KW and enblock.head.string == "lambda"):
                 if is_lexenv_builder(t):                
                     B = Block(t, Env(parenv=enblock.env)) # give it a new env
                 else:
@@ -305,15 +320,12 @@ def parse(toks):
                 # into lists.
                 B = Block(t, env=enblock.env)
                 blocktracker.append(B)
-            
             ################################
-            if enblock.env.isblockbuilder(t) or (t.string=="@" and enblock.head.string == "lambda"):
+            if enblock.env.isblockbuilder(t) or (t.string == KW and enblock.head.string == "lambda"):
                 enblock.append(B)
             elif enblock.head.string == "name": # args to name
                 enblock.append(B)
-            # elif enblock.head.string == "@": # args to lambda
-            #     enblock.append(B)
-            else:
+            else:               # Just a simple lonely token!
                 enblock.append(t)
     return tlblock
 
@@ -359,7 +371,7 @@ class Void:
 
 
 IMPLICIT_LIST_IDENTIFIER = "+"
-PARAMS_IDENTIFIER = "#"
+
 def eval_(x, e, access_from_parenv=None):
     if isinstance(x, Block): # think of a Block as list!
         car, cdr = x.head, x.body[1:]
@@ -389,7 +401,6 @@ def eval_(x, e, access_from_parenv=None):
                     write_env.vars[b.head.string[1:]] = retval
                 else:
                     vals = b.body[1:]
-                    print(b.body)
                     if vals: # There are any values to be assigned to the name?
                         for val in vals:
                             retval = eval_(val, x.env)
@@ -408,6 +419,7 @@ def eval_(x, e, access_from_parenv=None):
         # Higher order functions
         elif car.string == "call": # call a function
             fn, *args = cdr
+            print("Args", args)
             # snapshot
             if isinstance(fn, Block): # Calling fresh anonymus function definition
                 fnobj = eval_(fn, e)
@@ -416,13 +428,14 @@ def eval_(x, e, access_from_parenv=None):
                 fnobj = e.vars[fn.string]
                 # return eval_(fnobj, fnobj.env)(*[eval_(a, fnobj.env) for a in args])
                 return fnobj(*[eval_(a, fnobj.env) for a in args])
+        
         elif car.string == "map":
             fn, *args = cdr
             return e.funcs["map"](eval_(fn, e), *[eval_(a, e) for a in args])
         
         elif car.string == "lambda": # create a function object
-            params, actions = extract_params_actions(cdr)
-            return Function(params, actions, e)
+            params_blocks, actions_blocks = extract_params_actions(cdr)
+            return Function(params_blocks, actions_blocks, e)
             # try:
             #     # params_blocks = extract_params_block(cdr)
             #     params, actions = extract_params_actions(cdr)
@@ -456,18 +469,19 @@ def eval_(x, e, access_from_parenv=None):
             except ValueError:
                 return e.resolve_token(x)
 
-def extract_params_block(blocks):
-    """Last param block counts"""
-    return list(filter(lambda b: b.head.string == "@", blocks))[-1]
+# def extract_params_block(blocks):
+#     """Last param block counts"""
+#     return list(filter(lambda b: b.head.string == "@", blocks))[-1]
 
 def extract_params_actions(blocks):
     params_idx = None
+    # Find the last kw block
     for i, b in enumerate(blocks):
-        if b.head.string == "@":
+        if b.head.string == KW:
             params_idx = i
     if params_idx is not None:
         return blocks[params_idx], blocks[(params_idx+1):]
-    else:
+    else:                       # Function has no parameters
         return [], blocks
 
 def rmcomm(toks):
@@ -551,21 +565,15 @@ lambda
   * x 8
 """
 s="""
-name tl ja
-  fn
-    lambda
-      @ name
-          a 3
-         b a
-       name xc 23
-      pret a
-call fn
-"""
-s="""
-name tl ja
-  x
-pret x
+name tl ja 
+ F
+  lambda
+   : name x 23
+       y 
+     name +rest
+(call F)
 """
 # print(tokenize_str(s))
-# print(parse(tokenize_str(s)).body[1].body[1].body)
+# print(parse(tokenize_str(s)).body[1].body)
+
 interpstr(s)
