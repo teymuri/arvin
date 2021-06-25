@@ -31,5 +31,5 @@ name tl ja
   +a 3 4 5
     2 3 4 5
     null
-(pret list x y a)
+pret list x y a
   
