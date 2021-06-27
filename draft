@@ -5,9 +5,15 @@
 (jetzt in lambda)
 
 
-sort list 2 4 3 1 5 :fn '<
+(explicit param-naming)
+sort :     seq
+      list 2 4 3 1 5
+     :fn
+      '<
+
+(positional without naming params)
 filter list 2 4 3 1 5
-  :fn lambda :x :y 
+       oddp
 
 lambda
   : name x

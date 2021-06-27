@@ -77,6 +77,7 @@ class Env:
         x = Env.counter
         Env.counter += 1
         return x
+    
     def isfunc(self, tok): return tok.string in self.funcs
     
     def resolve_token(self, tok):
@@ -122,29 +123,42 @@ class Function:
     def __init__(self, params, actions, enclosing_env):
         # Create a fresh env at definition time!
         self.env = Env(parenv=enclosing_env)
-        # self.params = params
-        self.params = [eval_(name, None, self.env) for name in params.body[1:]]
-        print(self.params)
-        print(self.env.vars)
+        self.params = []
+        self.count_obligargs = 0
+        self.init_params_ip(params)
         self.actions = actions
     
-    def init_params(self):
-        """Counts non-initialized parameters"""
-        non = 0
-        for name_block in self.params.body[1:]:
-            for paramblock in name_block.body[1:]:
-                if len(paramblock.body[1:]) == 0:
-                    # no default vals supplied
-                    non += 1
-        return non
+    def init_params_ip(self, params): # init params at definition time
+        for b in params:
+            _, name = b.body
+            _, *params = name.body
+            for p in params:
+                nmtok, *defarg = p.body # name token and default argument
+                self.params.append(nmtok)
+                if defarg:      # If default arguments given at definition time
+                    self.env.vars[nmtok.string] = eval_(defarg[0], self.env)
+                else:
+                    self.env.vars[nmtok.string] = None
+                    self.count_obligargs += 1
     
-    def __call__(self, *args):
-        assert (len(self.params) == len(args)), \
-            f"passed {len(args)} args to a function with arity {len(self.params)}"
-        self.env.vars.update(zip(self.params, args))
-        for b in self.body[:-1]:
-            eval_(b, self.env)
-        return eval_(self.body[-1], self.env)
+    def __call__(self, args):
+        assert len(args) >= self.count_obligargs, \
+            f"passed {len(args)} args to a lambda with min arity {self.count_obligargs}"
+        callenv = Env(self.env) # The run-time env
+        for i, a in enumerate(args):
+            if is_param_naming_arg(a):
+                _, name, *vals = a.body
+                for v in vals[:-1]:
+                    eval_(v, self.env)
+                callenv.vars[name.string] = eval_(vals[-1], self.env)
+            else:               # schau nach der Reihenfolge der Parameter, jetzt sind wir
+                # index i von parameter liste
+                # for v in vals[:-1]:
+                #     pass        # Braucht ein block function zum multi-action
+                callenv.vars[self.params[i].string] = eval_(a, self.env)
+        for action in self.actions[:-1]:
+            eval_(action, callenv)
+        return eval_(self.actions[-1], callenv)
 
 
 
@@ -202,11 +216,12 @@ def set_commidx_ip(tokens):
             pass
 
 PARSER_BLOCKCUT_IDENT = ";" # in tokpatt damit!??
-PARSER_KEYWORD_IDENT = ":"
+FUNC_PARAM_IDENT = ":"      # Das hier ist kein kw!!
 # Handle (&) as single tokens, anything else as one token
 # All valid tokens
 # TOKPATT = r"(\(|\)|;|:|[\w\d.+\-*=]+)"
-TOKENS_PATT = r"({}|{}|{}|{}|[\w\d.+\-*=]+)".format("\(", "\)", PARSER_BLOCKCUT_IDENT, PARSER_KEYWORD_IDENT)
+TOKENS_PATT = r"({}|{}|{}|{}|[\w\d.+\-*=]+)".format(
+    "\(", "\)", PARSER_BLOCKCUT_IDENT, FUNC_PARAM_IDENT)
 
 # Lexer
 def tokenize_str(s):
@@ -291,12 +306,7 @@ tlblock = Block(head=Token(), env=tlenv, id_=TL_STR)
 def parse(toks):
     """Converts tokens of the source file into an AST of Tokens/Blocks"""
     blocktracker = [tlblock]
-    # blocks = {0: tlblock}
-    
     for i, t in enumerate(toks):
-        # block_idx, enblock = enclosing_block(t, blocks)
-        # enblock = enclosing_block(t, blocktracker)
-        # 
         if t.string == PARSER_BLOCKCUT_IDENT: #close the block of THE PREVIOUS token (not of the blockcut token itself!!!)
             enblock = enclosing_block(toks[i-1], blocktracker)            
             # print(blocktracker)
@@ -309,7 +319,7 @@ def parse(toks):
         ########### Making of a new BLOCK #################
         else: # create a new block if ...
             enblock = enclosing_block(t, blocktracker)
-            if enblock.env.isblockbuilder(t) or (t.string==PARSER_KEYWORD_IDENT and enblock.head.string == "lambda"):
+            if enblock.env.isblockbuilder(t) or (t.string==FUNC_PARAM_IDENT):
                 if is_lexenv_builder(t):                
                     B = Block(t, Env(parenv=enblock.env)) # give it a new env
                 else:
@@ -321,8 +331,8 @@ def parse(toks):
                 # into lists.
                 B = Block(t, env=enblock.env)
                 blocktracker.append(B)
-            ################################
-            if enblock.env.isblockbuilder(t) or (t.string == PARSER_KEYWORD_IDENT and enblock.head.string == "lambda"):
+            ################################  and enblock.head.string == "lambda"
+            if enblock.env.isblockbuilder(t) or (t.string == FUNC_PARAM_IDENT):
                 enblock.append(B)
             elif enblock.head.string == "name": # args to name
                 enblock.append(B)
@@ -370,6 +380,8 @@ class Void:
     def __init__(self):
         self.value = []
 
+def is_param_naming_arg(x):
+    return isinstance(x, Block) and x.head.string == FUNC_PARAM_IDENT
 
 IMPLICIT_LIST_IDENTIFIER = "+"
 
@@ -420,15 +432,13 @@ def eval_(x, e, access_from_parenv=None):
         # Higher order functions
         elif car.string == "call": # call a function
             fn, *args = cdr
-            print("Args", args)
             # snapshot
             if isinstance(fn, Block): # Calling fresh anonymus function definition
                 fnobj = eval_(fn, e)
                 return fnobj(*[eval_(a, e) for a in args])
             else: # Token = saved function name
                 fnobj = e.vars[fn.string]
-                # return eval_(fnobj, fnobj.env)(*[eval_(a, fnobj.env) for a in args])
-                return fnobj(*[eval_(a, fnobj.env) for a in args])
+                return fnobj(args)
         
         elif car.string == "map":
             fn, *args = cdr
@@ -436,8 +446,6 @@ def eval_(x, e, access_from_parenv=None):
         
         elif car.string == "lambda": # create a function object
             params_blocks, actions_blocks = extract_params_actions(cdr)
-            print(params_blocks)
-            print(actions_blocks)
             return Function(params_blocks, actions_blocks, e)
             # try:
             #     # params_blocks = extract_params_block(cdr)
@@ -477,7 +485,7 @@ def extract_params_actions(blocks):
     param_blocks = []
     action_blocks = []
     for b in blocks:
-        if b.head.string == PARSER_KEYWORD_IDENT: # kw ident has special meaning in the context of lambda
+        if b.head.string == FUNC_PARAM_IDENT: # kw ident has special meaning in the context of lambda
             param_blocks.append(b)
         else:
             action_blocks.append(b)
@@ -488,7 +496,7 @@ def extract_params_actions(blocks):
 #     params_idx = None
 #     # Find the last kw block
 #     for i, b in enumerate(blocks):
-#         if b.head.string == PARSER_KEYWORD_IDENT:
+#         if b.head.string == FUNC_PARAM_IDENT:
 #             params_idx = i
 #     if params_idx is not None:
 #         return blocks[params_idx], blocks[(params_idx+1):]
@@ -578,28 +586,17 @@ name
  &rest 1 2 3
 """
 s="""
-name tl ja 
- F
-  lambda
-   @ :x name
-         x + 2 3 4
-         y * x 1000
-     :y 3
-     :&rest
+name tl ja
+  fn
+    lambda
+      :name x
+      :name y
+     * x y 
+      10
 
-
-
-   :x 23
-   :y 
-   :+rest
-   + x y
-    4 5 6 7
-   pret * 3 4 5
-     1 2
-   :foo 9
-(call F)
+fn 3 4
 """
 # print(tokenize_str(s))
-print(parse(tokenize_str(s)).body)
+# print(parse(tokenize_str(s)).body[2].body)
 
-# interpstr(s)
+interpstr(s)
