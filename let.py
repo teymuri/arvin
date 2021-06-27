@@ -59,12 +59,13 @@ def builtin_funcs():
 def consts(): return {"true": True, "false": False, "ja": True, "ne": False,
                       "null": []}
 
-FUNCOBJ_IDENTIFIER = "'"
+FUNCOBJ_IDENT = "'"
 class Env:
     counter = 0
     def __init__(self, parenv=None, id_=None):
-        self.funcs = builtin_funcs()
         # self.funcs = builtin_funcs()
+        self.builtins = builtin_funcs()
+        self.user_defined = {}   # seperate user defined from builtins
         self.vars = consts()
         self.parenv = parenv
         self.id = id_ if id_ else self.id_()
@@ -78,25 +79,47 @@ class Env:
         Env.counter += 1
         return x
     
-    def isfunc(self, tok): return tok.string in self.funcs
-    
+    # def isfunc(self, tok): return tok.string in self.funcs
+    def isbuiltin(self, tok): return tok.string in self.builtins
+    def isuserdefined(self, tok): return tok.string in self.user_defined
     def resolve_token(self, tok):
-        if tok.string.startswith("'"): # return the function object
-            return self.funcs[tok.string[1:]]
+        if tok.string.startswith(FUNCOBJ_IDENT): # return the function object
+            try:                                 # builtin?
+                return self.builtins[tok.string[1:]]
+            except KeyError:    # # maybe userdefined?
+                return self.user_defined[tok.string[1:]]
         else:
             try:
-                return self.funcs[tok.string]
+                return self.builtins[tok.string]
             except KeyError:
                 try:
-                    return self.vars[tok.string]
+                    return self.user_defined[tok.string]
                 except KeyError:
-                    if self == tlenv: # if already at the top, token couldn't be resolved!
-                        raise NameError(f"name {tok.string} is not defined")
-                    else:
-                        return self.parenv.resolve_token(tok)
+                    try:
+                        return self.vars[tok.string]
+                    except KeyError:
+                        if self == tlenv: # if already at the top, token couldn't be resolved!
+                            raise NameError(f"name {tok.string} is not defined")
+                        else:
+                            return self.parenv.resolve_token(tok)
+
+    # def resolve_token(self, tok):
+    #     if tok.string.startswith(FUNCOBJ_IDENT): # return the function object
+    #         return self.funcs[tok.string[1:]]
+    #     else:
+    #         try:
+    #             return self.funcs[tok.string]
+    #         except KeyError:
+    #             try:
+    #                 return self.vars[tok.string]
+    #             except KeyError:
+    #                 if self == tlenv: # if already at the top, token couldn't be resolved!
+    #                     raise NameError(f"name {tok.string} is not defined")
+    #                 else:
+    #                     return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
-        if tok.string in self.funcs:
+        if (tok.string in self.builtins) or (tok.string in self.user_defined): # a function?
             return True
         else:
             if self.parenv:
@@ -118,7 +141,7 @@ class Env:
 tlenv = Env(id_="TL")
 
 class Function:
-
+    """user-defined functions"""
     # params is a block of one or more name blocks
     def __init__(self, params, actions, enclosing_env):
         # Create a fresh env at definition time!
@@ -144,7 +167,7 @@ class Function:
     def __call__(self, args):
         assert len(args) >= self.count_obligargs, \
             f"passed {len(args)} args to a lambda with min arity {self.count_obligargs}"
-        callenv = Env(self.env) # The run-time env
+        callenv = Env(self.env) # The run-time environment
         for i, a in enumerate(args):
             if is_param_naming_arg(a):
                 _, name, *vals = a.body
@@ -159,6 +182,7 @@ class Function:
         for action in self.actions[:-1]:
             eval_(action, callenv)
         return eval_(self.actions[-1], callenv)
+
 
 
 
@@ -317,7 +341,13 @@ def parse(toks):
         ########### Making of a new BLOCK #################
         else: # create a new block if ...
             enblock = enclosing_block(t, blocktracker)
-            if enblock.env.isblockbuilder(t) or (t.string==FUNC_PARAM_IDENT):
+
+            # if enclosing block is NAME, and the next token is a lambda
+            # this token is going to be the name of a funtion.
+            if enblock.head.string=="name" and toks[i+1].string =="lambda":
+                enblock.env.user_defined[t.string] = None # a placeholder for the function object to come while evaling
+            
+            if enblock.env.isblockbuilder(t) or (t.string==FUNC_PARAM_IDENT):                
                 if is_lexenv_builder(t):                
                     B = Block(t, Env(parenv=enblock.env)) # give it a new env
                 else:
@@ -401,35 +431,30 @@ def eval_(x, e, access_from_parenv=None):
                 write_env = tlenv
             else:
                 write_env = x.env # name env
-            for b in nonmeta:
+            for b in nonmeta:                
                 if not tok_is_nondata(b.head):
-                    raise NameError(f"name {b.head} is number")
+                    raise NameError(f"name {b.head} is number")                
                 if b.head.string.startswith(IMPLICIT_LIST_IDENTIFIER):
                     # implicit_list
                     retval = []
                     for val in b.body[1:]:
                         retval.append(eval_(val, x.env))
-                    write_env.vars[b.head.string[1:]] = retval
+                    write_env.vars[b.head.string[1:]] = retval                
                 else:
                     vals = b.body[1:]
-                    if vals: # There are any values to be assigned to the name?
+                    if vals: # There are any values to be assigned to names?
                         for val in vals:
                             retval = eval_(val, x.env)
                     else: # No values => Null
                         retval = Void()
                     # write in funcs or in variables?
                     if isinstance(retval, Function):
-                        write_env.funcs[b.head.string] = retval
+                        write_env.user_defined[b.head.string] = retval
                     else:
                         write_env.vars[b.head.string] = retval
             if access_from_parenv:
                 access_from_parenv.vars.update(write_env.vars)
             return retval
-
-        # elif car.string == "defvar": # toplevel var
-        #     for var, val in pair(cdr):
-        #         tlenv.vars.update([(var.string, eval_(val, e))])
-        #     return var.string
 
         # Higher order functions
         elif car.string == "call": # call a function
@@ -441,6 +466,13 @@ def eval_(x, e, access_from_parenv=None):
             else: # Token = saved function name
                 fnobj = e.funcs[fn.string]
                 return fnobj(args)
+                
+        elif e.isbuiltin(car):
+            # return eval_(car, e)(*[eval_(b, e) for b in cdr])
+            return e.builtins[car.string](*[eval_(b, e) for b in cdr])
+        elif e.isuserdefined(car):
+            fnobj = e.user_defined[car.string]
+            return fnobj(cdr)
         
         elif car.string == "map":
             fn, *args = cdr
@@ -449,31 +481,9 @@ def eval_(x, e, access_from_parenv=None):
         elif car.string == "lambda": # create a function object
             params_blocks, actions_blocks = extract_params_actions(cdr)
             fn = Function(params_blocks, actions_blocks, e)
-            return fn
-            # try:
-            #     # params_blocks = extract_params_block(cdr)
-            #     params, actions = extract_params_actions(cdr)
-            # except IndexError:
-            #     params = None
-            # if params:
-            #     params_toks = []
-            #     for name_block in params.body[1:]:
-            #         params_toks.extend(name_block.body[1:])
-            #         eval_(name_block, e, x.env)
-            #     F = Function([ptok for ptok in params_toks], actions, e)
-            #     return F
-            
-            # the first block is a block of params
-            # params_blocks, *body = cdr
-            # params = params_blocks.body[1:]
-            # print(x.env.vars)
-            # return Function([p.string for p in params], body, e)
-        
-        elif e.isfunc(car):
-            return eval_(car, e)(*[eval_(b, e) for b in cdr])
-        
+            return fn        
         else:
-            raise SyntaxError(f"{(x, x.body)} not known")
+            raise SyntaxError(f"{x} not known")
     else: # x is a Token
         try:
             return int(x.string)
@@ -589,17 +599,21 @@ name
  &rest 1 2 3
 """
 s="""
-name tl ja
-  fn
-    lambda
-      :name x
-      :name y
-     * x y 
-      10
 
-pret call fn 3 4
+name tl ne
+ fn
+   lambda
+     :name x
+     :name y
+    * x y 
+     10
+ var 
+  pret
+    fn
+     :y 4 
+     :x 5
+
 """
 # print(tokenize_str(s))
-# print(parse(tokenize_str(s)).body[2].body)
-
+# print(parse(tokenize_str(s)).body[1].body[3].body)
 interpstr(s)
