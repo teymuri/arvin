@@ -309,13 +309,11 @@ def parse(toks):
     for i, t in enumerate(toks):
         if t.string == PARSER_BLOCKCUT_IDENT: #close the block of THE PREVIOUS token (not of the blockcut token itself!!!)
             enblock = enclosing_block(toks[i-1], blocktracker)            
-            # print(blocktracker)
             for j, b in enumerate(blocktracker):
                 if b.id == enblock.id:
                     # by removing the block in question from the blocktracker list,
                     # we prevent it from becoming an enclosing block for anything else.
                     del blocktracker[j]
-            # print(blocktracker)
         ########### Making of a new BLOCK #################
         else: # create a new block if ...
             enblock = enclosing_block(t, blocktracker)
@@ -419,7 +417,11 @@ def eval_(x, e, access_from_parenv=None):
                             retval = eval_(val, x.env)
                     else: # No values => Null
                         retval = Void()
-                    write_env.vars[b.head.string] = retval
+                    # write in funcs or in variables?
+                    if isinstance(retval, Function):
+                        write_env.funcs[b.head.string] = retval
+                    else:
+                        write_env.vars[b.head.string] = retval
             if access_from_parenv:
                 access_from_parenv.vars.update(write_env.vars)
             return retval
@@ -437,7 +439,7 @@ def eval_(x, e, access_from_parenv=None):
                 fnobj = eval_(fn, e)
                 return fnobj(*[eval_(a, e) for a in args])
             else: # Token = saved function name
-                fnobj = e.vars[fn.string]
+                fnobj = e.funcs[fn.string]
                 return fnobj(args)
         
         elif car.string == "map":
@@ -446,7 +448,8 @@ def eval_(x, e, access_from_parenv=None):
         
         elif car.string == "lambda": # create a function object
             params_blocks, actions_blocks = extract_params_actions(cdr)
-            return Function(params_blocks, actions_blocks, e)
+            fn = Function(params_blocks, actions_blocks, e)
+            return fn
             # try:
             #     # params_blocks = extract_params_block(cdr)
             #     params, actions = extract_params_actions(cdr)
@@ -594,7 +597,7 @@ name tl ja
      * x y 
       10
 
-fn 3 4
+pret call fn 3 4
 """
 # print(tokenize_str(s))
 # print(parse(tokenize_str(s)).body[2].body)
