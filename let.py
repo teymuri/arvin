@@ -102,21 +102,6 @@ class Env:
                             raise NameError(f"name {tok.string} is not defined")
                         else:
                             return self.parenv.resolve_token(tok)
-
-    # def resolve_token(self, tok):
-    #     if tok.string.startswith(FUNCOBJ_IDENT): # return the function object
-    #         return self.funcs[tok.string[1:]]
-    #     else:
-    #         try:
-    #             return self.funcs[tok.string]
-    #         except KeyError:
-    #             try:
-    #                 return self.vars[tok.string]
-    #             except KeyError:
-    #                 if self == tlenv: # if already at the top, token couldn't be resolved!
-    #                     raise NameError(f"name {tok.string} is not defined")
-    #                 else:
-    #                     return self.parenv.resolve_token(tok)
     
     def isblockbuilder(self, tok):
         if (tok.string in self.builtins) or (tok.string in self.user_defined): # a function?
@@ -345,7 +330,15 @@ def parse(toks):
             # if enclosing block is NAME, and the next token is a lambda
             # this token is going to be the name of a funtion.
             if enblock.head.string=="name" and toks[i+1].string =="lambda":
-                enblock.env.user_defined[t.string] = None # a placeholder for the function object to come while evaling
+                # A placeholder for the function object to come while
+                # evaling This placeholder is there only so that the
+                # parser handles the current token as a block builder
+                # (it's a function after all!)
+                if isname_toplevel(enblock):
+                    tlblock.env.user_defined[t.string] = None
+                    enblock.env.user_defined[t.string] = None
+                else:
+                    enblock.env.user_defined[t.string] = None
             
             if enblock.env.isblockbuilder(t) or (t.string==FUNC_PARAM_IDENT):                
                 if is_lexenv_builder(t):                
@@ -367,6 +360,12 @@ def parse(toks):
             else:               # Just a simple lonely token!
                 enblock.append(t)
     return tlblock
+
+def isname_toplevel(nameblock):
+    for b in nameblock.body[1:]:
+        if b.head.string == "tl": # Wrong!!!!!!!!!!!!
+            return True
+    return False
 
 META = ("type", "lock", "tl")
 
@@ -448,8 +447,10 @@ def eval_(x, e, access_from_parenv=None):
                     else: # No values => Null
                         retval = Void()
                     # write in funcs or in variables?
-                    if isinstance(retval, Function):
-                        write_env.user_defined[b.head.string] = retval
+                    if isinstance(retval, Function): # lambda ist immer in beiden envs da
+                        # Ist schnell getan , ist wahrscheinlich scheiße!
+                        tlenv.user_defined[b.head.string] = retval
+                        x.env.user_defined[b.head.string] = retval
                     else:
                         write_env.vars[b.head.string] = retval
             if access_from_parenv:
@@ -466,12 +467,15 @@ def eval_(x, e, access_from_parenv=None):
             else: # Token = saved function name
                 fnobj = e.funcs[fn.string]
                 return fnobj(args)
-                
+
+        # Diese beide müssen zu einem ELIF branch zusammengetan werden!!!
         elif e.isbuiltin(car):
-            # return eval_(car, e)(*[eval_(b, e) for b in cdr])
             return e.builtins[car.string](*[eval_(b, e) for b in cdr])
         elif e.isuserdefined(car):
+            print(car)
             fnobj = e.user_defined[car.string]
+            if car.string.startswith(FUNCOBJ_IDENT):
+                print(car)
             return fnobj(cdr)
         
         elif car.string == "map":
@@ -600,19 +604,21 @@ name
 """
 s="""
 
-name tl ne
- fn
-   lambda
-     :name x
-     :name y
-    * x y 
-     10
- var 
-  pret
-    fn
-     :y 4 
-     :x 5
-
+name tl ja
+  fn lambda
+       :name
+         x
+         y
+       * y x 10
+  fact
+    lambda
+      :name N 3
+      * N 
+        - N 1
+        - N 2
+  foo fn :y 4 
+       :x 5
+pret 'fact
 """
 # print(tokenize_str(s))
 # print(parse(tokenize_str(s)).body[1].body[3].body)
