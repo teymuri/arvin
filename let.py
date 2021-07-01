@@ -229,8 +229,10 @@ FUNC_PARAM_IDENT = ":"      # Das hier ist kein kw!!
 # Handle (&) as single tokens, anything else as one token
 # All valid tokens
 # TOKPATT = r"(\(|\)|;|:|[\w\d.+\-*=]+)"
-TOKENS_PATT = r"({}|{}|{}|{}|[\w\d.+\-*=]+)".format(
-    "\(", "\)", PARSER_BLOCKCUT_IDENT, FUNC_PARAM_IDENT)
+TOKENS_PATT = r"({}|{}|{}|{}|[\w\d.+\-*={}]+)".format(
+    "\(", "\)", PARSER_BLOCKCUT_IDENT, FUNC_PARAM_IDENT,
+    FUNCOBJ_IDENT
+)
 
 # Lexer
 def tokenize_str(s):
@@ -472,10 +474,7 @@ def eval_(x, e, access_from_parenv=None):
         elif e.isbuiltin(car):
             return e.builtins[car.string](*[eval_(b, e) for b in cdr])
         elif e.isuserdefined(car):
-            print(car)
             fnobj = e.user_defined[car.string]
-            if car.string.startswith(FUNCOBJ_IDENT):
-                print(car)
             return fnobj(cdr)
         
         elif car.string == "map":
@@ -605,21 +604,12 @@ name
 s="""
 
 name tl ja
-  fn lambda
-       :name
-         x
-         y
-       * y x 10
   fact
     lambda
       :name N 3
-      * N 
-        - N 1
-        - N 2
-  foo fn :y 4 
-       :x 5
-pret 'fact
+      * N 10
+pret fact :N 7
 """
 # print(tokenize_str(s))
-# print(parse(tokenize_str(s)).body[1].body[3].body)
+# print(parse(tokenize_str(s)).body[2].body[1])
 interpstr(s)
