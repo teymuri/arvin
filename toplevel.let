@@ -10,3 +10,21 @@ name
                               +tmp8 tmp1 tmp3 tmp6
                               tmp9 name tl ja
                                      global tmp8
+
+
+
+name tl ja
+   double lambda
+            : name x
+            * x 2
+   triple lambda
+            :name x
+            * x 3
+
+(name tl ja
+   mult lambda
+         :name x
+         lambda
+            :name n
+            * n x
+ Problem!!!!!!!!!!!!!!!!!!)

@@ -110,9 +110,7 @@ class Env:
             if self.parenv:
                 return self.parenv.isblockbuilder(tok)
             else:
-                return tok.string in SINGLE_NAMING_BLOCK_BUILDERS + \
-                    NONNAMING_BLOCK_BUILDERS + MULTIPLE_VALUE_BINDERS + \
-                    HIGHER_ORDER_FUNCTIONS + LEXICAL_BLOCK_BUILDERS
+                return tok.string in HIGHER_ORDER_FUNCTIONS + LEXICAL_BLOCK_BUILDERS
     
     def getenv(self, s):
         if s in self.funcs or s in self.vars or s in self.consts:
@@ -174,10 +172,10 @@ class Function:
 HIGHER_ORDER_FUNCTIONS = ("call", "map")
 
 # def ishigherorder(tok): return tok.string in HIGHER_ORDER_FUNCTIONS
-SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
-NONNAMING_BLOCK_BUILDERS = ("case","call")
-LEXICAL_BLOCK_BUILDERS = ("block", "defun", "name", "lambda", "defvar")
-MULTIPLE_VALUE_BINDERS = ("defvar", "define")
+# SINGLE_NAMING_BLOCK_BUILDERS = ("block","defun", )
+# NONNAMING_BLOCK_BUILDERS = ("case","call")
+LEXICAL_BLOCK_BUILDERS = ("block", "name", "lambda")
+
 
 def is_multiple_value_binder(tok): return tok.string in MULTIPLE_VALUE_BINDERS
 
@@ -246,14 +244,6 @@ def tokenize_str(s):
     return toks
 
 
-
-
-def token_isin_block(tk, bl):
-    """Is tk inside of the head's block?"""
-    return tk.start > bl.head.start and tk.line >= bl.head.line
-
-
-
 class Block:
     counter = 0
     def __init__(self, head, env, id_=None):
@@ -270,43 +260,28 @@ class Block:
     def append(self, t): self.body.append(t)
 
 
-# def ast(parsed_block, tree=[]):
-#     for x in parsed_block.body:
-#         if isinstance(x, Token):
-#             tree.append(x)
-#         else: # Block?
-#             tree.append(ast(x, []))
-#     return tree
 
-
+def token_isin_block(tk, bl):
+    """Is tk inside of the head's block?"""
+    return tk.start > bl.head.start and tk.line >= bl.head.line
 
 def bottommost_blocks(enclosing_blocks):
     # Find the bottom-most line
     maxline = max(enclosing_blocks, key=lambda b: b.head.line).head.line
     # filter all bottommost blocks
     return [b for b in enclosing_blocks if b.head.line == maxline]
-# def bottommost_blocks(idx_blocks):
-#     # Find the bottom-most line
-#     maxline = max(idx_blocks, key=lambda b: b[1].head.line)[1].head.line
-#     # filter all bottommost blocks
-#     # print([ib for ib in idx_blocks if ib[1].head.line == maxline])
-#     return [ib for ib in idx_blocks if ib[1].head.line == maxline]
 
 def rightmost_block(bottommosts):
     # get the rightmost one of them
     return max(bottommosts, key=lambda b: b.head.start)
-# def rightmost_block(bottommosts):
-#     # get the rightmost one of them
-#     return max(bottommosts, key=lambda b: b[1].head.start)
 
 def enclosing_block(tok, blocks): # blocks is a list
     """Returns token's enclosing block."""
-    return rightmost_block(bottommost_blocks([b for b in blocks if token_isin_block(tok, b)]))
-# def enclosing_block(tok, blocks): # blocks is a list
-#     """Returns token's enclosing block."""
-#     return rightmost_block(
-#         bottommost_blocks(
-#             [ib for ib in blocks.items() if token_isin_block(tok, ib[1])]))
+    bs = [b for b in blocks if token_isin_block(tok, b)]
+    # print(blocks)
+    # print("?", tok, bs)
+    # print("000000000000")
+    return rightmost_block(bottommost_blocks(bs))
 
 # The Toplevel Block
 tlblock = Block(head=Token(), env=tlenv, id_=TL_STR)
@@ -342,8 +317,8 @@ def parse(toks):
                 else:
                     enblock.env.user_defined[t.string] = None
             
-            if enblock.env.isblockbuilder(t) or (t.string==FUNC_PARAM_IDENT):                
-                if is_lexenv_builder(t):                
+            if enblock.env.isblockbuilder(t) or t.string == FUNC_PARAM_IDENT:
+                if is_lexenv_builder(t):
                     B = Block(t, Env(parenv=enblock.env)) # give it a new env
                 else:
                     B = Block(t, enblock.env)
@@ -355,7 +330,7 @@ def parse(toks):
                 B = Block(t, env=enblock.env)
                 blocktracker.append(B)
             ################################  and enblock.head.string == "lambda"
-            if enblock.env.isblockbuilder(t) or (t.string == FUNC_PARAM_IDENT):
+            if enblock.env.isblockbuilder(t) or t.string == FUNC_PARAM_IDENT:
                 enblock.append(B)
             elif enblock.head.string == "name": # args to name
                 enblock.append(B)
@@ -542,18 +517,18 @@ def interpstr(s):
     return eval_(parse(rmcomm(tokenize_str(s))), tlenv)
 
 
-# import argparse
-# argparser = argparse.ArgumentParser(description='Process Source.')
-# argparser.add_argument("-s", nargs="+", required=True)
-# args = argparser.parse_args()
-# # Eval lang-core first
-# for src in ["toplevel.let"]:
-#     with open(src, "r") as s:
-#         interpstr(s.read())
-# # Jetzt das _Zeug vom user
-# for src in args.s:
-#     with open(src, "r") as s:
-#         interpstr(s.read())
+import argparse
+argparser = argparse.ArgumentParser(description='Process Source.')
+argparser.add_argument("-s", nargs="+", required=True)
+args = argparser.parse_args()
+# Eval lang-core first
+for src in ["toplevel.let"]:
+    with open(src, "r") as s:
+        interpstr(s.read())
+# Jetzt das _Zeug vom user
+for src in args.s:
+    with open(src, "r") as s:
+        interpstr(s.read())
 
 
 
@@ -603,13 +578,16 @@ name
 """
 s="""
 
-name tl ja
-  fact
-    lambda
-      :name N 3
-      * N 10
-pret fact :N 7
+name
+ x 10
+ y 3
+ z name tl ja
+     f lambda
+        :name a
+        * x y a
+pret f 9
 """
+
 # print(tokenize_str(s))
-# print(parse(tokenize_str(s)).body[2].body[1])
-interpstr(s)
+# print(parse(tokenize_str(s)).body[1].body[2].body)
+# interpstr(s)

@@ -1,35 +1,5 @@
 
+(name x mult 2)
 
-
-(pret global)
-
-
-(pret list tmp6 tmp7)
-
-(name tl ja
-  foo tmp6)
-
-(Wir deklarieren
-im Prinzip mit jedem Operator
-einen Block!)
-(Ein Konstrukt zum schließen von Blocks wäre gut)
-(Sowas wie + 1 2 3 4;
-; sagt der Block ist zu Ende!)
-name
-  tl ja
-  x 10
-  amir
-    + x x
-      * x x
-      x x
-        + x x
-        x x
-name tl ja
-  +x x x x x
-  +y 1 2 3
-    4 5 6
-  +a 3 4 5
-    2 3 4 5
-    null
-pret list x y a
-  
+pret double 10
+pret triple 10
