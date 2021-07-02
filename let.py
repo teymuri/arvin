@@ -69,11 +69,10 @@ class Env:
         self.vars = consts()
         self.parenv = parenv
         self.id = id_ if id_ else self.id_()
-        # if parenv:
-        #     self.funcs.update(parenv.funcs)
-        #     self.vars.update(parenv.vars)
+
     def __repr__(self):
         return f"(ENV {self.id})"
+    
     def id_(self):
         x = Env.counter
         Env.counter += 1
@@ -594,12 +593,13 @@ name
  &rest 1 2 3
 """
 s="""
-name tl ne
-  f lambda
+name tl ja
+  multby10 
+    lambda
       :name p1
       * p1 10
-  g pret f 4
-(pret f 9)
+
+pret call 'multby10 3
 """
 
 # print(tokenize_str(s))
