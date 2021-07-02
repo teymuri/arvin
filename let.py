@@ -147,11 +147,11 @@ class Function:
                     self.env.vars[nmtok.string] = None
                     self.count_obligargs += 1
     
-    def __call__(self, args):
-        assert len(args) >= self.count_obligargs, \
-            f"passed {len(args)} args to a lambda with min arity {self.count_obligargs}"
+    def __call__(self, arglst):
+        assert len(arglst) >= self.count_obligargs, \
+            f"passed {len(arglst)} args to a lambda with min arity {self.count_obligargs}"
         callenv = Env(self.env) # The run-time environment
-        for i, a in enumerate(args):
+        for i, a in enumerate(arglst):
             if is_param_naming_arg(a):
                 _, name, *vals = a.body
                 for v in vals[:-1]:
@@ -162,9 +162,10 @@ class Function:
                 # for v in vals[:-1]:
                 #     pass        # Braucht ein block function zum multi-action
                 callenv.vars[self.params[i].string] = eval_(a, self.env)
-        for action in self.actions[:-1]:
-            eval_(action, callenv)
-        return eval_(self.actions[-1], callenv)
+        Ret = None
+        for action in self.actions:
+            Ret = eval_(action, callenv)
+        return Ret
 
 
 
@@ -437,13 +438,24 @@ def eval_(x, e, access_from_parenv=None):
         # Higher order functions
         elif car.string == "call": # call a function
             fn, *args = cdr
-            # snapshot
-            if isinstance(fn, Block): # Calling fresh anonymus function definition
-                fnobj = eval_(fn, e)
-                return fnobj(*[eval_(a, e) for a in args])
-            else: # Token = saved function name
-                fnobj = e.funcs[fn.string]
-                return fnobj(args)
+            return eval_(fn, e)(args)
+            # if args:
+            #     return eval_(fn, e)([eval_(a, e) for a in args])
+            # else:
+            #     return eval_(fn, e)(args)
+
+            # print("->", cdr)
+            # # snapshot
+            # if isinstance(fn, Block): # Calling fresh anonymus function definition
+            #     fnobj = eval_(fn, e)
+            #     return fnobj(*[eval_(a, e) for a in args])
+            # else: # Token = saved function name
+            #     if args:
+            #         return eval_(fn, e)(*[eval_(a, e) for a in args])
+            #     else:
+            #         return eval_(fn, e)(args)
+            #     # fnobj = e.funcs[fn.string]
+            #     # return fnobj(args)
 
         # Diese beide müssen zu einem ELIF branch zusammengetan werden!!!
         elif e.isbuiltin(car):
@@ -459,7 +471,7 @@ def eval_(x, e, access_from_parenv=None):
         elif car.string == "lambda": # create a function object
             params_blocks, actions_blocks = extract_params_actions(cdr)
             fn = Function(params_blocks, actions_blocks, e)
-            return fn        
+            return fn
         else:
             raise SyntaxError(f"{x} not known")
     else: # x is a Token
@@ -517,18 +529,18 @@ def interpstr(s):
     return eval_(parse(rmcomm(tokenize_str(s))), tlenv)
 
 
-import argparse
-argparser = argparse.ArgumentParser(description='Process Source.')
-argparser.add_argument("-s", nargs="+", required=True)
-args = argparser.parse_args()
-# Eval lang-core first
-for src in ["toplevel.let"]:
-    with open(src, "r") as s:
-        interpstr(s.read())
-# Jetzt das _Zeug vom user
-for src in args.s:
-    with open(src, "r") as s:
-        interpstr(s.read())
+# import argparse
+# argparser = argparse.ArgumentParser(description='Process Source.')
+# argparser.add_argument("-s", nargs="+", required=True)
+# args = argparser.parse_args()
+# # Eval lang-core first
+# for src in ["toplevel.let"]:
+    # with open(src, "r") as s:
+        # interpstr(s.read())
+# # Jetzt das _Zeug vom user
+# for src in args.s:
+    # with open(src, "r") as s:
+        # interpstr(s.read())
 
 
 
@@ -577,17 +589,18 @@ name
  &rest 1 2 3
 """
 s="""
-
-name
- x 10
- y 3
- z name tl ja
-     f lambda
-        :name a
-        * x y a
-pret f 9
+pret call lambda
+            :name x
+            * x 10
+          10
+pret
+  call
+    lambda
+      :name p1
+      * p1 10
+    3 (=> 30)
 """
 
 # print(tokenize_str(s))
-# print(parse(tokenize_str(s)).body[1].body[2].body)
-# interpstr(s)
+# print(parse(tokenize_str(s)).body[1].body[2].body[1].body)
+interpstr(s)

@@ -1,0 +1,22 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=windows-1252">
+  </head>
+  <body>
+    <h1 style="text-align: center;">LET</h1>
+    <p>Lambda is not per se callable! A lambda form like</p>
+    <p><code>lambda<br>
+        &nbsp; :name p1<br>
+        &nbsp; * p1 10<br>
+      </code></p>
+    <p>in the source is not going to be called, it just returns a lambda object.
+      To call it we use the <code>call</code> keyword:</p>
+    <p><code>pret<br>
+        &nbsp; call<br>
+        &nbsp;&nbsp;&nbsp; lambda<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; :name p1<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * p1 10<br>
+        &nbsp;&nbsp;&nbsp; 3 (=&gt; 30)<br>
+      </code></p>
+  </body>
+</html>
