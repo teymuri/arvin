@@ -600,12 +600,16 @@ name tl ja
       :name p1
       lambda
         :name p2
-        * p1 p2
-  double multiplier 2
-  triple multiplier 3
+        lambda 
+          :name p3
+          * p1 p2 p3
+  times20
+    call multiplier 10
+      2
 
-pret call double 100
-pret call triple 100
+pret call times20 1 (=> 20)
+pret call times20 2 (=> 40)
+pret call times20 3 (=> 60)
 """
 
 # print(tokenize_str(s))

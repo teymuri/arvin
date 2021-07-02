@@ -3,7 +3,7 @@
     <meta http-equiv="content-type" content="text/html; charset=windows-1252">
   </head>
   <body>
-    <h1 style="text-align: center;">LET</h1>
+    <h1 style="text-align: center;">LET (prototype notes)</h1>
     <p>Lambda is not per se callable! A lambda form like</p>
     <p><code>lambda<br>
         &nbsp; :name p1<br>
@@ -49,5 +49,7 @@
         pret call double 100 (=&gt; 200)<br>
         pret call triple 100 (=&gt; 300)<br>
       </code></p>
+    <p>Here we must <code>call </code>function objects returned by the <code>multiplier</code>,
+      since it's value is a function object (and not a <i>name</i>)!</p>
   </body>
 </html>
