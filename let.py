@@ -425,10 +425,15 @@ def eval_(x, e, access_from_parenv=None):
                     else: # No values => Null
                         retval = Void()
                     # write in funcs or in variables?
-                    if isinstance(retval, Function): # lambda ist immer in beiden envs da
+                    if isinstance(retval, Function):
                         # Ist schnell getan , ist wahrscheinlich scheiße!
-                        tlenv.user_defined[b.head.string] = retval
-                        x.env.user_defined[b.head.string] = retval
+                        # Für toplevel deklarierte funktionen, funktion ist auch
+                        # im lexical trotzdem drin!!!!??????????
+                        if "tl" in meta and all([eval_(x, e) for x in meta["tl"]]):
+                            tlenv.user_defined[b.head.string] = retval
+                            x.env.user_defined[b.head.string] = retval
+                        else:
+                            x.env.user_defined[b.head.string] = retval
                     else:
                         write_env.vars[b.head.string] = retval
             if access_from_parenv:
@@ -589,16 +594,12 @@ name
  &rest 1 2 3
 """
 s="""
-pret call lambda
-            :name x
-            * x 10
-          10
-pret
-  call
-    lambda
+name tl ne
+  f lambda
       :name p1
       * p1 10
-    3 (=> 30)
+  g pret f 4
+(pret f 9)
 """
 
 # print(tokenize_str(s))
