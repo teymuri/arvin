@@ -148,7 +148,8 @@ class Function:
     
     def __call__(self, arglst):
         assert len(arglst) >= self.count_obligargs, \
-            f"passed {len(arglst)} args to a lambda with min arity {self.count_obligargs}"
+            f"""passed {len(arglst)} args to a lambda with min arity {self.count_obligargs}:
+{[p.string for p in self.params]}"""
         callenv = Env(self.env) # The run-time environment
         for i, a in enumerate(arglst):
             if is_param_naming_arg(a):
@@ -594,12 +595,17 @@ name
 """
 s="""
 name tl ja
-  multby10 
+  multiplier
     lambda
       :name p1
-      * p1 10
+      lambda
+        :name p2
+        * p1 p2
+  double multiplier 2
+  triple multiplier 3
 
-pret call 'multby10 3
+pret call double 100
+pret call triple 100
 """
 
 # print(tokenize_str(s))

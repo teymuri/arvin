@@ -32,8 +32,22 @@
       comma function identifier <code>'</code>:</p>
     <p><code>pret 'multby10</code></p>
     <p>prints something like <code>&lt;__main__.Function object at
-        0x7f0cdfe03d30&gt; </code>to terminal.</p>
-    <p><br>
-    </p>
+        0x7f0cdfe03d30&gt; </code>to terminal. This object is of course again
+      callable:</p>
+    <p><code>pret call 'multby10 3 (=&gt; 30)</code></p>
+    <p>In this manner, functions can return functions:</p>
+    <p><code>name tl ja<br>
+        &nbsp; multiplier<br>
+        &nbsp;&nbsp;&nbsp; lambda<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; :name p1<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; lambda<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; :name p2<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; * p1 p2<br>
+        &nbsp; double multiplier 2<br>
+        &nbsp; triple multiplier 3<br>
+        <br>
+        pret call double 100 (=&gt; 200)<br>
+        pret call triple 100 (=&gt; 300)<br>
+      </code></p>
   </body>
 </html>
