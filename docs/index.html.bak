@@ -4,6 +4,7 @@
   </head>
   <body>
     <h1 style="text-align: center;">LET (prototype notes)</h1>
+    <h1 style="text-align: left;">Lambda</h1>
     <p>Lambda is not per se callable! A lambda form like</p>
     <p><code>lambda<br>
         &nbsp; :name p1<br>

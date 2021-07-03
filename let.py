@@ -134,10 +134,10 @@ class Function:
         self.actions = actions
     
     def init_params_ip(self, params): # init params at definition time
-        for b in params:
+        for b in params:              # multiple :names possible
             _, name = b.body
             _, *params = name.body
-            for p in params:
+            for p in params:            # inside each :name
                 nmtok, *defarg = p.body # name token and default argument
                 self.params.append(nmtok)
                 if defarg:      # If default arguments given at definition time
@@ -147,6 +147,7 @@ class Function:
                     self.count_obligargs += 1
     
     def __call__(self, arglst):
+        print(self.params)
         assert len(arglst) >= self.count_obligargs, \
             f"""passed {len(arglst)} args to a lambda with min arity {self.count_obligargs}:
 {[p.string for p in self.params]}"""
@@ -158,10 +159,7 @@ class Function:
                     eval_(v, self.env)
                 callenv.vars[name.string] = eval_(vals[-1], self.env)
             else:               # schau nach der Reihenfolge der Parameter, jetzt sind wir
-                # index i von parameter liste
-                # for v in vals[:-1]:
-                #     pass        # Braucht ein block function zum multi-action
-                callenv.vars[self.params[i].string] = eval_(a, self.env)
+                callenv.vars[self.params[i].string] = eval_(a, self.env)                    
         Ret = None
         for action in self.actions:
             Ret = eval_(action, callenv)
@@ -247,11 +245,12 @@ def tokenize_str(s):
 
 class Block:
     counter = 0
-    def __init__(self, head, env, id_=None):
+    def __init__(self, head, env, enblock=None, id_=None):
         self.head = head
         self.body = [self.head]
         self.env = env
         self.id = id_ if id_ else self.id()
+        self.enblock = enblock     # The enclosing block of this block
 
     def id(self):
         i = Block.counter
@@ -307,7 +306,7 @@ def parse(toks):
 
             # if enclosing block is NAME, and the next token is a lambda
             # this token is going to be the name of a funtion.
-            if enblock.head.string=="name" and toks[i+1].string =="lambda":
+            if enblock.head.string=="name" and enblock.enblock.head.string != FUNC_PARAM_IDENT and toks[i+1].string =="lambda":
                 # A placeholder for the function object to come while
                 # evaling This placeholder is there only so that the
                 # parser handles the current token as a block builder
@@ -320,15 +319,15 @@ def parse(toks):
             
             if enblock.env.isblockbuilder(t) or t.string == FUNC_PARAM_IDENT:
                 if is_lexenv_builder(t):
-                    B = Block(t, Env(parenv=enblock.env)) # give it a new env
+                    B = Block(t, Env(parenv=enblock.env), enblock=enblock) # give it a new env
                 else:
-                    B = Block(t, enblock.env)
+                    B = Block(t, enblock.env, enblock=enblock)
                 blocktracker.append(B)
             elif enblock.head.string == "name": # Is token an arg to name?
                 # This is only a pseudo-block, the idea is to pack
                 # pairs of args to name into blocks instead of pairing them
                 # into lists.
-                B = Block(t, env=enblock.env)
+                B = Block(t, env=enblock.env, enblock=enblock)
                 blocktracker.append(B)
             ################################  and enblock.head.string == "lambda"
             if enblock.env.isblockbuilder(t) or t.string == FUNC_PARAM_IDENT:
@@ -597,21 +596,19 @@ s="""
 name tl ja
   multiplier
     lambda
-      :name p1
+      :name p1 10
       lambda
         :name p2
         lambda 
           :name p3
           * p1 p2 p3
-  times20
-    call multiplier 10
-      2
 
-pret call times20 1 (=> 20)
-pret call times20 2 (=> 40)
-pret call times20 3 (=> 60)
+name tl ja
+  f lambda
+      :name p1
+pret f 9
 """
 
 # print(tokenize_str(s))
-# print(parse(tokenize_str(s)).body[1].body[2].body[1].body)
+# print(parse(tokenize_str(s)).body[2].body[2].body[1].body[1].body[1].body[1].body)
 interpstr(s)
