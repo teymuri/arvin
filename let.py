@@ -472,7 +472,7 @@ def eval_(x, e, access_from_parenv=None):
             fn, *args = cdr
             return e.funcs["map"](eval_(fn, e), *[eval_(a, e) for a in args])
         
-        elif car.string == "lambda": # create a function object
+        elif car.string == "lambda": # create a function objecT
             params_blocks, actions_blocks = extract_params_actions(cdr)
             fn = Function(params_blocks, actions_blocks, e)
             return fn
