@@ -1,11 +1,12 @@
 
 
 """
-This is a prototype for the let programming language.
+This is a prototype of the let programming language.
 """
 
-
-print("(((((( let it be ... ))))))")
+print("=======================")
+print("((((((((( LET )))))))))")
+print("=======================")
 
 
 
@@ -147,7 +148,6 @@ class Function:
                     self.count_obligargs += 1
     
     def __call__(self, arglst):
-        print(self.params)
         assert len(arglst) >= self.count_obligargs, \
             f"""passed {len(arglst)} args to a lambda with min arity {self.count_obligargs}:
 {[p.string for p in self.params]}"""
@@ -533,18 +533,18 @@ def interpstr(s):
     return eval_(parse(rmcomm(tokenize_str(s))), tlenv)
 
 
-# import argparse
-# argparser = argparse.ArgumentParser(description='Process Source.')
-# argparser.add_argument("-s", nargs="+", required=True)
-# args = argparser.parse_args()
-# # Eval lang-core first
-# for src in ["toplevel.let"]:
-    # with open(src, "r") as s:
-        # interpstr(s.read())
-# # Jetzt das _Zeug vom user
-# for src in args.s:
-    # with open(src, "r") as s:
-        # interpstr(s.read())
+import argparse
+argparser = argparse.ArgumentParser(description='Process Source.')
+argparser.add_argument("-s", nargs="+", required=True)
+args = argparser.parse_args()
+# Eval lang-core first
+for src in ["toplevel.let"]:
+    with open(src, "r") as s:
+        interpstr(s.read())
+# Jetzt das _Zeug vom user
+for src in args.s:
+    with open(src, "r") as s:
+        interpstr(s.read())
 
 
 
@@ -573,42 +573,17 @@ pret var
 # """
 
 s="""
-name
-  tmp1 10
-  tmp2 name
-         tmp3 * tmp1 20
-         tmp4 name
-	        tmp5 name tl ja
-	               global 1
-"""
-s="""
-lambda
-  @ name
-     x 100
-     y x
-    name c
-      +L 1 2 3 4
-  * x 8
-name 
- &rest 1 2 3
-"""
-s="""
 name tl ja
-  multiplier
-    lambda
-      :name p1 10
-      lambda
-        :name p2
-        lambda 
-          :name p3
-          * p1 p2 p3
-
+  f  lambda
+        :name p1
+        * p1 1000
 name tl ja
-  f lambda
-      :name p1
-pret f 9
+  f2  lambda
+        :name p1
+        f p1
+pret f2 2
 """
 
 # print(tokenize_str(s))
 # print(parse(tokenize_str(s)).body[2].body[2].body[1].body[1].body[1].body[1].body)
-interpstr(s)
+# interpstr(s)

@@ -1,4 +1,27 @@
 
+name
+  toplevel true
+  foo lambda
+        :name x
+	:name y
+	* x y 1000
+map foo
+  list 1 2 3 4
+  list 1 2 3 4
+(=> 1000 4000 9000 16000)
+
+map
+  lambda
+    :name Var1
+    :name Var2
+    * Var1 Var2
+  list 1 2 3 4
+  list 1 2 3 4
+
+(=> list 1 4 9 16)
+  
+
+
 (in neuem sym)
 (in sym branch)
 
@@ -429,3 +452,9 @@ define v2
     note "g4" "q"
     note "f#4" "h."
 staff content clef g acc b4 timesig c v1 v2
+-----------------------
+
+
+(Rosetta)
+
+   
