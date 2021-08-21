@@ -21,7 +21,7 @@ char pret(char c)		/* Print and return c */
 void _strcpy_(char *t)
 {
   printf("====%p====.\n", t);
-  while (pret(*t++))
+  while (pret(*++t))
     ;
   printf("====%p====...\n", t);
 }

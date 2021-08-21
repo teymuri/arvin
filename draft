@@ -1,4 +1,15 @@
 
+(Quoting)(: quote function: do not lookup values of names, just use their
+string-representation)
+quote list 1
+  2 3 4
+quote list
+  1 2
+  3 4
+quote list 1 2 3 4 => (list 1 2 3 4)
+unqoute 4 (=> 4)
+unquote X (In some context where X is bound => 3.14)
+
 name
   toplevel true
   foo lambda
