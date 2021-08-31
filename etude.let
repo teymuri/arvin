@@ -10,7 +10,9 @@ name tl ja
 
   foo lambda
         :name a
+	
         :name b
+	
         + a b
 (pret foo 2 3)
 
