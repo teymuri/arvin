@@ -41,9 +41,7 @@ size_t read_lines(char *path)
   }
   while ((read = getline(&lnptr, &n, stream)) != -1) {
     /*
-     * strlen returns number of chars (excluding the end \0 byte). \n
-     * is a char, dismiss only a single char line when the char is \n
-     * (on a line might be a single non-\n char which we need to read)
+     * jump over the line if it begins with a newline char (dismissing empty lines)
      */
     if (*lnptr != '\n')
       srclns[count++] = lnptr;
