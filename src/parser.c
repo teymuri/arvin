@@ -1,8 +1,11 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
-#include <string.h>
+#include <ctype.h>
 #include <stdio.h>
-#include "lexparse.h"
+#include <string.h>
+#include "parser.h"
+
+
 
 /*
  free srclns 
@@ -11,6 +14,19 @@ void free_srclns(size_t n)
 {
   for (size_t i = 0; i < n; i++)
     free(srclns[i]);
+}
+
+/* checks if the string s is only space or tab */
+int isempty(char *s)
+{
+  while (*s) {
+    /* if char is something other than a blank or a newline, the string
+ is regarded as non-empty. */
+    if (!isblank(*s) && *s != '\n')
+      return 0;
+    s++;
+  }
+  return 1;
 }
 
 size_t read_lines(char *path)
@@ -29,7 +45,7 @@ size_t read_lines(char *path)
     /*
      * jump over the line if it begins with a newline char (dismissing empty lines)
      */
-    if (*lnptr != '\n')
+    if (!isempty(lnptr))
       srclns[count++] = lnptr;
     lnptr = NULL;
   }
