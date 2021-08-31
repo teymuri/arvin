@@ -1,8 +1,11 @@
 #define _GNU_SOURCE
+
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+/* #define NDEBUG */
+#include <assert.h>
 #include "parser.h"
 
 
@@ -45,8 +48,10 @@ size_t read_lines(char *path)
     /*
      * jump over the line if it begins with a newline char (dismissing empty lines)
      */
-    if (!isempty(lnptr))
+    if (!isempty(lnptr)) {
+      assert(("line count too large", count < MAXSRC));
       srclns[count++] = lnptr;
+    }
     lnptr = NULL;
   }
   free(lnptr);

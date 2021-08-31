@@ -5,33 +5,14 @@
 (name x mult 2)
 
 name tl ja
-
-
-
   foo lambda
         :name a
 	
         :name b
 	
         + a b
-
-
-
-
-
-
-
-
-
+	
 (pret foo 2 3)
-
-
 pret
   + 2 2 * 2 5
           10
-
-
-
-
-						
-
