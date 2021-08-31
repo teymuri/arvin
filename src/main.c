@@ -1,44 +1,48 @@
+#define _GNU_SOURCE
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
+#include "let.h"
 
-
-#define VOIDSYM ""		/* no symbol is allowed to be called this */
-
-typedef struct {
-  char *symname;
-  void *symvalue;
-} symbol;
-
-char *symnames[] = {
-  "pret", "name", VOIDSYM
-};
-
-size_t interened_symbols = 2;
-
-void intsym(symbol *s)
-{
-  int is_interened = 0, i = 0;
-  char *symname = s->symname;
-  while (strcmp(symnames[i], VOIDSYM))		/* is not the end */
-    if (!strcmp(symname, symnames[i])) {
-      is_interened = 1;
-      break;
-    } else i++;
-  if (is_interened)
-    printf("%s is interened\n", symname);
-  else {
-    printf("fresh symbol %s\n", symname);
-    symnames[interened_symbols] = symname;
-    interened_symbols++;
-    symnames[interened_symbols] = VOIDSYM;
-  }
-}
 
 int main()
 {
-  symbol foo = {"FOO", "foo"};
-  intsym(&foo);
-  symbol bar = {"BAR", "bar"};
-  intsym(&bar);
-  return 0;
+
+  size_t n = read_lines("/home/okavango/Work/let/etude.let");
+  for (size_t i = 0; i<n; i++)
+    printf("%zu %s", i, srclns[i]);
+  free_srclns(n);
+  exit(EXIT_SUCCESS);
+}
+
+/*
+ free srclns 
+*/
+void free_srclns(size_t n)
+{
+  for (size_t i = 0; i < n; i++)
+    free(srclns[i]);
+}
+
+size_t read_lines(char *path)
+{
+  FILE *stream;
+  ssize_t read;
+  char *lnptr;
+  size_t n;
+  size_t count;
+  stream = fopen(path, "r");
+  lnptr = NULL;
+  n = 0;
+  count = 0;
+  if (!stream) {
+    fprintf(stderr, "can't open source '%s'\n", path);
+    exit(EXIT_FAILURE);
+  }
+  while ((read = getline(&lnptr, &n, stream)) != -1) {
+    srclns[count++] = lnptr;
+    lnptr = NULL;
+  }
+  free(lnptr);
+  fclose(stream);
+  return count;
 }
