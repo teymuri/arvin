@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "let.h"
 
 
@@ -39,7 +40,13 @@ size_t read_lines(char *path)
     exit(EXIT_FAILURE);
   }
   while ((read = getline(&lnptr, &n, stream)) != -1) {
-    srclns[count++] = lnptr;
+    /*
+     * strlen returns number of chars (excluding the end \0 byte). \n
+     * is a char, dismiss only a single char line when the char is \n
+     * (on a line might be a single non-\n char which we need to read)
+     */
+    if (*lnptr != '\n')
+      srclns[count++] = lnptr;
     lnptr = NULL;
   }
   free(lnptr);
