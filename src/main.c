@@ -28,13 +28,10 @@ size_t read_lines(char *path)
 {
   FILE *stream;
   ssize_t read;
-  char *lnptr;
-  size_t n;
-  size_t count;
+  char *lnptr = NULL;
+  size_t n = 0;
+  size_t count = 0;
   stream = fopen(path, "r");
-  lnptr = NULL;
-  n = 0;
-  count = 0;
   if (!stream) {
     fprintf(stderr, "can't open source '%s'\n", path);
     exit(EXIT_FAILURE);
