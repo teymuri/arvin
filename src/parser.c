@@ -1,5 +1,4 @@
 #define _GNU_SOURCE
-
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -15,11 +14,13 @@
 */
 void free_srclns(size_t n)
 {
-  for (size_t i = 0; i < n; i++)
+  for (size_t i = 0; i < n; i++) {
     free(srclns[i]);
+    srclns[i] = NULL;
+  }
 }
 
-/* checks if the string s is only space or tab */
+/* checks if the string s consists only of blanks and/or newline */
 int isempty(char *s)
 {
   while (*s) {
@@ -45,9 +46,7 @@ size_t read_lines(char *path)
     exit(EXIT_FAILURE);
   }
   while ((read = getline(&lnptr, &n, stream)) != -1) {
-    /*
-     * jump over the line if it begins with a newline char (dismissing empty lines)
-     */
+    /* throw away empty lines */
     if (!isempty(lnptr)) {
       assert(("line count too large", count < MAXSRC));
       srclns[count++] = lnptr;
