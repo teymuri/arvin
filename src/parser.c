@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
+#include <regex.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
@@ -21,7 +22,7 @@ void free_srclns(size_t n)
 }
 
 /* checks if the string s consists only of blanks and/or newline */
-int isempty(char *s)
+int isempty(char *s, )
 {
   while (*s) {
     /* if char is something other than a blank or a newline, the string
@@ -56,4 +57,40 @@ size_t read_lines(char *path)
   free(lnptr);
   fclose(stream);
   return count;
+}
+
+
+
+struct token {
+  /*
+   * count: index of the token
+   */
+  int start, end, line, count;
+  char *str;
+};
+
+
+#define MAXTOKLEN 50		/* bytes max token length */
+#define MAXLNTOKS 10		/* max number of tokens in 1 line */
+char lntoks[MAXLNTOKS][MAXTOKLEN];		/* tokens in 1 line */
+
+int tokenize_line(char *line, const char *patt)
+{
+  regex_t re;
+  int comperr;			/* compilation error */
+  if ((comperr = regcomp(&re, patt, REG_EXTENDED))) {
+    fprintf(stderr, "regcomp failed");
+    exit(comperr);
+  }
+  regmatch_t matche[1];	/* interesed only in the whole match */
+  int offset = 0;
+  int i = 0, len;
+  while (!regexec(&re, line + offset, 1, matche, REG_NOTBOL)) {
+    len = matche[0].rm_eo - matche[0].rm_so;
+    memcpy(lntoks[i], line + offset +matche[0].rm_so, len);
+    lntoks[i++][len] = '\0';
+    offset += matche[0].rm_eo;
+  }
+  regfree(&re);
+  return i;
 }
