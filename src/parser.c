@@ -34,6 +34,8 @@ int isempty(char *s, )
   return 1;
 }
 
+#define MAXSRC 100		/* max lines in a src */
+
 size_t read_lines(char *path)
 {
   FILE *stream;
