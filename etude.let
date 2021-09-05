@@ -1,30 +1,3 @@
-
-
-
-
-(name x mult 2)
-
-name tl ja
-  foo lambda
-        :name a
-	
-        :name b
-	
-        + a b
-	
-(pret foo 2 3)
-pret
-  + 2 2 * 2 5
-          10
-
-	  foo
-
-
-
-			bar
-
-
-.
-		;
-
-,,
+let it  be
+Let it Be 1999
+  yes ter DAY+9
