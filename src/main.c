@@ -2,14 +2,15 @@
 #include <stdio.h>
 #include "parser.h"
 
-
+#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 int main()
 {
 
-  int n =tokenize_line("amir sd  neli pooran foo", "\\w+");
+
+  int n =tokenize_line("he():l'lko; l+78o =io", TOKPATT);
   printf("%d ---\n", n);
   for (int i = 0; i < n; i++) {
-    printf("** %s **\n", lntoks[i]);
+    printf("** %s **\n", line_toks[i]);
   }
 
   /* size_t n = read_lines("/home/okavango/Work/let/etude.let"); */
