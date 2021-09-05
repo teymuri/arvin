@@ -88,19 +88,17 @@ int tokenize_line(char *line, const char *patt, int line_num)
   regmatch_t match[1];	/* interesed only in the whole match */
   int offset = 0, count = 0, tokstrlen;
   while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* match found */
-    struct token tok;
-    tok.line = line_num;
     tokstrlen = match[0].rm_eo - match[0].rm_so;
-    memcpy(tok.str, line + offset + match[0].rm_so, tokstrlen);
-    tok.str[tokstrlen] = '\0';
-    tok.idx = tokidx++;
-    
-    tok.so = offset + match[0].rm_so;
-    tok.eo = tok.so + tokstrlen;
-    
+    struct token t;
+    memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
+    t.str[tokstrlen] = '\0';
+    t.idx = tokidx++;
+    t.so = offset + match[0].rm_so;
+    t.eo = t.so + tokstrlen;
     /* memcpy(line_toks[count], line + offset +match[0].rm_so, tokstrlen); */
     /* line_toks[count++][tokstrlen] = '\0'; */
-    line_toks[count++] = tok;
+    t.line = line_num;
+    line_toks[count++] = t;
     offset += match[0].rm_eo;
   }
   regfree(&re);
