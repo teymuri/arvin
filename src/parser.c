@@ -71,14 +71,6 @@ struct token {
 #define MAX_LINE_TOKS 10		/* max number of tokens in 1 line */
 char line_toks[MAX_LINE_TOKS][TOK_MAX_LEN];		/* tokens in 1 line */
 
-/* char *get_regerror(int errcode, regex_t *compiled) */
-/* { */
-/*   size_t len = regerror(errcode, compiled, NULL, 0); */
-/*   char *buff = malloc(len); */
-/*   (void)regerror(errcode, compiled, buff, len); */
-/*   return buff; */
-/* } */
-
 int tokenize_line(char *line, const char *patt)
 {
   regex_t re;

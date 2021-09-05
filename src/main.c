@@ -7,7 +7,7 @@ int main()
 {
 
 
-  int n =tokenize_line("he():l'lko; l+78o =io", TOKPATT);
+  int n =tokenize_line("(this is a comment)", TOKPATT);
   printf("%d ---\n", n);
   for (int i = 0; i < n; i++) {
     printf("** %s **\n", line_toks[i]);
