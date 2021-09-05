@@ -61,17 +61,19 @@ size_t read_lines(char *path)
 
 
 
-struct token {
-  int start, end, line, idx;
-  char *str;
-};
 
 
-#define TOK_MAX_LEN 50		/* bytes max token length */
+#define TOK_MAX_LEN 50		/* max token length */
 #define MAX_LINE_TOKS 10		/* max number of tokens in 1 line */
-char line_toks[MAX_LINE_TOKS][TOK_MAX_LEN];		/* tokens in 1 line */
+/* char line_toks[MAX_LINE_TOKS][TOK_MAX_LEN];		/\* tokens in 1 line *\/ */
 
-int tokenize_line(char *line, const char *patt)
+
+
+struct token line_toks[MAX_LINE_TOKS];		/* tokens in 1 line */
+
+int tokidx = 0;
+
+int tokenize_line(char *line, const char *patt, int line_num)
 {
   regex_t re;
   int errcode;			
@@ -84,11 +86,19 @@ int tokenize_line(char *line, const char *patt)
     exit(errcode);
   }
   regmatch_t match[1];	/* interesed only in the whole match */
-  int offset = 0, count = 0, len;
-  while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) {
-    len = match[0].rm_eo - match[0].rm_so;
-    memcpy(line_toks[count], line + offset +match[0].rm_so, len);
-    line_toks[count++][len] = '\0';
+  int offset = 0, count = 0, tokstrlen;
+  while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* match found */
+    struct token tok;
+    tok.line = line_num;
+    tokstrlen = match[0].rm_eo - match[0].rm_so;
+    memcpy(tok.str, line + offset + match[0].rm_so, tokstrlen);
+    tok.str[tokstrlen] = '\0';
+    tok.idx = tokidx++;
+    tok.so = offset;
+    tok.eo = offset + tokstrlen;
+    /* memcpy(line_toks[count], line + offset +match[0].rm_so, tokstrlen); */
+    /* line_toks[count++][tokstrlen] = '\0'; */
+    line_toks[count++] = tok;
     offset += match[0].rm_eo;
   }
   regfree(&re);
