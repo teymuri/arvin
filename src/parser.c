@@ -8,8 +8,8 @@
 #include <assert.h>
 #include "parser.h"
 
-#define MAX_SRC_LINES 100		/* max lines in the src file */
-char *src_lines[MAX_SRC_LINES];	/* source lines add max line length*/
+
+
 
 void free_srclns(size_t n)
 {
@@ -32,15 +32,39 @@ int isempty(char *s)
   return 1;
 }
 
+int number_of_lines = 0;
 
-
-size_t read_lines(char *path)
+/* size_t read_lines(char *path) */
+/* { */
+/*   FILE *stream; */
+/*   ssize_t read; */
+/*   char *lnptr = NULL; */
+/*   size_t n = 0; */
+/*   size_t count = 0; */
+/*   stream = fopen(path, "r"); */
+/*   if (!stream) { */
+/*     fprintf(stderr, "can't open source '%s'\n", path); */
+/*     exit(EXIT_FAILURE); */
+/*   } */
+/*   while ((read = getline(&lnptr, &n, stream)) != -1) { */
+/*     /\* throw away empty lines *\/ */
+/*     if (!isempty(lnptr)) { */
+/*       assert(("line count too large", count < MAX_SRC_LINES)); */
+/*       src_lines[count++] = lnptr; */
+/*     } */
+/*     lnptr = NULL; */
+/*   } */
+/*   free(lnptr); */
+/*   fclose(stream); */
+/*   return count; */
+/* } */
+void read_lines(char *path)
 {
   FILE *stream;
   ssize_t read;
   char *lnptr = NULL;
   size_t n = 0;
-  size_t count = 0;
+  /* size_t count = 0; */
   stream = fopen(path, "r");
   if (!stream) {
     fprintf(stderr, "can't open source '%s'\n", path);
@@ -49,14 +73,13 @@ size_t read_lines(char *path)
   while ((read = getline(&lnptr, &n, stream)) != -1) {
     /* throw away empty lines */
     if (!isempty(lnptr)) {
-      assert(("line count too large", count < MAX_SRC_LINES));
-      src_lines[count++] = lnptr;
+      assert(("line count too large", number_of_lines < MAX_SRC_LINES));
+      src_lines[number_of_lines++] = lnptr;
     }
     lnptr = NULL;
   }
   free(lnptr);
   fclose(stream);
-  return count;
 }
 
 
@@ -73,43 +96,43 @@ struct token line_toks[MAX_LINE_TOKS];		/* tokens in 1 line */
 
 int tokidx = 0;
 
-int tokenize_line(char *line, const char *patt, int line_num)
-{
-  regex_t re;
-  int errcode;			
-  if ((errcode = regcomp(&re, patt, REG_EXTENDED))) { /* compilation failed */
-    size_t buff_size = regerror(errcode, &re, NULL, 0); /* inspect the required buffer size */
-    char buff[buff_size+1];	/* need +1 for the null terminator??? */
-    (void)regerror(errcode, &re, buff, buff_size);
-    fprintf(stderr, "parse error\n");
-    fprintf(stderr, "regcomp failed with: %s\n", buff);
-    exit(errcode);
-  }
-  regmatch_t match[1];	/* interesed only in the whole match */
-  int offset = 0, count = 0, tokstrlen;
-  while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* match found */
-    tokstrlen = match[0].rm_eo - match[0].rm_so;
-    struct token t;
-    memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
-    t.str[tokstrlen] = '\0';
-    t.idx = tokidx++;
-    t.so = offset + match[0].rm_so;
-    t.eo = t.so + tokstrlen;
-    /* memcpy(line_toks[count], line + offset +match[0].rm_so, tokstrlen); */
-    /* line_toks[count++][tokstrlen] = '\0'; */
-    t.line = line_num;
-    line_toks[count++] = t;
-    offset += match[0].rm_eo;
-  }
-  regfree(&re);
-  return count;
-}
+/* int tokenize_line(char *line, const char *TOKPATT, int line_num) */
+/* { */
+/*   regex_t re; */
+/*   int errcode;			 */
+/*   if ((errcode = regcomp(&re, TOKPATT, REG_EXTENDED))) { /\* compilation failed *\/ */
+/*     size_t buff_size = regerror(errcode, &re, NULL, 0); /\* inspect the required buffer size *\/ */
+/*     char buff[buff_size+1];	/\* need +1 for the null terminator??? *\/ */
+/*     (void)regerror(errcode, &re, buff, buff_size); */
+/*     fprintf(stderr, "parse error\n"); */
+/*     fprintf(stderr, "regcomp failed with: %s\n", buff); */
+/*     exit(errcode); */
+/*   } */
+/*   regmatch_t match[1];	/\* interesed only in the whole match *\/ */
+/*   int offset = 0, count = 0, tokstrlen; */
+/*   while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /\* match found *\/ */
+/*     tokstrlen = match[0].rm_eo - match[0].rm_so; */
+/*     struct token t; */
+/*     memcpy(t.str, line + offset + match[0].rm_so, tokstrlen); */
+/*     t.str[tokstrlen] = '\0'; */
+/*     t.idx = tokidx++; */
+/*     t.so = offset + match[0].rm_so; */
+/*     t.eo = t.so + tokstrlen; */
+/*     /\* memcpy(line_toks[count], line + offset +match[0].rm_so, tokstrlen); *\/ */
+/*     /\* line_toks[count++][tokstrlen] = '\0'; *\/ */
+/*     t.line = line_num; */
+/*     line_toks[count++] = t; */
+/*     offset += match[0].rm_eo; */
+/*   } */
+/*   regfree(&re); */
+/*   return count; */
+/* } */
 
-struct token *tokenize_line2(char *line, const char *patt, int line_num, int *count)
+struct token *tokenize_line2(char *line, int line_num, int *toks_count)
 {
   regex_t re;
   int errcode;			
-  if ((errcode = regcomp(&re, patt, REG_EXTENDED))) { /* compilation failed */
+  if ((errcode = regcomp(&re, TOKPATT, REG_EXTENDED))) { /* compilation failed */
     size_t buff_size = regerror(errcode, &re, NULL, 0); /* inspect the required buffer size */
     char buff[buff_size+1];	/* need +1 for the null terminator??? */
     (void)regerror(errcode, &re, buff, buff_size);
@@ -117,7 +140,9 @@ struct token *tokenize_line2(char *line, const char *patt, int line_num, int *co
     fprintf(stderr, "regcomp failed with: %s\n", buff);
     exit(errcode);
   }
+  /* ********************* */
   struct token *toksp = malloc(sizeof(struct token) * MAX_LINE_TOKS);
+  /* ************************ */
   struct token *toksp2 = toksp;
   regmatch_t match[1];	/* interesed only in the whole match */
   int offset = 0, tokstrlen;
@@ -134,7 +159,7 @@ struct token *tokenize_line2(char *line, const char *patt, int line_num, int *co
     t.line = line_num;
     *toksp2 = t;
     /* line_toks[count++] = t; */
-    (*count)++;
+    (*toks_count)++;
     toksp2++;
     offset += match[0].rm_eo;
   }
@@ -144,5 +169,24 @@ struct token *tokenize_line2(char *line, const char *patt, int line_num, int *co
 
 
 
-struct token src_toks[MAX_SRC_LINES][MAX_LINE_TOKS];
-/* void tokenize_src() */
+void tokenize_src(char *path)
+{
+  (void)read_lines(path);
+  int toks_count = 0;
+  for (int i = 0; i < number_of_lines; i++) {
+    /* src_toks[i] = tokenize_line2(src_lines[i], i); */
+    struct line l;
+    l.toks = tokenize_line2(src_lines[i], i, &toks_count);
+    l.toks_count = toks_count;
+    src_toks[i] = l;
+    toks_count = 0;		/* reset */
+  }
+}
+
+void free_parser(void)
+{
+  for (int i = 0; i < number_of_lines; i++) {
+    free(src_toks[i].toks);
+    /* free(src_toks[i]); */
+  }
+}
