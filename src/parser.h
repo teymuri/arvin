@@ -13,5 +13,6 @@ struct token line_toks[MAX_LINE_TOKS];		/* tokens in 1 line */
 char *srclns[MAXSRC];	/* source lines add max line length*/
 
 int tokenize_line(char *, const char *, int);
+struct token *tokenize_line2(char *line, const char *patt, int line_num, int *count);
 size_t read_lines(char *);
 void free_srclns(size_t);

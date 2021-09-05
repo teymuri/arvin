@@ -8,14 +8,14 @@
 #include <assert.h>
 #include "parser.h"
 
-#define MAXSRC 100		/* max lines in a src */
-char *srclns[MAXSRC];	/* source lines add max line length*/
+#define MAX_SRC_LINES 100		/* max lines in the src file */
+char *src_lines[MAX_SRC_LINES];	/* source lines add max line length*/
 
 void free_srclns(size_t n)
 {
   for (size_t i = 0; i < n; i++) {
-    free(srclns[i]);
-    srclns[i] = NULL;
+    free(src_lines[i]);
+    src_lines[i] = NULL;
   }
 }
 
@@ -49,8 +49,8 @@ size_t read_lines(char *path)
   while ((read = getline(&lnptr, &n, stream)) != -1) {
     /* throw away empty lines */
     if (!isempty(lnptr)) {
-      assert(("line count too large", count < MAXSRC));
-      srclns[count++] = lnptr;
+      assert(("line count too large", count < MAX_SRC_LINES));
+      src_lines[count++] = lnptr;
     }
     lnptr = NULL;
   }
@@ -81,7 +81,7 @@ int tokenize_line(char *line, const char *patt, int line_num)
     size_t buff_size = regerror(errcode, &re, NULL, 0); /* inspect the required buffer size */
     char buff[buff_size+1];	/* need +1 for the null terminator??? */
     (void)regerror(errcode, &re, buff, buff_size);
-    fprintf(stderr, "PARSE ERROR\n");
+    fprintf(stderr, "parse error\n");
     fprintf(stderr, "regcomp failed with: %s\n", buff);
     exit(errcode);
   }
@@ -104,3 +104,45 @@ int tokenize_line(char *line, const char *patt, int line_num)
   regfree(&re);
   return count;
 }
+
+struct token *tokenize_line2(char *line, const char *patt, int line_num, int *count)
+{
+  regex_t re;
+  int errcode;			
+  if ((errcode = regcomp(&re, patt, REG_EXTENDED))) { /* compilation failed */
+    size_t buff_size = regerror(errcode, &re, NULL, 0); /* inspect the required buffer size */
+    char buff[buff_size+1];	/* need +1 for the null terminator??? */
+    (void)regerror(errcode, &re, buff, buff_size);
+    fprintf(stderr, "parse error\n");
+    fprintf(stderr, "regcomp failed with: %s\n", buff);
+    exit(errcode);
+  }
+  struct token *toksp = malloc(sizeof(struct token) * MAX_LINE_TOKS);
+  struct token *toksp2 = toksp;
+  regmatch_t match[1];	/* interesed only in the whole match */
+  int offset = 0, tokstrlen;
+  while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* match found */
+    tokstrlen = match[0].rm_eo - match[0].rm_so;
+    struct token t;
+    memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
+    t.str[tokstrlen] = '\0';
+    t.idx = tokidx++;
+    t.so = offset + match[0].rm_so;
+    t.eo = t.so + tokstrlen;
+    /* memcpy(line_toks[count], line + offset +match[0].rm_so, tokstrlen); */
+    /* line_toks[count++][tokstrlen] = '\0'; */
+    t.line = line_num;
+    *toksp2 = t;
+    /* line_toks[count++] = t; */
+    (*count)++;
+    toksp2++;
+    offset += match[0].rm_eo;
+  }
+  regfree(&re);
+  return toksp;
+}
+
+
+
+struct token src_toks[MAX_SRC_LINES][MAX_LINE_TOKS];
+/* void tokenize_src() */
