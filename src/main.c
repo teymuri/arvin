@@ -10,7 +10,7 @@ int main()
   int n =tokenize_line(s, TOKPATT, 0);
   printf("%d matches in %s\n", n, s);
   for (int i = 0; i < n; i++) {
-    printf("** %s s: %d e:%d **\n", line_toks[i].str, line_toks[i].so, line_toks[i].eo);
+    printf("** %s s:%d e:%d **\n", line_toks[i].str, line_toks[i].so, line_toks[i].eo);
   }
 
   /* size_t n = read_lines("/home/okavango/Work/let/etude.let"); */
