@@ -32,7 +32,7 @@ int isempty(char *s)
   return 1;
 }
 
-int number_of_lines = 0;
+int src_lines_count = 0;
 
 /* size_t read_lines(char *path) */
 /* { */
@@ -61,7 +61,7 @@ int number_of_lines = 0;
 void read_lines(char *path)
 {
   FILE *stream;
-  ssize_t read;
+  /* ssize_t read; */
   char *lnptr = NULL;
   size_t n = 0;
   /* size_t count = 0; */
@@ -70,11 +70,11 @@ void read_lines(char *path)
     fprintf(stderr, "can't open source '%s'\n", path);
     exit(EXIT_FAILURE);
   }
-  while ((read = getline(&lnptr, &n, stream)) != -1) {
+  while (getline(&lnptr, &n, stream) != -1) {
     /* throw away empty lines */
     if (!isempty(lnptr)) {
-      assert(("line count too large", number_of_lines < MAX_SRC_LINES));
-      src_lines[number_of_lines++] = lnptr;
+      assert(("line count too large", src_lines_count < MAX_SRC_LINES));
+      src_lines[src_lines_count++] = lnptr;
     }
     lnptr = NULL;
   }
@@ -173,7 +173,7 @@ void tokenize_src(char *path)
 {
   (void)read_lines(path);
   int toks_count = 0;
-  for (int i = 0; i < number_of_lines; i++) {
+  for (int i = 0; i < src_lines_count; i++) {
     /* src_toks[i] = tokenize_line2(src_lines[i], i); */
     struct line l;
     l.toks = tokenize_line2(src_lines[i], i, &toks_count);
@@ -185,7 +185,7 @@ void tokenize_src(char *path)
 
 void free_parser(void)
 {
-  for (int i = 0; i < number_of_lines; i++) {
+  for (int i = 0; i < src_lines_count; i++) {
     free(src_toks[i].toks);
     /* free(src_toks[i]); */
   }

@@ -1,5 +1,7 @@
 
-#define MAX_SRC_LINES 100		/* max lines in the src file */
+
+/* maximum number of lines allowed in one source file */
+#define MAX_SRC_LINES 100
 char *src_lines[MAX_SRC_LINES];	/* source lines add max line length*/
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
@@ -20,13 +22,13 @@ struct line src_toks[MAX_SRC_LINES];
 
 struct token line_toks[MAX_LINE_TOKS];		/* tokens in 1 line */
 
-#define MAXSRC 100		/* max lines in a src */
-char *srclns[MAXSRC];	/* source lines add max line length*/
+/* #define MAXSRC 100		/\* max lines in a src *\/ */
+/* char *srclns[MAXSRC];	/\* source lines add max line length*\/ */
 
 int tokenize_line(char *, const char *, int);
 struct token *tokenize_line2(char *, int, int *);
 void tokenize_src(char *);
 void read_lines(char *);
 void free_srclns(size_t);
-int number_of_lines;
+int src_lines_count;
 void free_parser(void);

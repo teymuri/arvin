@@ -11,7 +11,7 @@ int main()
 
   /* struct token *t = tokenize_line2("/home/okavango/Work/let/etude.let"); */
   (void)tokenize_src("/home/okavango/Work/let/etude.let");
-  printf("%d lines\n", number_of_lines);
+  printf("%d lines\n", src_lines_count);
   /* for (int i = 0; i < n; i++, t++) { */
   /*   /\* printf("** %s s:%d e:%d **\n", line_toks[i].str, line_toks[i].so, line_toks[i].eo); *\/ */
   /*   printf("%d- %s s:%d, e:%d -\n", i, t->str, t->so, t->eo); */
@@ -19,7 +19,7 @@ int main()
   /* printf("=========\n"); */
   /* free(t-n); */
   /* printf("=========\n"); */
-  for (int i = 0; i < number_of_lines; i++){
+  for (int i = 0; i < src_lines_count; i++){
     printf("%d toks: ", src_toks[i].toks_count);
     for (int j = 0; j < src_toks[i].toks_count; j++){
       printf("'%s' os:%d oe:%d| ", src_toks[i].toks->str,
