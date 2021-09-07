@@ -106,7 +106,7 @@ void read_lines(char *path)
   fclose(stream);
 }
 
-void free_source_lines(void)
+void free_lines(void)
 {
   for (size_t ln = 0; ln < G_source_lines_count; ++ln)
     free(G_source_lines[ln]);
@@ -218,7 +218,7 @@ int main()
   /* free(x); */
 
   (void)read_lines("/home/okavango/Work/let/etude.let");
-  free_source_lines();
+  free_lines();
 
   /* struct token **t = tokenize_source("/home/okavango/Work/let/etude.let");   */
   /* free_source_tokens(t); */
