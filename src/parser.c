@@ -90,11 +90,14 @@ void read_lines(char *path)
   char *lineptr = NULL;
   size_t n = 0;
   while ((getline(&lineptr, &n, stream) != -1)) {
-    /* throw away empty lines */
+    /* throw away empty lines. i just resue lineptr on next getline if an
+       empty line was put into it by getline. */
     if (!isempty(lineptr)) {
       /* assert(("line count too large", G_source_lines_count < MAXSRCLNS)); */
       G_source_lines[G_source_lines_count++] = lineptr;
-      lineptr = NULL;
+      lineptr = NULL;		/* force getline to calc size of
+				   needed memory for the next line
+				   himself! */
     }
   }
   /* free the lineptr variable defined and allocated on this stack */
