@@ -18,19 +18,16 @@ int G_srctoks_count = 0;
 
 /* maximum number of lines allowed in one source file */
 #define MAXSRCLNS 100
-char *G_source_lines[MAXSRCLNS];	/* source lines */
+/* G_source_lines will contain copies of pointers to memory blocks
+   allocated by getline, so must be freed later! */
+char *G_source_lines[MAXSRCLNS];
 /* number of source lines saved into source_ */
 size_t G_source_lines_count = 0;
 
-void null_srclns(void)
-{
-  for (int i = 0; i < MAXSRCLNS; ++i)
-    G_source_lines[i] = NULL;
-}
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 #define MAX_TOKLEN 50		/* bytes max token length */
-#define MAX_LINE_TOKS 10		/* max number of tokens in 1 line */
+#define MAX_LINE_TOKS 10		/* max number of tok in 1 line */
 
 struct token {
   int so;			/* start index in line */
@@ -51,12 +48,12 @@ struct token2 {
 
 /* struct line { */
 /*   int token_count; */
-/*   struct token *tokens; */
+/*   struct token *tok; */
 /* }; */
 
 /* struct line G_src_toks[MAXSRCLNS]; */
 
-struct token line_toks[MAX_LINE_TOKS];		/* tokens in 1 line */
+struct token line_toks[MAX_LINE_TOKS];		/* tok in 1 line */
 
 
 
@@ -74,10 +71,10 @@ int isempty(char *s)
 }
 
 
-/*
- * reads the source file 'path' and puts non-empty lines into the
- * array G_source_lines. increments the number of lines
- * G_source_lines_count for each line saved.
+
+/*  reads the source file 'path' and puts non-empty lines into the
+ array G_source_lines. increments the number of lines
+ G_source_lines_count for each line saved.
  */
 void read_lines(char *path)
 {
@@ -106,6 +103,8 @@ void read_lines(char *path)
   fclose(stream);
 }
 
+/* frees copies of line pointers to memory blocks allocated by getline
+   in read_lines. */
 void free_lines(void)
 {
   for (size_t ln = 0; ln < G_source_lines_count; ++ln)
@@ -115,12 +114,12 @@ void free_lines(void)
 
 
 #define MAX_TOKLEN 50		/* max token length */
-#define MAX_LINE_TOKS 10		/* max number of tokens in 1 line */
-/* char line_toks[MAX_LINE_TOKS][MAX_TOKLEN];		/\* tokens in 1 line *\/ */
+#define MAX_LINE_TOKS 10		/* max number of tok in 1 line */
+/* char line_toks[MAX_LINE_TOKS][MAX_TOKLEN];		/\* tok in 1 line *\/ */
 
 
 
-struct token line_toks[MAX_LINE_TOKS];		/* tokens in 1 line */
+struct token line_toks[MAX_LINE_TOKS];		/* tok in 1 line */
 int G_tokid = 0;
 
 struct token *tokenize_line(char *line, int linum)
@@ -137,14 +136,14 @@ struct token *tokenize_line(char *line, int linum)
   }
   regmatch_t match[1];	/* interesed only in the whole match */
   int offset = 0, tokstrlen;
-  struct token *tokens = NULL;
-  size_t tokens_size = 0;
+  struct token *tok = NULL, *tok_shadow = NULL;
+  size_t toksize = 0;
   int tokscnt = 0;
   while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
     /* make room for the new token */
-    tokens_size += sizeof(struct token);
-    tokens = (struct token *)realloc(tokens, tokens_size); /* tokens must be freed up */
-    if (tokens != NULL) {
+    toksize += sizeof(struct token);
+    /* tok = (struct token *)realloc(tok, toksize); /\* tok must be freed *\/ */
+    if ((tok = realloc(tok, toksize)) != NULL) {				   /* new memory allocated successfully */
       tokstrlen = match[0].rm_eo - match[0].rm_so;
       struct token t;
       memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
@@ -153,23 +152,19 @@ struct token *tokenize_line(char *line, int linum)
       t.so = offset + match[0].rm_so;
       t.eo = t.so + tokstrlen;
       t.linum = linum;
-      /* *(tokens + G_srctoks_count) = t; */
-      /* G_srctoks_count++; */
-      *(tokens + tokscnt) = t;
+      *(tok + tokscnt) = t;
       tokscnt++;
       offset += match[0].rm_eo;
+      tok_shadow = tok;		/* keep the shadow updated */
     } else {
-      fprintf(stderr, "realloc failed while tokenizing line %d", linum);
-      /* also free the old tokens memory block (and set return value to NULL) */
-      free(tokens);
-      tokens = NULL;
+      fprintf(stderr, "realloc failed while tokenizing line %d at token %s", linum, "TOKEN????");
+      /* the old object was not deallocated as realloc failed, free it here */
+      free(tok_shadow);
       break;
     }
   }
   regfree(&re);
-  /* printf(">> %s, ", (tokens)->str); */
-  /* printf("\n== %p ==\n", (void *)tokens); */
-  return tokens;
+  return tok;
 }
 
 
@@ -207,18 +202,18 @@ void free_source_tokens(struct token **linetoks)
 /* *********************************************************** */
 int main()
 {
-  /* size_t tokens_size = 0; */
-  /* char *s = "let It  Be 2009"; */
-  /* struct token *x =tokenize_line(s, 23); */
-  /* struct token *p = x; */
-  /* printf("%d match in '%s' size %zu\n", G_srctoks_count,s, tokens_size); */
-  /* for (int i = 0; i < G_srctoks_count; i++, p++) */
-  /*   {printf("%s %d %d sizeof: %zu\n", p->str, p->so, p->id, sizeof p); */
-  /*     printf("struct token ptr size: %zu / %zu\n", sizeof(struct token *), sizeof x);} */
-  /* free(x); */
+  size_t toksize = 0;
+  char *s = "let It  Be 2009";
+  struct token *x =tokenize_line(s, 23);
+  struct token *p = x;
+  printf("%d match in '%s' size %zu\n", G_srctoks_count,s, toksize);
+  for (int i = 0; i < G_srctoks_count; i++, p++)
+    {printf("%s %d %d sizeof: %zu\n", p->str, p->so, p->id, sizeof p);
+      printf("struct token ptr size: %zu / %zu\n", sizeof(struct token *), sizeof x);}
+  free(x);
 
-  (void)read_lines("/home/okavango/Work/let/etude.let");
-  free_lines();
+  /* (void)read_lines("/home/okavango/Work/let/etude.let"); */
+  /* free_lines(); */
 
   /* struct token **t = tokenize_source("/home/okavango/Work/let/etude.let");   */
   /* free_source_tokens(t); */
