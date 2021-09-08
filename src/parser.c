@@ -136,13 +136,12 @@ struct token *tokenize_line(char *line, int linum)
   }
   regmatch_t match[1];	/* interesed only in the whole match */
   int offset = 0, tokstrlen;
-  struct token *tok = NULL, *tok_shadow = NULL;
+  struct token *tok = NULL;
   size_t toksize = 0;
   int tokscnt = 0;
   while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
     /* make room for the new token */
     toksize += sizeof(struct token);
-    /* tok = (struct token *)realloc(tok, toksize); /\* tok must be freed *\/ */
     if ((tok = realloc(tok, toksize)) != NULL) {				   /* new memory allocated successfully */
       tokstrlen = match[0].rm_eo - match[0].rm_so;
       struct token t;
@@ -155,12 +154,11 @@ struct token *tokenize_line(char *line, int linum)
       *(tok + tokscnt) = t;
       tokscnt++;
       offset += match[0].rm_eo;
-      tok_shadow = tok;		/* keep the shadow updated */
     } else {
       fprintf(stderr, "realloc failed while tokenizing line %d at token %s", linum, "TOKEN????");
-      /* the old object was not deallocated as realloc failed, free it here */
-      free(tok_shadow);
-      break;
+      /* just break out of executaion if haven't enough memory for the
+	 next token. leave the freeing & cleanup over for the os! */
+      exit(EXIT_FAILURE);
     }
   }
   regfree(&re);
