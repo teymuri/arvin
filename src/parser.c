@@ -215,17 +215,16 @@ struct token *rmcom(struct token *toks, size_t *nctok_count) /* nct = non-commen
 {
   index_comments(toks);
   struct token *nctoks = NULL;	/* non-comment tokens */
-  int incom = false;		/* are we inside of a comment block? */
+  int isincom = false;		/* are we inside of a comment block? */
   for (size_t i = 0; i < G_source_tokens_count; i++) {
     if (toks[i].comidx == 1) {
-      if (incom)
-	incom = false;
-      else
-	incom = true;
-    } else if (!incom) {
-      (*nctok_count)++;
-      if ((nctoks = realloc(nctoks, *nctok_count * sizeof(struct token))) != NULL)
-	/* ? */
+      if (isincom) isincom = false;
+      else isincom = true;
+    } else if (!isincom) {
+      /* not in a comment block, allocate space for the new non-comment token */
+      /* (*nctok_count)++; */
+      if ((nctoks = realloc(nctoks, ++(*nctok_count) * sizeof(struct token))) != NULL)
+	/* the index for the new token is one less than the current number of non-comment tokens */
 	*(nctoks + *nctok_count - 1) = toks[i];
       else
 	exit(EXIT_FAILURE);
