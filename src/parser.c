@@ -109,7 +109,7 @@ void free_lines(void)
 struct token line_toks[MAX_LINE_TOKS];		/* tok in 1 line */
 int G_tokid = 0;
 
-struct token *tokenize_line(char *line, size_t *toks_count, int linum, size_t *C)
+struct token *tokenize_line(char *line, size_t *lntoks_count, size_t *srctoks_count, int linum)
 {
   regex_t re;
   int errcode;			
@@ -126,7 +126,7 @@ struct token *tokenize_line(char *line, size_t *toks_count, int linum, size_t *C
   struct token *tokptr = NULL;
   /* overall size of memory allocated for tokens of the line sofar */
   size_t memsize = 0;
-  int tokscnt = 0;
+  /* int tokscnt = 0; */
   while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
     /* make room for the new token */
     memsize += sizeof(struct token);
@@ -139,10 +139,9 @@ struct token *tokenize_line(char *line, size_t *toks_count, int linum, size_t *C
       t.so = offset + match[0].rm_so;
       t.eo = t.so + tokstrlen;
       t.linum = linum;
-      *(tokptr + tokscnt) = t;
-      tokscnt++;
-      (*toks_count)++;
-      (*C)++;
+      *(tokptr + *lntoks_count) = t;
+      (*srctoks_count)++;
+      (*lntoks_count)++;
       offset += match[0].rm_eo;
     } else {
       fprintf(stderr, "realloc failed while tokenizing line %d at token %s", linum, "TOKEN????");
@@ -162,14 +161,16 @@ struct token *tokenize_source(char *path)
   read_lines(path);
   struct token *tokens = NULL;
   struct token *lntoks = NULL;
-  size_t C,Y;
+  size_t lntoks_count, srctoks;
   for (size_t l = 0; l<G_source_lines_count;l++) {
-    C=0;
-    Y = G_source_tokens_count;
-    lntoks = tokenize_line(G_source_lines[l], &G_source_tokens_count, l, &C);
+    lntoks_count = 0;
+    /* take a snapshot of the number of source tokens sofar, before
+       it's changed by tokenize_line */
+    srctoks = G_source_tokens_count;
+    lntoks = tokenize_line(G_source_lines[l], &lntoks_count, &G_source_tokens_count, l);
     if ((tokens = realloc(tokens, sizeof(struct token) * G_source_tokens_count)) != NULL) {
-      for (size_t x = 0; x < C; x++) {
-	*(tokens + x + Y) = lntoks[x];
+      for (size_t i = 0; i < lntoks_count; i++) {
+	*(tokens + i + srctoks) = lntoks[i];
       }
     } else {
       exit(EXIT_FAILURE);
