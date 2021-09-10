@@ -36,7 +36,6 @@ struct token {
   int eo;			/* end index in line (last char was just the one before this index!) */
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
-  bool is_line_end;		/* is this token the last one on his line? */
 };
 
 
@@ -134,7 +133,6 @@ struct token *tokenize_line(char *line, size_t *toks_count, int linum, size_t *C
     if ((tokptr = realloc(tokptr, memsize)) != NULL) { /* new memory allocated successfully */
       tokstrlen = match[0].rm_eo - match[0].rm_so;
       struct token t;
-      t.is_line_end = false;	/* erstmal... */
       memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
       t.id = G_tokid++;
@@ -153,16 +151,13 @@ struct token *tokenize_line(char *line, size_t *toks_count, int linum, size_t *C
       exit(EXIT_FAILURE);
     }
   }
-  /* *intern_count = tokscnt; */
-  (tokptr +tokscnt-1)->is_line_end = true;
-  /* printf("==========>%d ", (tokptr +tokscnt-1)->is_line_end); */
   regfree(&re);  
   return tokptr;
 }
 
 
 
-struct token *tokenize_source2(char *path)
+struct token *tokenize_source(char *path)
 {
   read_lines(path);
   struct token *tokens = NULL;
@@ -186,57 +181,18 @@ struct token *tokenize_source2(char *path)
 }
 
 
-/* struct token **tokenize_source(char *path) */
-/* { */
-/*   (void)read_lines(path); */
-/*   struct token **tokens = malloc(G_source_lines_count * sizeof(struct token *)); */
-/*   /\* struct token **tokens = malloc(sizeof *tokens); *\/ */
-/*   for (size_t ln = 0; ln < G_source_lines_count; ++ln) */
-/*     tokens[ln] = tokenize_line(G_source_lines[ln], &G_source_tokens_count, ln); */
-/*   return tokens; */
-/* } */
-
 
 /* *********************************************************** */
 int main()
 {
   
-  struct token *t = tokenize_source2("/home/okavango/Work/let/etude.let");
+  struct token *t = tokenize_source("/home/okavango/Work/let/etude.let");
   /* printf("%zu\n", G_source_tokens_count); */
   for (size_t i = 0; i<G_source_tokens_count;i++) {
     printf("%zu- %s %d %d %d\n", i, t[i].str, t[i].so, t[i].eo, t[i].linum);
   }
-    free_lines();
+  free_lines();
   free(t);
-
-  /* free_source(t); */
-  /* (void)read_lines("/home/okavango/Work/let/etude.let"); */
-  /* struct token **tokens = tokenize_source("/home/okavango/Work/let/etude.let"); */
-  /* printf("**************%zu\n", G_source_lines_count); */
-  /* for (size_t l = 0; l<G_source_lines_count; l++) { */
-  /*   struct token *t = (tokens[l]); */
-  /*   while (true) { */
-  /*     printf("%zu- %s %d %d\n", l, t->str, t->so, t->is_line_end); */
-  /*     if (t->is_line_end) */
-  /* 	break; */
-  /*     else t++; */
-
-  /*   } */
-  /* } */
-  
-
-  /* (void)free_source(tokens); */
-
-  /* ***********Das hier ist gut */
-  /* free_lines(); */
-  /* free(*tokens); */
-  /* /\* free(*(tokens+1)); *\/ */
-  /* free(*(++tokens)); */
-  /* free(tokens-1); */
-  
-
-  /* struct token **t = tokenize_source("/home/okavango/Work/let/etude.let");   */
-  /* free_source_tokens(t); */
     
   exit(EXIT_SUCCESS);
 }
