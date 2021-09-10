@@ -36,6 +36,7 @@ struct token {
   int eo;			/* end index in line (last char was just the one before this index!) */
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
+  int comidx;			/* comment indices: 0 = (, 1 = ) */
 };
 
 
@@ -139,6 +140,7 @@ struct token *tokenize_line(char *line, size_t *lntoks_count, size_t *srctoks_co
       t.so = offset + match[0].rm_so;
       t.eo = t.so + tokstrlen;
       t.linum = linum;
+      t.comidx = 0;
       *(tokptr + *lntoks_count) = t;
       (*srctoks_count)++;
       (*lntoks_count)++;
@@ -182,19 +184,63 @@ struct token *tokenize_source(char *path)
   return tokens;
 }
 
+int iscom_open(struct token tok)
+{
+  return !strcmp(tok.str, "(");
+}
+int iscom_close(struct token tok)
+{
+  return !strcmp(tok.str, ")");
+}
 
-
+/* comment index 1 is the start of an outer-most comment block. this
+   function is the equivalent of set_commidx_ip(toks) in the let.py
+   file. */
+void index_comments(struct token *toks)
+{
+  int idx = 1;
+  for (size_t i = 0; i < G_source_tokens_count; i++) {
+    if (iscom_open(toks[i]))
+      toks[i].comidx = idx++;
+    else if (iscom_close(toks[i]))
+      toks[i].comidx = --idx;
+  }
+}
+/* remove comment blocks */
+struct token *rmcom(struct token *toks, size_t *nctok_count) /* nct = non-comment token */
+{
+  index_comments(toks);
+  struct token *nctoks = NULL;	/* non-comment tokens */
+  int incom = false;		/* are we inside of a comment block? */
+  for (size_t i = 0; i < G_source_tokens_count; i++) {
+    if (toks[i].comidx == 1) {
+      if (incom)
+	incom = false;
+      else
+	incom = true;
+    } else if (!incom) {
+      (*nctok_count)++;
+      if ((nctoks = realloc(nctoks, *nctok_count * sizeof(struct token))) != NULL)
+	/* ? */
+	*(nctoks + *nctok_count - 1) = toks[i];
+      else
+	exit(EXIT_FAILURE);
+    }
+  }
+  free(toks);
+  return nctoks;
+}
 /* *********************************************************** */
 int main()
 {
   
-  struct token *t = tokenize_source("/home/okavango/Work/let/etude.let");
-  /* printf("%zu\n", G_source_tokens_count); */
-  for (size_t i = 0; i<G_source_tokens_count;i++) {
-    printf("%zu- %s %d %d %d\n", i, t[i].str, t[i].so, t[i].eo, t[i].linum);
+  /* struct token *t = tokenize_source("/home/okavango/Work/let/etude.let"); */
+  size_t nctok_count = 0;
+  struct token *nct = rmcom(tokenize_source("/home/okavango/Work/let/etude.let"), &nctok_count);
+  for (size_t i = 0; i<nctok_count;i++) {
+    printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].so, nct[i].eo, nct[i].linum, nct[i].comidx);
   }
-  /* free_lines(); */
-  free(t);
+  free(nct);
     
   exit(EXIT_SUCCESS);
 }
