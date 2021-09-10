@@ -10,6 +10,10 @@
 /* #include <errno.h> */
 /* #include "parser.h" */
 
+
+#define COM_OP "("		/* comment opening token */
+#define COM_CL ")"		/* comment closing token */
+
 /* naming convention:
    global variables have a leading underscore _foo_bar_baz
 */
@@ -186,11 +190,11 @@ struct token *tokenize_source(char *path)
 
 int iscom_open(struct token tok)
 {
-  return !strcmp(tok.str, "(");
+  return !strcmp(tok.str, COM_OP);
 }
 int iscom_close(struct token tok)
 {
-  return !strcmp(tok.str, ")");
+  return !strcmp(tok.str, COM_CL);
 }
 
 /* comment index 1 is the start of an outer-most comment block. this
