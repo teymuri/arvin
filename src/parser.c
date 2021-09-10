@@ -178,6 +178,7 @@ struct token *tokenize_source(char *path)
     free(lntoks);
     lntoks=NULL;
   }
+  free_lines();
   return tokens;
 }
 
@@ -192,7 +193,7 @@ int main()
   for (size_t i = 0; i<G_source_tokens_count;i++) {
     printf("%zu- %s %d %d %d\n", i, t[i].str, t[i].so, t[i].eo, t[i].linum);
   }
-  free_lines();
+  /* free_lines(); */
   free(t);
     
   exit(EXIT_SUCCESS);
