@@ -1,30 +1,55 @@
 #define _GNU_SOURCE
 #include <stdlib.h>
+#include <stdbool.h>
 #include <regex.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>
 /* #define NDEBUG */
 #include <assert.h>
-#include "parser.h"
+/* #include <errno.h> */
+/* #include "parser.h" */
+
+/* naming convention:
+   global variables have a leading underscore _foo_bar_baz
+*/
 
 
+size_t G_source_tokens_count = 0;
+
+/* maximum number of lines allowed in one source file */
+#define MAXSRCLNS 100
+/* G_source_lines will contain copies of pointers to memory blocks
+   allocated by getline, so must be freed later! */
+char *G_source_lines[MAXSRCLNS];
+/* number of source lines saved into source_ */
+size_t G_source_lines_count = 0;
 
 
-void free_srclns(size_t n)
-{
-  for (size_t i = 0; i < n; i++) {
-    free(src_lines[i]);
-    src_lines[i] = NULL;
-  }
-}
+#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
+#define MAX_TOKLEN 50		/* bytes max token length */
+#define MAX_LINE_TOKS 10		/* max number of tok in 1 line */
+
+struct token {
+  char str[MAX_TOKLEN];	/* token's string */
+  int so;			/* start index in line */
+  int eo;			/* end index in line (last char was just the one before this index!) */
+  int linum;			/* line number */
+  int id;			/* id of this token (tracked globally) */
+  bool is_line_end;		/* is this token the last one on his line? */
+};
+
+
+struct token line_toks[MAX_LINE_TOKS];		/* tok in 1 line */
+
+
 
 /* checks if the string s consists only of blanks and/or newline */
 int isempty(char *s)
 {
   while (*s) {
     /* if char is something other than a blank or a newline, the string
- is regarded as non-empty. */
+       is regarded as non-empty. */
     if (!isblank(*s) && *s != '\n')
       return 0;
     s++;
@@ -32,103 +57,60 @@ int isempty(char *s)
   return 1;
 }
 
-int number_of_lines = 0;
 
-/* size_t read_lines(char *path) */
-/* { */
-/*   FILE *stream; */
-/*   ssize_t read; */
-/*   char *lnptr = NULL; */
-/*   size_t n = 0; */
-/*   size_t count = 0; */
-/*   stream = fopen(path, "r"); */
-/*   if (!stream) { */
-/*     fprintf(stderr, "can't open source '%s'\n", path); */
-/*     exit(EXIT_FAILURE); */
-/*   } */
-/*   while ((read = getline(&lnptr, &n, stream)) != -1) { */
-/*     /\* throw away empty lines *\/ */
-/*     if (!isempty(lnptr)) { */
-/*       assert(("line count too large", count < MAX_SRC_LINES)); */
-/*       src_lines[count++] = lnptr; */
-/*     } */
-/*     lnptr = NULL; */
-/*   } */
-/*   free(lnptr); */
-/*   fclose(stream); */
-/*   return count; */
-/* } */
+
+/*  reads the source file 'path' and puts non-empty lines into the
+    array G_source_lines. increments the number of lines
+    G_source_lines_count for each line saved.
+*/
 void read_lines(char *path)
 {
   FILE *stream;
-  ssize_t read;
-  char *lnptr = NULL;
-  size_t n = 0;
-  /* size_t count = 0; */
   stream = fopen(path, "r");
   if (!stream) {
     fprintf(stderr, "can't open source '%s'\n", path);
     exit(EXIT_FAILURE);
   }
-  while ((read = getline(&lnptr, &n, stream)) != -1) {
-    /* throw away empty lines */
-    if (!isempty(lnptr)) {
-      assert(("line count too large", number_of_lines < MAX_SRC_LINES));
-      src_lines[number_of_lines++] = lnptr;
+  char *lineptr = NULL;
+  size_t n = 0;
+  while ((getline(&lineptr, &n, stream) != -1)) {
+    /* throw away empty lines. i just resue lineptr on next getline if an
+       empty line was put into it by getline. */
+    if (!isempty(lineptr)) {
+      /* assert(("line count too large", G_source_lines_count < MAXSRCLNS)); */
+      G_source_lines[G_source_lines_count++] = lineptr;
+      lineptr = NULL;		/* force getline to calc size of
+				   needed memory for the next line
+				   himself! */
     }
-    lnptr = NULL;
   }
-  free(lnptr);
+  /* free the lineptr variable defined and allocated on this stack */
+  /* don't forget to free it's copies in G_source_lines when done with them! */
+  free(lineptr);
   fclose(stream);
+}
+
+/* frees copies of line pointers to memory blocks allocated by getline
+   in read_lines. this should be done after having processed all
+   lineptrs in G_source_lines (i.e. at the end of tokenize_source??). */
+void free_lines(void)
+{
+  for (size_t ln = 0; ln < G_source_lines_count; ++ln)
+    free(G_source_lines[ln]);
 }
 
 
 
-
-
-#define TOK_MAX_LEN 50		/* max token length */
-#define MAX_LINE_TOKS 10		/* max number of tokens in 1 line */
-/* char line_toks[MAX_LINE_TOKS][TOK_MAX_LEN];		/\* tokens in 1 line *\/ */
+#define MAX_TOKLEN 50		/* max token length */
+#define MAX_LINE_TOKS 10		/* max number of tok in 1 line */
+/* char line_toks[MAX_LINE_TOKS][MAX_TOKLEN];		/\* tok in 1 line *\/ */
 
 
 
-struct token line_toks[MAX_LINE_TOKS];		/* tokens in 1 line */
+struct token line_toks[MAX_LINE_TOKS];		/* tok in 1 line */
+int G_tokid = 0;
 
-int tokidx = 0;
-
-/* int tokenize_line(char *line, const char *TOKPATT, int line_num) */
-/* { */
-/*   regex_t re; */
-/*   int errcode;			 */
-/*   if ((errcode = regcomp(&re, TOKPATT, REG_EXTENDED))) { /\* compilation failed *\/ */
-/*     size_t buff_size = regerror(errcode, &re, NULL, 0); /\* inspect the required buffer size *\/ */
-/*     char buff[buff_size+1];	/\* need +1 for the null terminator??? *\/ */
-/*     (void)regerror(errcode, &re, buff, buff_size); */
-/*     fprintf(stderr, "parse error\n"); */
-/*     fprintf(stderr, "regcomp failed with: %s\n", buff); */
-/*     exit(errcode); */
-/*   } */
-/*   regmatch_t match[1];	/\* interesed only in the whole match *\/ */
-/*   int offset = 0, count = 0, tokstrlen; */
-/*   while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /\* match found *\/ */
-/*     tokstrlen = match[0].rm_eo - match[0].rm_so; */
-/*     struct token t; */
-/*     memcpy(t.str, line + offset + match[0].rm_so, tokstrlen); */
-/*     t.str[tokstrlen] = '\0'; */
-/*     t.idx = tokidx++; */
-/*     t.so = offset + match[0].rm_so; */
-/*     t.eo = t.so + tokstrlen; */
-/*     /\* memcpy(line_toks[count], line + offset +match[0].rm_so, tokstrlen); *\/ */
-/*     /\* line_toks[count++][tokstrlen] = '\0'; *\/ */
-/*     t.line = line_num; */
-/*     line_toks[count++] = t; */
-/*     offset += match[0].rm_eo; */
-/*   } */
-/*   regfree(&re); */
-/*   return count; */
-/* } */
-
-struct token *tokenize_line2(char *line, int line_num, int *toks_count)
+struct token *tokenize_line(char *line, size_t *toks_count, int linum, size_t *C)
 {
   regex_t re;
   int errcode;			
@@ -140,53 +122,123 @@ struct token *tokenize_line2(char *line, int line_num, int *toks_count)
     fprintf(stderr, "regcomp failed with: %s\n", buff);
     exit(errcode);
   }
-  /* ********************* */
-  struct token *toksp = malloc(sizeof(struct token) * MAX_LINE_TOKS);
-  /* ************************ */
-  struct token *toksp2 = toksp;
   regmatch_t match[1];	/* interesed only in the whole match */
   int offset = 0, tokstrlen;
-  while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* match found */
-    tokstrlen = match[0].rm_eo - match[0].rm_so;
-    struct token t;
-    memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
-    t.str[tokstrlen] = '\0';
-    t.idx = tokidx++;
-    t.so = offset + match[0].rm_so;
-    t.eo = t.so + tokstrlen;
-    /* memcpy(line_toks[count], line + offset +match[0].rm_so, tokstrlen); */
-    /* line_toks[count++][tokstrlen] = '\0'; */
-    t.line = line_num;
-    *toksp2 = t;
-    /* line_toks[count++] = t; */
-    (*toks_count)++;
-    toksp2++;
-    offset += match[0].rm_eo;
+  struct token *tokptr = NULL;
+  /* overall size of memory allocated for tokens of the line sofar */
+  size_t memsize = 0;
+  int tokscnt = 0;
+  while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
+    /* make room for the new token */
+    memsize += sizeof(struct token);
+    if ((tokptr = realloc(tokptr, memsize)) != NULL) { /* new memory allocated successfully */
+      tokstrlen = match[0].rm_eo - match[0].rm_so;
+      struct token t;
+      t.is_line_end = false;	/* erstmal... */
+      memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
+      t.str[tokstrlen] = '\0';
+      t.id = G_tokid++;
+      t.so = offset + match[0].rm_so;
+      t.eo = t.so + tokstrlen;
+      t.linum = linum;
+      *(tokptr + tokscnt) = t;
+      tokscnt++;
+      (*toks_count)++;
+      (*C)++;
+      offset += match[0].rm_eo;
+    } else {
+      fprintf(stderr, "realloc failed while tokenizing line %d at token %s", linum, "TOKEN????");
+      /* just break out of executaion if haven't enough memory for the
+	 next token. leave the freeing & cleanup over for the os! */
+      exit(EXIT_FAILURE);
+    }
   }
-  regfree(&re);
-  return toksp;
+  /* *intern_count = tokscnt; */
+  (tokptr +tokscnt-1)->is_line_end = true;
+  /* printf("==========>%d ", (tokptr +tokscnt-1)->is_line_end); */
+  regfree(&re);  
+  return tokptr;
 }
 
 
 
-void tokenize_src(char *path)
+struct token *tokenize_source2(char *path)
 {
-  (void)read_lines(path);
-  int toks_count = 0;
-  for (int i = 0; i < number_of_lines; i++) {
-    /* src_toks[i] = tokenize_line2(src_lines[i], i); */
-    struct line l;
-    l.toks = tokenize_line2(src_lines[i], i, &toks_count);
-    l.toks_count = toks_count;
-    src_toks[i] = l;
-    toks_count = 0;		/* reset */
+  read_lines(path);
+  struct token *tokens = NULL;
+  struct token *lntoks = NULL;
+  size_t C,Y;
+  for (size_t l = 0; l<G_source_lines_count;l++) {
+    C=0;
+    Y = G_source_tokens_count;
+    lntoks = tokenize_line(G_source_lines[l], &G_source_tokens_count, l, &C);
+    if ((tokens = realloc(tokens, sizeof(struct token) * G_source_tokens_count)) != NULL) {
+      for (size_t x = 0; x < C; x++) {
+	*(tokens + x + Y) = lntoks[x];
+      }
+    } else {
+      exit(EXIT_FAILURE);
+    }
+    free(lntoks);
+    lntoks=NULL;
   }
+  return tokens;
 }
 
-void free_parser(void)
+
+/* struct token **tokenize_source(char *path) */
+/* { */
+/*   (void)read_lines(path); */
+/*   struct token **tokens = malloc(G_source_lines_count * sizeof(struct token *)); */
+/*   /\* struct token **tokens = malloc(sizeof *tokens); *\/ */
+/*   for (size_t ln = 0; ln < G_source_lines_count; ++ln) */
+/*     tokens[ln] = tokenize_line(G_source_lines[ln], &G_source_tokens_count, ln); */
+/*   return tokens; */
+/* } */
+
+
+/* *********************************************************** */
+int main()
 {
-  for (int i = 0; i < number_of_lines; i++) {
-    free(src_toks[i].toks);
-    /* free(src_toks[i]); */
+  
+  struct token *t = tokenize_source2("/home/okavango/Work/let/etude.let");
+  /* printf("%zu\n", G_source_tokens_count); */
+  for (size_t i = 0; i<G_source_tokens_count;i++) {
+    printf("%zu- %s %d %d %d\n", i, t[i].str, t[i].so, t[i].eo, t[i].linum);
   }
+    free_lines();
+  free(t);
+
+  /* free_source(t); */
+  /* (void)read_lines("/home/okavango/Work/let/etude.let"); */
+  /* struct token **tokens = tokenize_source("/home/okavango/Work/let/etude.let"); */
+  /* printf("**************%zu\n", G_source_lines_count); */
+  /* for (size_t l = 0; l<G_source_lines_count; l++) { */
+  /*   struct token *t = (tokens[l]); */
+  /*   while (true) { */
+  /*     printf("%zu- %s %d %d\n", l, t->str, t->so, t->is_line_end); */
+  /*     if (t->is_line_end) */
+  /* 	break; */
+  /*     else t++; */
+
+  /*   } */
+  /* } */
+  
+
+  /* (void)free_source(tokens); */
+
+  /* ***********Das hier ist gut */
+  /* free_lines(); */
+  /* free(*tokens); */
+  /* /\* free(*(tokens+1)); *\/ */
+  /* free(*(++tokens)); */
+  /* free(tokens-1); */
+  
+
+  /* struct token **t = tokenize_source("/home/okavango/Work/let/etude.let");   */
+  /* free_source_tokens(t); */
+    
+  exit(EXIT_SUCCESS);
 }
+
+/* *********************************************************** */
