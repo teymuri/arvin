@@ -204,7 +204,7 @@ int main()
   struct token *t = tokenize_source2("/home/okavango/Work/let/etude.let");
   /* printf("%zu\n", G_source_tokens_count); */
   for (size_t i = 0; i<G_source_tokens_count;i++) {
-    printf("%zu. %s\n", i, t[i].str);
+    printf("%zu- %s %d %d %d\n", i, t[i].str, t[i].so, t[i].eo, t[i].linum);
   }
     free_lines();
   free(t);
