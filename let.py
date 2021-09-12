@@ -3,7 +3,6 @@
 """
 This is a first prototype for the Let programming language.
 It has been archived on Sat 11 Sep 2021 08:22:13 AM CEST.
-
 """
 
 print("=======================")
