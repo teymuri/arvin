@@ -10,6 +10,10 @@
 /* #include <errno.h> */
 /* #include "parser.h" */
 
+
+#define COM_OP "("		/* comment opening token */
+#define COM_CL ")"		/* comment closing token */
+
 /* naming convention:
    global variables have a leading underscore _foo_bar_baz
 */
@@ -36,7 +40,7 @@ struct token {
   int eo;			/* end index in line (last char was just the one before this index!) */
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
-  bool is_line_end;		/* is this token the last one on his line? */
+  int comidx;			/* comment indices: 0 = (, 1 = ) */
 };
 
 
@@ -110,7 +114,7 @@ void free_lines(void)
 struct token line_toks[MAX_LINE_TOKS];		/* tok in 1 line */
 int G_tokid = 0;
 
-struct token *tokenize_line(char *line, size_t *toks_count, int linum, size_t *C)
+struct token *tokenize_line(char *line, size_t *lntoks_count, size_t *srctoks_count, int linum)
 {
   regex_t re;
   int errcode;			
@@ -127,24 +131,23 @@ struct token *tokenize_line(char *line, size_t *toks_count, int linum, size_t *C
   struct token *tokptr = NULL;
   /* overall size of memory allocated for tokens of the line sofar */
   size_t memsize = 0;
-  int tokscnt = 0;
+  /* int tokscnt = 0; */
   while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
     /* make room for the new token */
     memsize += sizeof(struct token);
     if ((tokptr = realloc(tokptr, memsize)) != NULL) { /* new memory allocated successfully */
       tokstrlen = match[0].rm_eo - match[0].rm_so;
       struct token t;
-      t.is_line_end = false;	/* erstmal... */
       memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
       t.id = G_tokid++;
       t.so = offset + match[0].rm_so;
       t.eo = t.so + tokstrlen;
       t.linum = linum;
-      *(tokptr + tokscnt) = t;
-      tokscnt++;
-      (*toks_count)++;
-      (*C)++;
+      t.comidx = 0;
+      *(tokptr + *lntoks_count) = t;
+      (*srctoks_count)++;
+      (*lntoks_count)++;
       offset += match[0].rm_eo;
     } else {
       fprintf(stderr, "realloc failed while tokenizing line %d at token %s", linum, "TOKEN????");
@@ -153,28 +156,27 @@ struct token *tokenize_line(char *line, size_t *toks_count, int linum, size_t *C
       exit(EXIT_FAILURE);
     }
   }
-  /* *intern_count = tokscnt; */
-  (tokptr +tokscnt-1)->is_line_end = true;
-  /* printf("==========>%d ", (tokptr +tokscnt-1)->is_line_end); */
   regfree(&re);  
   return tokptr;
 }
 
 
 
-struct token *tokenize_source2(char *path)
+struct token *tokenize_source(char *path)
 {
   read_lines(path);
   struct token *tokens = NULL;
   struct token *lntoks = NULL;
-  size_t C,Y;
+  size_t lntoks_count, srctoks;
   for (size_t l = 0; l<G_source_lines_count;l++) {
-    C=0;
-    Y = G_source_tokens_count;
-    lntoks = tokenize_line(G_source_lines[l], &G_source_tokens_count, l, &C);
+    lntoks_count = 0;
+    /* take a snapshot of the number of source tokens sofar, before
+       it's changed by tokenize_line */
+    srctoks = G_source_tokens_count;
+    lntoks = tokenize_line(G_source_lines[l], &lntoks_count, &G_source_tokens_count, l);
     if ((tokens = realloc(tokens, sizeof(struct token) * G_source_tokens_count)) != NULL) {
-      for (size_t x = 0; x < C; x++) {
-	*(tokens + x + Y) = lntoks[x];
+      for (size_t i = 0; i < lntoks_count; i++) {
+	*(tokens + i + srctoks) = lntoks[i];
       }
     } else {
       exit(EXIT_FAILURE);
@@ -182,61 +184,66 @@ struct token *tokenize_source2(char *path)
     free(lntoks);
     lntoks=NULL;
   }
+  free_lines();
   return tokens;
 }
 
+int iscom_open(struct token tok)
+{
+  return !strcmp(tok.str, COM_OP);
+}
+int iscom_close(struct token tok)
+{
+  return !strcmp(tok.str, COM_CL);
+}
 
-/* struct token **tokenize_source(char *path) */
-/* { */
-/*   (void)read_lines(path); */
-/*   struct token **tokens = malloc(G_source_lines_count * sizeof(struct token *)); */
-/*   /\* struct token **tokens = malloc(sizeof *tokens); *\/ */
-/*   for (size_t ln = 0; ln < G_source_lines_count; ++ln) */
-/*     tokens[ln] = tokenize_line(G_source_lines[ln], &G_source_tokens_count, ln); */
-/*   return tokens; */
-/* } */
-
-
+/* comment index 1 is the start of an outer-most comment block. this
+   function is the equivalent of set_commidx_ip(toks) in the let.py
+   file. */
+void index_comments(struct token *toks)
+{
+  int idx = 1;
+  for (size_t i = 0; i < G_source_tokens_count; i++) {
+    if (iscom_open(toks[i]))
+      toks[i].comidx = idx++;
+    else if (iscom_close(toks[i]))
+      toks[i].comidx = --idx;
+  }
+}
+/* remove comment blocks */
+struct token *rmcom(struct token *toks, size_t *nctok_count) /* nct = non-comment token */
+{
+  index_comments(toks);
+  struct token *nctoks = NULL;	/* non-comment tokens */
+  int isincom = false;		/* are we inside of a comment block? */
+  for (size_t i = 0; i < G_source_tokens_count; i++) {
+    if (toks[i].comidx == 1) {
+      if (isincom) isincom = false;
+      else isincom = true;
+    } else if (!isincom) {
+      /* not in a comment block, allocate space for the new non-comment token */
+      /* (*nctok_count)++; */
+      if ((nctoks = realloc(nctoks, ++(*nctok_count) * sizeof(struct token))) != NULL)
+	/* the index for the new token is one less than the current number of non-comment tokens */
+	*(nctoks + *nctok_count - 1) = toks[i];
+      else
+	exit(EXIT_FAILURE);
+    }
+  }
+  free(toks);
+  return nctoks;
+}
 /* *********************************************************** */
 int main()
 {
   
-  struct token *t = tokenize_source2("/home/okavango/Work/let/etude.let");
-  /* printf("%zu\n", G_source_tokens_count); */
-  for (size_t i = 0; i<G_source_tokens_count;i++) {
-    printf("%zu- %s %d %d %d\n", i, t[i].str, t[i].so, t[i].eo, t[i].linum);
+  /* struct token *t = tokenize_source("/home/okavango/Work/let/etude.let"); */
+  size_t nctok_count = 0;
+  struct token *nct = rmcom(tokenize_source("/home/okavango/Work/let/etude.let"), &nctok_count);
+  for (size_t i = 0; i<nctok_count;i++) {
+    printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].so, nct[i].eo, nct[i].linum, nct[i].comidx);
   }
-    free_lines();
-  free(t);
-
-  /* free_source(t); */
-  /* (void)read_lines("/home/okavango/Work/let/etude.let"); */
-  /* struct token **tokens = tokenize_source("/home/okavango/Work/let/etude.let"); */
-  /* printf("**************%zu\n", G_source_lines_count); */
-  /* for (size_t l = 0; l<G_source_lines_count; l++) { */
-  /*   struct token *t = (tokens[l]); */
-  /*   while (true) { */
-  /*     printf("%zu- %s %d %d\n", l, t->str, t->so, t->is_line_end); */
-  /*     if (t->is_line_end) */
-  /* 	break; */
-  /*     else t++; */
-
-  /*   } */
-  /* } */
-  
-
-  /* (void)free_source(tokens); */
-
-  /* ***********Das hier ist gut */
-  /* free_lines(); */
-  /* free(*tokens); */
-  /* /\* free(*(tokens+1)); *\/ */
-  /* free(*(++tokens)); */
-  /* free(tokens-1); */
-  
-
-  /* struct token **t = tokenize_source("/home/okavango/Work/let/etude.let");   */
-  /* free_source_tokens(t); */
+  free(nct);
     
   exit(EXIT_SUCCESS);
 }
