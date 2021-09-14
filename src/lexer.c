@@ -239,7 +239,7 @@ int main()
   
   /* struct token *t = tokenize_source("/home/okavango/Work/let/etude.let"); */
   size_t nctok_count = 0;
-  struct token *nct = rmcom(tokenize_source("/home/okavango/Work/let/etude.let"), &nctok_count);
+  struct token *nct = rmcom(tokenize_source("/home/okavango/test.let"), &nctok_count);
   for (size_t i = 0; i<nctok_count;i++) {
     printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].so, nct[i].eo, nct[i].linum, nct[i].comidx);
   }
