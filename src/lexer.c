@@ -96,19 +96,17 @@ char **read_lines(char *path, size_t *count)
   
   /* ******************* */
   char **srclns = NULL;
-  size_t c = 0;
   while ((getline(&lineptr, &n, stream) != -1)) {
     if (!isempty(lineptr)) {
-      c++;
-      if ((srclns = realloc(srclns, c * sizeof(char *))) != NULL) {
-	*(srclns +c-1) = lineptr;
+      /* increment *count first, otherwise realloc will be called with size 0 :-O */
+      if ((srclns = realloc(srclns, ++*count * sizeof(char *))) != NULL) {
+	*(srclns + *count - 1) = lineptr;
 	lineptr = NULL;
       } else exit(EXIT_FAILURE);
     }
   }
   free(lineptr);
   fclose(stream);
-  *count = c;
   return srclns;
 }
 
@@ -187,92 +185,94 @@ struct token *tokenize_line(char *line, size_t *lntoks_count, size_t *srctoks_co
 
 
 
-/* struct token *tokenize_source(char *path) */
-/* { */
-/*   read_lines(path); */
-/*   struct token *tokens = NULL; */
-/*   struct token *lntoks = NULL; */
-/*   size_t lntoks_count, srctoks; */
-/*   for (size_t l = 0; l<G_source_lines_count;l++) { */
-/*     lntoks_count = 0; */
-/*     /\* take a snapshot of the number of source tokens sofar, before */
-/*        it's changed by tokenize_line *\/ */
-/*     srctoks = G_source_tokens_count; */
-/*     lntoks = tokenize_line(G_source_lines[l], &lntoks_count, &G_source_tokens_count, l); */
-/*     if ((tokens = realloc(tokens, sizeof(struct token) * G_source_tokens_count)) != NULL) { */
-/*       for (size_t i = 0; i < lntoks_count; i++) { */
-/* 	*(tokens + i + srctoks) = lntoks[i]; */
-/*       } */
-/*     } else { */
-/*       exit(EXIT_FAILURE); */
-/*     } */
-/*     free(lntoks); */
-/*     lntoks=NULL; */
-/*   } */
-/*   free_lines(); */
-/*   return tokens; */
-/* } */
+struct token *tokenize_source(char *path)
+{
+  size_t lines_count = 0;
+  char **lines = read_lines(path, &lines_count);
+  struct token *tokens = NULL;
+  struct token *lntoks = NULL;
+  size_t lntoks_count, srctoks;
+  for (size_t l = 0; l<lines_count;l++) {
+    lntoks_count = 0;
+    /* take a snapshot of the number of source tokens sofar, before
+       it's changed by tokenize_line */
+    srctoks = G_source_tokens_count;
+    lntoks = tokenize_line(lines[l], &lntoks_count, &G_source_tokens_count, l);
+    if ((tokens = realloc(tokens, sizeof(struct token) * G_source_tokens_count)) != NULL) {
+      for (size_t i = 0; i < lntoks_count; i++) {
+	*(tokens + i + srctoks) = lntoks[i];
+      }
+    } else {
+      exit(EXIT_FAILURE);
+    }
+    free(lntoks);
+    lntoks=NULL;
+  }
+  /* free_lines(); */
+  free_lines2(lines, lines_count);
+  return tokens;
+}
 
-/* int iscom_open(struct token tok) */
-/* { */
-/*   return !strcmp(tok.str, COM_OP); */
-/* } */
-/* int iscom_close(struct token tok) */
-/* { */
-/*   return !strcmp(tok.str, COM_CL); */
-/* } */
+int iscom_open(struct token tok)
+{
+  return !strcmp(tok.str, COM_OP);
+}
+int iscom_close(struct token tok)
+{
+  return !strcmp(tok.str, COM_CL);
+}
 
-/* /\* comment index 1 is the start of an outer-most comment block. this */
-/*    function is the equivalent of set_commidx_ip(toks) in the let.py */
-/*    file. *\/ */
-/* void index_comments(struct token *toks) */
-/* { */
-/*   int idx = 1; */
-/*   for (size_t i = 0; i < G_source_tokens_count; i++) { */
-/*     if (iscom_open(toks[i])) */
-/*       toks[i].comidx = idx++; */
-/*     else if (iscom_close(toks[i])) */
-/*       toks[i].comidx = --idx; */
-/*   } */
-/* } */
-/* /\* remove comment blocks *\/ */
-/* struct token *rmcom(struct token *toks, size_t *nctok_count) /\* nct = non-comment token *\/ */
-/* { */
-/*   index_comments(toks); */
-/*   struct token *nctoks = NULL;	/\* non-comment tokens *\/ */
-/*   int isincom = false;		/\* are we inside of a comment block? *\/ */
-/*   for (size_t i = 0; i < G_source_tokens_count; i++) { */
-/*     if (toks[i].comidx == 1) { */
-/*       if (isincom) isincom = false; */
-/*       else isincom = true; */
-/*     } else if (!isincom) { */
-/*       /\* not in a comment block, allocate space for the new non-comment token *\/ */
-/*       /\* (*nctok_count)++; *\/ */
-/*       if ((nctoks = realloc(nctoks, ++(*nctok_count) * sizeof(struct token))) != NULL) */
-/* 	/\* the index for the new token is one less than the current number of non-comment tokens *\/ */
-/* 	*(nctoks + *nctok_count - 1) = toks[i]; */
-/*       else */
-/* 	exit(EXIT_FAILURE); */
-/*     } */
-/*   } */
-/*   free(toks); */
-/*   return nctoks; */
-/* } */
+/* comment index 1 is the start of an outer-most comment block. this
+   function is the equivalent of set_commidx_ip(toks) in the let.py
+   file. */
+void index_comments(struct token *toks)
+{
+  int idx = 1;
+  for (size_t i = 0; i < G_source_tokens_count; i++) {
+    if (iscom_open(toks[i]))
+      toks[i].comidx = idx++;
+    else if (iscom_close(toks[i]))
+      toks[i].comidx = --idx;
+  }
+}
+/* remove comment blocks */
+struct token *rmcom(struct token *toks, size_t *nctok_count) /* nct = non-comment token */
+{
+  index_comments(toks);
+  struct token *nctoks = NULL;	/* non-comment tokens */
+  int isincom = false;		/* are we inside of a comment block? */
+  for (size_t i = 0; i < G_source_tokens_count; i++) {
+    if (toks[i].comidx == 1) {
+      if (isincom) isincom = false;
+      else isincom = true;
+    } else if (!isincom) {
+      /* not in a comment block, allocate space for the new non-comment token */
+      /* (*nctok_count)++; */
+      if ((nctoks = realloc(nctoks, ++(*nctok_count) * sizeof(struct token))) != NULL)
+	/* the index for the new token is one less than the current number of non-comment tokens */
+	*(nctoks + *nctok_count - 1) = toks[i];
+      else
+	exit(EXIT_FAILURE);
+    }
+  }
+  free(toks);
+  return nctoks;
+}
 
 /* *********************************************************** */
 int main()
 {
-  size_t n = 0;
-  char **lns = read_lines("/home/amir/a.let", &n);
-  printf("%zu\n", n);
-  free_lines2(lns, n);
+  /* size_t n = 0; */
+  /* char **lns = read_lines("/home/amir/a.let", &n); */
+  /* printf("%zu\n", n); */
+  /* free_lines2(lns, n); */
 
-  /* size_t nctok_count = 0; */
-  /* struct token *nct = rmcom(tokenize_source("/home/amir/a.let"), &nctok_count); */
-  /* for (size_t i = 0; i<nctok_count;i++) { */
-  /*   printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].so, nct[i].eo, nct[i].linum, nct[i].comidx); */
-  /* } */
-  /* free(nct); */
+  size_t nctok_count = 0;
+  struct token *nct = rmcom(tokenize_source("/home/amir/a.let"), &nctok_count);
+  for (size_t i = 0; i<nctok_count;i++) {
+    printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].so, nct[i].eo, nct[i].linum, nct[i].comidx);
+  }
+  free(nct);
     
   exit(EXIT_SUCCESS);
 }
