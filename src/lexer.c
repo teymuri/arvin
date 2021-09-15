@@ -196,7 +196,7 @@ void index_comments(struct token *toks)
   }
 }
 /* remove comment blocks */
-struct token *rmcom(struct token *toks, size_t *nctok_count) /* nct = non-comment token */
+struct token *remcoms(struct token *toks, size_t *nctok_count) /* nct = non-comment token */
 {
   index_comments(toks);
   struct token *nctoks = NULL;	/* non-comment tokens */
@@ -228,7 +228,7 @@ int main()
   /* free_lines2(lns, n); */
 
   size_t nctok_count = 0;
-  struct token *nct = rmcom(tokenize_source("/home/amir/a.let"), &nctok_count);
+  struct token *nct = remcoms(tokenize_source("/home/amir/a.let"), &nctok_count);
   for (size_t i = 0; i<nctok_count;i++) {
     printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].so, nct[i].eo, nct[i].linum, nct[i].comidx);
   }
