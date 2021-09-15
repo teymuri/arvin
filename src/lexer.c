@@ -21,14 +21,6 @@
 
 size_t G_source_tokens_count = 0;
 
-/* maximum number of lines allowed in one source file */
-#define MAXSRCLNS 100
-/* G_source_lines will contain copies of pointers to memory blocks
-   allocated by getline, so must be freed later! */
-char *G_source_lines[MAXSRCLNS];
-/* number of source lines saved into source_ */
-size_t G_source_lines_count = 0;
-
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 #define MAX_TOKLEN 50		/* bytes max token length */
@@ -63,11 +55,6 @@ int isempty(char *s)
 
 
 
-/*  reads the source file 'path' and puts non-empty lines into the
-    array G_source_lines. increments the number of lines
-    G_source_lines_count for each line saved.
-*/
-/* void read_lines(char *path) */
 char **read_lines(char *path, size_t *count)
 {
   FILE *stream;
@@ -78,23 +65,6 @@ char **read_lines(char *path, size_t *count)
   }
   char *lineptr = NULL;
   size_t n = 0;
-  /* while ((getline(&lineptr, &n, stream) != -1)) { /\* a new line read *\/ */
-  /*   /\* throw away empty lines. i just resue lineptr on next getline if an */
-  /*      empty line was put into it by getline. *\/ */
-  /*   if (!isempty(lineptr)) { */
-  /*     /\* assert(("line count too large", G_source_lines_count < MAXSRCLNS)); *\/ */
-  /*     G_source_lines[G_source_lines_count++] = lineptr; */
-  /*     lineptr = NULL;		/\* force getline to calc size of */
-  /* 				   needed memory for the next line */
-  /* 				   himself! *\/ */
-  /*   } */
-  /* } */
-  /* /\* free the lineptr variable defined and allocated on this stack *\/ */
-  /* /\* don't forget to free it's copies in G_source_lines when done with them! *\/ */
-  /* free(lineptr); */
-  /* fclose(stream); */
-  
-  /* ******************* */
   char **srclns = NULL;
   while ((getline(&lineptr, &n, stream) != -1)) {
     if (!isempty(lineptr)) {
@@ -110,20 +80,11 @@ char **read_lines(char *path, size_t *count)
   return srclns;
 }
 
-void free_lines2(char **lines, size_t count)
+void free_lines(char **lines, size_t count)
 {
   char **base = lines;
   while (count--) free(*lines++);
   free(base);
-}
-
-/* frees copies of line pointers to memory blocks allocated by getline
-   in read_lines. this should be done after having processed all
-   lineptrs in G_source_lines (i.e. at the end of tokenize_source??). */
-void free_lines(void)
-{
-  for (size_t ln = 0; ln < G_source_lines_count; ++ln)
-    free(G_source_lines[ln]);
 }
 
 
@@ -208,8 +169,7 @@ struct token *tokenize_source(char *path)
     free(lntoks);
     lntoks=NULL;
   }
-  /* free_lines(); */
-  free_lines2(lines, lines_count);
+  free_lines(lines, lines_count);
   return tokens;
 }
 
