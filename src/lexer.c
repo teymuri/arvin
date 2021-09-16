@@ -185,8 +185,8 @@ void index_comments(struct token *tokens, size_t all_tokens_count)
       tokens[i].comidx = --idx;
   }
 }
-/* remove comment blocks */
-struct token *remcoms(struct token *toks, size_t *nctok_count, size_t all_tokens_count) /* nct = non-comment token */
+
+struct token *remove_comments(struct token *toks, size_t *nctok_count, size_t all_tokens_count) /* nct = non-comment token */
 {
   index_comments(toks, all_tokens_count);
   struct token *nctoks = NULL;	/* non-comment tokens */
@@ -219,7 +219,7 @@ int main()
   size_t all_tokens_count = 0;
   struct token *toks = tokenize_source("/home/amir/a.let", &all_tokens_count);
   size_t nctok_count = 0;
-  struct token *nct = remcoms(toks, &nctok_count, all_tokens_count);
+  struct token *nct = remove_comments(toks, &nctok_count, all_tokens_count);
   for (size_t i = 0; i<nctok_count;i++) {
     printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].sidx, nct[i].eidx, nct[i].linum, nct[i].comidx);
   }
