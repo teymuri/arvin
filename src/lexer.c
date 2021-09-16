@@ -88,7 +88,7 @@ void free_lines(char **lines, size_t count)
 
 
 
-struct token *tokenize_line(char *line, size_t *line_toks_count, size_t *srctoks_count, int linum)
+struct token *tokenize_line(char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum)
 {
   regex_t re;
   int errcode;			
@@ -120,7 +120,7 @@ struct token *tokenize_line(char *line, size_t *line_toks_count, size_t *srctoks
       t.linum = linum;
       t.comidx = 0;
       *(tokptr + *line_toks_count) = t;
-      (*srctoks_count)++;
+      (*all_tokens_count)++;
       (*line_toks_count)++;
       offset += match[0].rm_eo;
     } else {
