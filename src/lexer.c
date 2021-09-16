@@ -175,10 +175,10 @@ int iscom_close(struct token tok)
 /* comment index 1 is the start of an outer-most comment block. this
    function is the equivalent of set_commidx_ip(toks) in the let.py
    file. */
-void index_comments(struct token *tokens, size_t tokens_count)
+void index_comments(struct token *tokens, size_t all_tokens_count)
 {
   int idx = 1;
-  for (size_t i = 0; i < tokens_count; i++) {
+  for (size_t i = 0; i < all_tokens_count; i++) {
     if (iscom_open(tokens[i]))
       tokens[i].comidx = idx++;
     else if (iscom_close(tokens[i]))
@@ -186,12 +186,12 @@ void index_comments(struct token *tokens, size_t tokens_count)
   }
 }
 /* remove comment blocks */
-struct token *remcoms(struct token *toks, size_t *nctok_count, size_t tokens_count) /* nct = non-comment token */
+struct token *remcoms(struct token *toks, size_t *nctok_count, size_t all_tokens_count) /* nct = non-comment token */
 {
-  index_comments(toks, tokens_count);
+  index_comments(toks, all_tokens_count);
   struct token *nctoks = NULL;	/* non-comment tokens */
   int isincom = false;		/* are we inside of a comment block? */
-  for (size_t i = 0; i < tokens_count; i++) {
+  for (size_t i = 0; i < all_tokens_count; i++) {
     if (toks[i].comidx == 1) {
       if (isincom) isincom = false;
       else isincom = true;
