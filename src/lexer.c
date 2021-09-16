@@ -10,33 +10,31 @@
 /* #include <errno.h> */
 /* #include "parser.h" */
 
-
-#define COM_OP "("		/* comment opening token */
-#define COM_CL ")"		/* comment closing token */
-
-/* naming convention:
-   global variables have a leading underscore _foo_bar_baz
-*/
-
-
-size_t G_source_tokens_count = 0;
-
-
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 #define MAX_TOKLEN 50		/* bytes max token length */
-#define MAX_LINE_TOKS 10		/* max number of tok in 1 line */
+#define COMMOP "("		/* comment opening token */
+#define COMMCL ")"		/* comment closing token */
+
+/* naming convention:
+   global variables have 2 leading underscores and a Capital letter
+*/
+
+int __Tokid = 0;
+
+
+
 
 struct token {
   char str[MAX_TOKLEN];	/* token's string */
-  int so;			/* start index in line */
-  int eo;			/* end index in line (last char was just the one before this index!) */
+  int sidx;			/* start index in line */
+  int eidx;			/* end index in line */
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */
 };
 
 
-struct token line_toks[MAX_LINE_TOKS];		/* tok in 1 line */
+
 
 
 
@@ -89,16 +87,8 @@ void free_lines(char **lines, size_t count)
 
 
 
-#define MAX_TOKLEN 50		/* max token length */
-#define MAX_LINE_TOKS 10		/* max number of tok in 1 line */
-/* char line_toks[MAX_LINE_TOKS][MAX_TOKLEN];		/\* tok in 1 line *\/ */
 
-
-
-struct token line_toks[MAX_LINE_TOKS];		/* tok in 1 line */
-int G_tokid = 0;
-
-struct token *tokenize_line(char *line, size_t *lntoks_count, size_t *srctoks_count, int linum)
+struct token *tokenize_line(char *line, size_t *line_toks_count, size_t *srctoks_count, int linum)
 {
   regex_t re;
   int errcode;			
@@ -124,14 +114,14 @@ struct token *tokenize_line(char *line, size_t *lntoks_count, size_t *srctoks_co
       struct token t;
       memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
-      t.id = G_tokid++;
-      t.so = offset + match[0].rm_so;
-      t.eo = t.so + tokstrlen;
+      t.id = __Tokid++;
+      t.sidx = offset + match[0].rm_so;
+      t.eidx = t.sidx + tokstrlen;
       t.linum = linum;
       t.comidx = 0;
-      *(tokptr + *lntoks_count) = t;
+      *(tokptr + *line_toks_count) = t;
       (*srctoks_count)++;
-      (*lntoks_count)++;
+      (*line_toks_count)++;
       offset += match[0].rm_eo;
     } else {
       fprintf(stderr, "realloc failed while tokenizing line %d at token %s", linum, "TOKEN????");
@@ -146,22 +136,22 @@ struct token *tokenize_line(char *line, size_t *lntoks_count, size_t *srctoks_co
 
 
 
-struct token *tokenize_source(char *path)
+struct token *tokenize_source(char *path, size_t *all_tokens_count)
 {
   size_t lines_count = 0;
   char **lines = read_lines(path, &lines_count);
   struct token *tokens = NULL;
   struct token *lntoks = NULL;
-  size_t lntoks_count, srctoks;
-  for (size_t l = 0; l<lines_count;l++) {
-    lntoks_count = 0;
+  size_t line_toks_count, global_toks_count_cpy;
+  for (size_t l = 0; l < lines_count; l++) {
+    line_toks_count = 0;
     /* take a snapshot of the number of source tokens sofar, before
        it's changed by tokenize_line */
-    srctoks = G_source_tokens_count;
-    lntoks = tokenize_line(lines[l], &lntoks_count, &G_source_tokens_count, l);
-    if ((tokens = realloc(tokens, sizeof(struct token) * G_source_tokens_count)) != NULL) {
-      for (size_t i = 0; i < lntoks_count; i++) {
-	*(tokens + i + srctoks) = lntoks[i];
+    global_toks_count_cpy = *all_tokens_count;
+    lntoks = tokenize_line(lines[l], &line_toks_count, all_tokens_count, l);
+    if ((tokens = realloc(tokens, *all_tokens_count * sizeof(struct token))) != NULL) {
+      for (size_t i = 0; i < line_toks_count; i++) {
+	*(tokens + i + global_toks_count_cpy) = lntoks[i];
       }
     } else {
       exit(EXIT_FAILURE);
@@ -175,33 +165,33 @@ struct token *tokenize_source(char *path)
 
 int iscom_open(struct token tok)
 {
-  return !strcmp(tok.str, COM_OP);
+  return !strcmp(tok.str, COMMOP);
 }
 int iscom_close(struct token tok)
 {
-  return !strcmp(tok.str, COM_CL);
+  return !strcmp(tok.str, COMMCL);
 }
 
 /* comment index 1 is the start of an outer-most comment block. this
    function is the equivalent of set_commidx_ip(toks) in the let.py
    file. */
-void index_comments(struct token *toks)
+void index_comments(struct token *tokens, size_t tokens_count)
 {
   int idx = 1;
-  for (size_t i = 0; i < G_source_tokens_count; i++) {
-    if (iscom_open(toks[i]))
-      toks[i].comidx = idx++;
-    else if (iscom_close(toks[i]))
-      toks[i].comidx = --idx;
+  for (size_t i = 0; i < tokens_count; i++) {
+    if (iscom_open(tokens[i]))
+      tokens[i].comidx = idx++;
+    else if (iscom_close(tokens[i]))
+      tokens[i].comidx = --idx;
   }
 }
 /* remove comment blocks */
-struct token *remcoms(struct token *toks, size_t *nctok_count) /* nct = non-comment token */
+struct token *remcoms(struct token *toks, size_t *nctok_count, size_t tokens_count) /* nct = non-comment token */
 {
-  index_comments(toks);
+  index_comments(toks, tokens_count);
   struct token *nctoks = NULL;	/* non-comment tokens */
   int isincom = false;		/* are we inside of a comment block? */
-  for (size_t i = 0; i < G_source_tokens_count; i++) {
+  for (size_t i = 0; i < tokens_count; i++) {
     if (toks[i].comidx == 1) {
       if (isincom) isincom = false;
       else isincom = true;
@@ -226,11 +216,12 @@ int main()
   /* char **lns = read_lines("/home/amir/a.let", &n); */
   /* printf("%zu\n", n); */
   /* free_lines2(lns, n); */
-
+  size_t all_tokens_count = 0;
+  struct token *toks = tokenize_source("/home/amir/a.let", &all_tokens_count);
   size_t nctok_count = 0;
-  struct token *nct = remcoms(tokenize_source("/home/amir/a.let"), &nctok_count);
+  struct token *nct = remcoms(toks, &nctok_count, all_tokens_count);
   for (size_t i = 0; i<nctok_count;i++) {
-    printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].so, nct[i].eo, nct[i].linum, nct[i].comidx);
+    printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].sidx, nct[i].eidx, nct[i].linum, nct[i].comidx);
   }
   free(nct);
     
