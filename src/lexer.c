@@ -19,7 +19,8 @@
    global variables have 2 leading underscores and a Capital letter
 */
 
-int __Tokid = 0;
+int __Tokid = 1;		/* id 0 is reserved for the toplevel
+				   token */
 
 
 
