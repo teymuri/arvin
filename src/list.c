@@ -3,7 +3,7 @@
 #include <string.h>
 enum Cell_types { ICELL, FCELL };
 
-struct  cell {
+struct cell {
   int car;
   struct cell *cdr;
 };

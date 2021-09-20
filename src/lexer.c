@@ -22,9 +22,25 @@
 
 int __Tokid = 1;		/* id 0 is reserved for the toplevel
 				   token */
+enum __Numtype {NAN, INT, FLT};
 
+int isdig(char c)
+{
+  return ('0' <= c) && (c <= '9');
+}
 
-
+enum __Numtype numtype(char *s)
+{
+  while (*s) {
+    if (!isdig(*s)) {
+      if (*s == '.')
+	return FLT;
+      else
+	return NAN;
+    } else s++;
+  }
+  return INT;
+}
 
 struct token {
   char str[MAX_TOKLEN];	/* token's string */
@@ -33,7 +49,8 @@ struct token {
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */
-  bool isprim;
+  /* bool isprim; */
+  enum __Numtype numtype;	/* the possible nummeric type */
 };
 
 
@@ -90,7 +107,6 @@ void free_lines(char **lines, size_t count)
 
 
 
-
 struct token *tokenize_line(char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum)
 {
   regex_t re;
@@ -117,7 +133,8 @@ struct token *tokenize_line(char *line, size_t *line_toks_count, size_t *all_tok
       struct token t;
       memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
-      t.isprim = isprim(t.str);
+      t.numtype = numtype(t.str);
+      /* t.isprim = isprim(t.str); */
       t.id = __Tokid++;
       t.sidx = offset + match[0].rm_so;
       t.eidx = t.sidx + tokstrlen;
@@ -225,7 +242,7 @@ int main()
   size_t nctok_count = 0;
   struct token *nct = remove_comments(toks, &nctok_count, all_tokens_count);
   for (size_t i = 0; i<nctok_count;i++) {
-    printf("%zu- %s %d\n", i, nct[i].str, nct[i].isprim);
+    printf("%zu- %s %d\n", i, nct[i].str, nct[i].numtype);
   }
   free(nct);
     
