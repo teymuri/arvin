@@ -31,15 +31,16 @@ int isdig(char c)
 
 enum __Numtype numtype(char *s)
 {
+  bool dot = false;
   while (*s) {
     if (!isdig(*s)) {
-      if (*s == '.')
-	return FLT;
-      else
-	return NAN;
-    } else s++;
+      if (*s == '.') {		/* if a dot: set the type to float, but go on looking the rest (which must be digit only to give a float!) */
+	dot = true;
+	s++;		
+      } else return NAN;	/* if not a digit and not a dot: Not A Number */
+    } else s++;			/* if a digit: go on looking the rest */
   }
-  return INT;
+  return dot ? FLT : INT;
 }
 
 struct token {
