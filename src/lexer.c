@@ -7,6 +7,7 @@
 #include <string.h>
 /* #define NDEBUG */
 #include <assert.h>
+#include "prims.h"
 /* #include <errno.h> */
 /* #include "parser.h" */
 
@@ -32,6 +33,7 @@ struct token {
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */
+  bool isprim;
 };
 
 
@@ -115,6 +117,7 @@ struct token *tokenize_line(char *line, size_t *line_toks_count, size_t *all_tok
       struct token t;
       memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
+      t.isprim = isprim(t.str);
       t.id = __Tokid++;
       t.sidx = offset + match[0].rm_so;
       t.eidx = t.sidx + tokstrlen;
@@ -222,7 +225,7 @@ int main()
   size_t nctok_count = 0;
   struct token *nct = remove_comments(toks, &nctok_count, all_tokens_count);
   for (size_t i = 0; i<nctok_count;i++) {
-    printf("%zu- %s %d %d %d %d\n", i, nct[i].str, nct[i].sidx, nct[i].eidx, nct[i].linum, nct[i].comidx);
+    printf("%zu- %s %d\n", i, nct[i].str, nct[i].isprim);
   }
   free(nct);
     
