@@ -7,12 +7,11 @@
 #include <string.h>
 /* #define NDEBUG */
 #include <assert.h>
-#include "prims.h"
-/* #include <errno.h> */
-/* #include "parser.h" */
+#include "lexer.h"
+
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
-#define MAX_TOKLEN 50		/* bytes max token length */
+
 #define COMMOP "("		/* comment opening token */
 #define COMMCL ")"		/* comment closing token */
 
@@ -22,37 +21,7 @@
 
 int __Tokid = 1;		/* id 0 is reserved for the toplevel
 				   token */
-enum __Numtype {NAN, INT, FLT};
 
-int isdig(char c)
-{
-  return ('0' <= c) && (c <= '9');
-}
-
-enum __Numtype numtype(char *s)
-{
-  bool dot = false;
-  while (*s) {
-    if (!isdig(*s)) {
-      if (*s == '.') {		/* if a dot: set the type to float, but go on looking the rest (which must be digit only to give a float!) */
-	dot = true;
-	s++;		
-      } else return NAN;	/* if not a digit and not a dot: Not A Number */
-    } else s++;			/* if a digit: go on looking the rest */
-  }
-  return dot ? FLT : INT;
-}
-
-struct token {
-  char str[MAX_TOKLEN];	/* token's string */
-  int sidx;			/* start index in line */
-  int eidx;			/* end index in line */
-  int linum;			/* line number */
-  int id;			/* id of this token (tracked globally) */
-  int comidx;			/* comment indices: 0 = (, 1 = ) */
-  /* bool isprim; */
-  enum __Numtype numtype;	/* the possible nummeric type */
-};
 
 
 
@@ -134,7 +103,7 @@ struct token *tokenize_line(char *line, size_t *line_toks_count, size_t *all_tok
       struct token t;
       memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
-      t.numtype = numtype(t.str);
+      /* t.numtype = numtype(t.str); */
       /* t.isprim = isprim(t.str); */
       t.id = __Tokid++;
       t.sidx = offset + match[0].rm_so;
@@ -232,22 +201,23 @@ struct token *remove_comments(struct token *toks, size_t *nctok_count, size_t al
 }
 
 /* *********************************************************** */
-int main()
-{
-  /* size_t n = 0; */
-  /* char **lns = read_lines("/home/amir/a.let", &n); */
-  /* printf("%zu\n", n); */
-  /* free_lines2(lns, n); */
-  size_t all_tokens_count = 0;
-  struct token *toks = tokenize_source("/home/amir/a.let", &all_tokens_count);
-  size_t nctok_count = 0;
-  struct token *nct = remove_comments(toks, &nctok_count, all_tokens_count);
-  for (size_t i = 0; i<nctok_count;i++) {
-    printf("%zu- %s %d\n", i, nct[i].str, nct[i].numtype);
-  }
-  free(nct);
+
+/* int main() */
+/* { */
+/*   /\* size_t n = 0; *\/ */
+/*   /\* char **lns = read_lines("/home/amir/a.let", &n); *\/ */
+/*   /\* printf("%zu\n", n); *\/ */
+/*   /\* free_lines2(lns, n); *\/ */
+/*   size_t all_tokens_count = 0; */
+/*   struct token *toks = tokenize_source("/home/amir/a.let", &all_tokens_count); */
+/*   size_t nctok_count = 0; */
+/*   struct token *nct = remove_comments(toks, &nctok_count, all_tokens_count); */
+/*   for (size_t i = 0; i<nctok_count;i++) { */
+/*     printf("%zu- %s \n", i, nct[i].str); */
+/*   } */
+/*   free(nct); */
     
-  exit(EXIT_SUCCESS);
-}
+/*   exit(EXIT_SUCCESS); */
+/* } */
 
 /* *********************************************************** */
