@@ -12,9 +12,10 @@ int isdig(char c)
   return ('0' <= c) && (c <= '9');
 }
 enum __Type {
-  NUMBER, LAMBDA
+  NUM_T,
+  LAMBDA_T
 };
-enum __Numtype { NAN, INT, FLT};
+enum __Numtype { NAN, INT, FLT };
 enum __Numtype numtype(char *str)
 {
   bool dot = false;
@@ -34,7 +35,7 @@ enum __Numtype numtype(char *str)
 struct cell {
   /* evaluated values of CAR (caution! unset numbers are zero-initialized??) */
   int ival;
-  double dval;
+  float fval;
   enum __Type type;
   struct token car;
   struct cell *cdr;
@@ -52,22 +53,38 @@ struct env {
   struct env *parenv;		/* parent environment */
 };
 
+void resolve_self_eval(struct cell *cell)
+{
+  enum __Numtype t;
+  if ((t = numtype(cell->car.str))) { /* it's a number */
+    if (t == INT) {
+      cell->ival = atoi(cell->car.str);
+      cell->type = INT;
+    }
+    else { /* must be float */
+      cell->fval = atof(cell->car.str);
+      cell->type = FLT;
+    }			
+  }
+}
+
 /* This should be in a builtins.h or somethign like that! */
 void _addition(struct cell *);
 
 void eval(struct cell *sexp)
 {
   switch (sexp->type) {
-  case NUMBER:
-    if ((numtype((sexp->car).str)) == 1) {
-      sexp->ival = atoi((sexp->car).str);
-      printf("num %d \n", sexp->ival);
-    }
-    else if ((numtype((sexp->car).str)) == 2) /* double */
-      sexp->dval = atof((sexp->car).str);
-    else fprintf(stderr, "numtype not supported");
+  case NUM_T:
+    resolve_self_eval(sexp);
+    /* if ((numtype((sexp->car).str)) == 1) { */
+    /*   sexp->ival = atoi((sexp->car).str); */
+    /*   printf("num %d \n", sexp->ival); */
+    /* } */
+    /* else if ((numtype((sexp->car).str)) == 2) /\* double *\/ */
+    /*   sexp->fval = atof((sexp->car).str); */
+    /* else fprintf(stderr, "numtype not supported"); */
     break;
-  case LAMBDA:
+  case LAMBDA_T:
     _addition(sexp);
   }
 }
@@ -123,9 +140,9 @@ int main()
   /*   printf("TOK-%zu. %s \n", i, nct[i].str); */
   /* } */
 
-  struct cell b = {.car=nct[2], .cdr=NULL, .type=NUMBER};
-  struct cell a = {.car=nct[1], .cdr=&b, .type=NUMBER};
-  struct cell p = {.car=nct[0], .cdr=&a, .type=LAMBDA};
+  struct cell b = {.car=nct[2], .cdr=NULL, .type=NUM_T};
+  struct cell a = {.car=nct[1], .cdr=&b, .type=NUM_T};
+  struct cell p = {.car=nct[0], .cdr=&a, .type=LAMBDA_T};
   eval(&p);
   printf("%d \n", p.ival);
   free(nct);
