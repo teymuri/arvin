@@ -1,7 +1,11 @@
 
+enum __Type {
+  NAN, NUMBER, INTEGER, FLOAT,
+  LAMBDA
+};
 
 #define MAX_TOKLEN 50		/* bytes max token length */
-
+#define TL_TOKEN_STR "__TLToken"
 struct token {
   char str[MAX_TOKLEN];	/* token's string */
   int sidx;			/* start index in line */
@@ -9,7 +13,7 @@ struct token {
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */
-  /* values set at token resolution */
+  enum __Type type;
   int ival;
   double fval;
 };
