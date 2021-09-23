@@ -17,7 +17,8 @@ multiple lines)
 (also (nested (comment blocks) are) valid)
 ```
 
-```
+
+---
 Copyright 2021 Amir Teymuri
 
 This file is part of Let.
@@ -34,4 +35,4 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with Let.  If not, see <https://www.gnu.org/licenses/>.
-```
+
