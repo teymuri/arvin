@@ -1,5 +1,5 @@
-#ifndef _LET_LEXER_H
-# define _LET_LEXER_H
+#ifndef __LETLEXER_H
+#define __LETLEXER_H
 
 enum __Type {
   NUMBER, INTEGER, FLOAT,
