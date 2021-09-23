@@ -22,7 +22,7 @@ enum __Type numtype(char *s)
       if (*s == '.') {
 	dot = true;
 	s++;		
-      } else return NAN;	/* if not a digit and not a dot: Not A Number */
+      } else return UNDEFINED;	/* if not a digit and not a dot: Not A Number */
     } else s++;			/* if a digit: go on looking the rest */
   }
   return dot ? FLOAT : INTEGER;
@@ -95,44 +95,30 @@ bool is_cell_in_block(struct cell c, struct block b)
 
 /* ******************* blocks end ******************* */
 
-
-void guess_type(struct token *t)
+/* passing a token pointer to set it's fields */
+void guess_token_type(struct token *t)
 {
-  enum __Type type;
-  if ((type = (numtype(t->str)))) {
-    if (type == INTEGER) {
+  enum __Type tp;
+  if ((tp = (numtype(t->str)))) {
+    if (tp == INTEGER) {
       t->ival = atoi(t->str);
       t->type = INTEGER;
-    } else {
+    } else if (tp == FLOAT) {
       t->fval = atof(t->str);
       t->type = FLOAT;
     }
+  } else {
+    t->type = UNDEFINED;
   }
 }
-/* { */
-/*   switch (numtype(c->car.str)) { */
-/*   case INTEGER: */
-/*     c->ival = atoi(c->car.str); */
-/*     c->type = INTEGER; */
-/*     break; */
-/*   case FLOAT: */
-/*     c->fval = atof(c->car.str); */
-/*     c->type = FLOAT; */
-/*     break; */
-/*   case NAN: */
-/*     c->type = NAN; */
-/*     break; */
-/*   default: */
-/*     break; */
-/*   } */
-/* } */
+
 
 
 void eval(struct cell *sexp)
 {
   switch (sexp->type) {
   case NUMBER:
-    /* guess_type(sexp); */
+    /* guess_token_type(sexp); */
     printf("type %d %s\n", sexp->type, sexp->car.str);
     break;
   case LAMBDA:
@@ -148,6 +134,7 @@ struct cell *linked_cells(struct token tokens[], size_t count)
   for (size_t i = 0; i < count; i++) {
     struct cell *c = malloc(sizeof(struct cell));
     if (i == 0) base = c;
+    guess_token_type(tokens+i);	/* pass the pointer to the token */
     c->car = tokens[i];
     if (i > 0)
       prev->cdr = c;
@@ -206,7 +193,7 @@ int main()
   struct cell *c = linked_cells(nct, nctok_count);
   struct cell *base = c;
   while (1) {
-    printf("cell %d -> %s\n", c->car.id, c->car.str);    
+    printf("cell %d -> %s of type %s\n", c->car.id, c->car.str, strtype(c->car.type));
     if (c->cdr == NULL) break;
     else c = c->cdr;
   }

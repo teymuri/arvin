@@ -1,8 +1,11 @@
 
 enum __Type {
-  NAN, NUMBER, INTEGER, FLOAT,
-  LAMBDA
+  NUMBER, INTEGER, FLOAT,
+  LAMBDA,
+  UNDEFINED
 };
+
+char *strtype(enum __Type);
 
 #define MAX_TOKLEN 50		/* bytes max token length */
 #define TL_TOKEN_STR "__TLToken"

@@ -23,6 +23,16 @@ int __Tokid = 1;		/* id 0 is reserved for the toplevel
 				   token */
 
 
+char *strtype(enum __Type t)
+{
+  switch (t) {
+  case 0: return "unknown";
+  case 1: return "integer";
+  case 2: return "float";
+  case 3: return "lambda";
+  default: return "undefined";
+  }
+}
 
 
 
