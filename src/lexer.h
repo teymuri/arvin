@@ -1,3 +1,5 @@
+#ifndef _LET_LEXER_H
+# define _LET_LEXER_H
 
 enum __Type {
   NUMBER, INTEGER, FLOAT,
@@ -9,6 +11,7 @@ char *strtype(enum __Type);
 
 #define MAX_TOKLEN 50		/* bytes max token length */
 #define TL_TOKEN_STR "__TLToken"
+
 struct token {
   char str[MAX_TOKLEN];	/* token's string */
   int sidx;			/* start index in line */
@@ -21,6 +24,8 @@ struct token {
   double fval;
 };
 
+
 struct token *tokenize_source(char *, size_t *);
 struct token *remove_comments(struct token *, size_t *, size_t);
 
+#endif
