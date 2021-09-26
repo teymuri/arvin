@@ -7,10 +7,10 @@ enum __Type {
   UNDEFINED
 };
 
-char *strtype(enum __Type);
+char *stringize_type(enum __Type);
 
 #define MAX_TOKLEN 50		/* bytes max token length */
-#define TL_TOKEN_STR "__TLToken"
+#define TLTOKSTR "__ToplevelToken"
 
 struct token {
   char str[MAX_TOKLEN];	/* token's string */
@@ -25,7 +25,7 @@ struct token {
 };
 
 
-struct token *tokenize_source(char *, size_t *);
-struct token *remove_comments(struct token *, size_t *, size_t);
+struct token *tokenize_source__H(char *, size_t *);
+struct token *remove_comments__H(struct token *, size_t *, size_t);
 
 #endif
