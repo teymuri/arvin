@@ -38,6 +38,8 @@ struct cell {
   struct cell *linker;		/* the cell linking into this cell */
 };
 
+char *cellstr(struct cell *c) {return c->car.str;}
+
 typedef void (*lambda_t)(struct cell *);
 struct env;
 /* only symbols will have envs!!! */
@@ -80,7 +82,10 @@ bool is_embedded_in(struct cell c, struct block b)
 }
 
 
-/* all blocks in which the cell is embedded */
+/* all blocks in which the cell is embedded. returns a pointer which
+   points to pointers to block structures, so it's return value must
+   be freed (which doesn't any harm to the actual structure pointers
+   it points to!) */
 struct block **embedding_blocks__Hp(struct cell c, struct block **blocks,
 				   int bcount, int *eb_count)
 {
@@ -109,32 +114,35 @@ struct block **bottommost_blocks__Hp(struct block **embedding_blocks,
 				     int eb_count, int *bmb_count)
 {
   int bln = bottomline(embedding_blocks, eb_count);
-  struct block **bm = NULL;
+  struct block **bmb = NULL;
   for (int i = 0; i < eb_count; i++) {
     if ((*(embedding_blocks + i))->cells[0].car.linum == bln) {
-      if ((bm = realloc(bm, (*bmb_count + 1) * sizeof(struct block *))) != NULL) {
-	*(bm + (*bmb_count)++) = *(embedding_blocks +i);
+      if ((bmb = realloc(bmb, (*bmb_count + 1) * sizeof(struct block *))) != NULL) {
+	*(bmb + (*bmb_count)++) = *(embedding_blocks +i);
       }	else exit(EXIT_FAILURE);
     }
   }
+  /* free the pointer to selected (i.e. embedding) block pointers */
   free(embedding_blocks);
-  return bm;
+  return bmb;
 }
 
 static struct block *rightmost_block__Hp(struct block **bottommost_blocks, int bmb_count)
 {
   int colsidx = -1;			/* start index */
-  struct block *rm;
+  struct block *rmb;
   for (int i = 0; i < bmb_count; i++)
     if ((*(bottommost_blocks+i))->cells[0].car.colsidx > colsidx) {
-      rm = *(bottommost_blocks + i);
-      colsidx = rm->cells[0].car.colsidx;
+      /* pick the hitherto rightmost block (note that the address is
+	 coming from the original blocks in parse__Hp) */
+      rmb = *(bottommost_blocks + i);
+      colsidx = rmb->cells[0].car.colsidx;
     }
   free(bottommost_blocks);
-  return rm;
+  return rmb;
 }
 
-
+/* which one of the blocks is the direct embedding block of c? */
 struct block *embedding_block__Hp(struct cell c, struct block **blocks, int bcount)
 {
   int eb_count = 0;
@@ -279,6 +287,7 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 
   while (c) {
 
+    /* pick the direct embedding block of the current cell out of blocks */
     eblock = embedding_block__Hp(*c, blocks, *bcount);
     if (!strcmp(c->car.str, "+")) {
       if ((blocks = realloc(blocks, (*bcount + 1) * sizeof(struct block *))) != NULL) {
@@ -299,8 +308,7 @@ void free_parser_blocks(struct block **blocks, int bcount)
   /* the first pointer in **blocks points to the tlblock, thats why we
      can't free *(blocks + 0). that first pointer will be freed after
      the loop. */
-  for (int i = 1; i < bcount; i++)
-    free(*(blocks + i));
+  for (int i = 1; i < bcount; i++) free(*(blocks + i));
   free(blocks);
 }
 
