@@ -116,8 +116,8 @@ struct token *tokenize_line__H(char *line, size_t *line_toks_count, size_t *all_
       /* t.numtype = numtype(t.str); */
       /* t.isprim = isprim(t.str); */
       t.id = __Tokid++;
-      t.sidx = offset + match[0].rm_so;
-      t.eidx = t.sidx + tokstrlen;
+      t.colsidx = offset + match[0].rm_so;
+      t.coleidx = t.colsidx + tokstrlen;
       t.linum = linum;
       t.comidx = 0;
       *(tokptr + *line_toks_count) = t;

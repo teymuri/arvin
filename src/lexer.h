@@ -14,8 +14,8 @@ char *stringize_type(enum __Type);
 
 struct token {
   char str[MAX_TOKLEN];	/* token's string */
-  int sidx;			/* start index in line */
-  int eidx;			/* end index in line */
+  int colsidx;			/* start index in line (column start index) */
+  int coleidx;			/* end index in line (column end index) */
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */

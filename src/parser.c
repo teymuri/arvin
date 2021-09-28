@@ -76,7 +76,7 @@ struct block {
 /* is the block b directly or indirectly embedding the cell c? */
 bool is_embedded_in(struct cell c, struct block *b)
 {
-  return (c.car.sidx > b->cells[0].car.sidx) && (c.car.linum >= b->cells[0].car.linum);
+  return (c.car.colsidx > b->cells[0].car.colsidx) && (c.car.linum >= b->cells[0].car.linum);
 }
 
 
@@ -123,14 +123,14 @@ struct block **bottommost_blocks__Hp(struct block **embedding_blocks,
   return bm;
 }
 
-struct block *rightmost_block__Hp(struct block **bottommost_blocks, int bmb_count)
+static struct block *rightmost_block__Hp(struct block **bottommost_blocks, int bmb_count)
 {
-  int sidx = -1;			/* start index */
+  int colsidx = -1;			/* start index */
   struct block *rm;
   for (int i = 0; i < bmb_count; i++)
-    if ((*(bottommost_blocks+i))->cells[0].car.sidx > sidx) {
+    if ((*(bottommost_blocks+i))->cells[0].car.colsidx > colsidx) {
       rm = *(bottommost_blocks + i);
-      sidx = rm->cells[0].car.sidx;
+      colsidx = rm->cells[0].car.colsidx;
     }
   free(bottommost_blocks);
   return rm;
@@ -248,8 +248,8 @@ struct block __TLBlock = {
     {				/* cells[0] */
       /* car token */
       {.str = TLTOKSTR,
-       .sidx = -1,
-       .eidx = 100,
+       .colsidx = -1,
+       .coleidx = 100,
        .linum = -1,
        .id = 0
       },
@@ -275,11 +275,9 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
   /* this is the blocktracker in the python prototype */
   struct block **blocks = malloc(sizeof(struct block *));
   *(blocks + (*bcount)++)  = &__TLBlock;
-  /* blocks[(*bcount)++] = __TLBlock; */
   struct cell *c = linked_cells_root;
   struct block *eblock;
-  /* int bcount = 1;		/\* blocks count, __TLBlock ist schon drin! *\/ */
-  int bid = 1;
+  int bid = 1;			/* block id */
 
   while (c) {
 
@@ -287,8 +285,6 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
     if (!strcmp(c->car.str, "+")) {
       if ((blocks = realloc(blocks, (*bcount + 1) * sizeof(struct block *))) != NULL) {
 	struct block *newb = malloc(sizeof *newb);
-	/* struct block *newb; */
-	/* printf("newblock %p For %s\n", newb, c->car.str); */
 	newb->id = bid++;
 	newb->cells[0] = *c;
 	newb->size = 1;
