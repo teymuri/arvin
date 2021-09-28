@@ -65,10 +65,10 @@ bool knowsym(struct symbol sym, struct env e)
 
 
 int __Blockid = 0;
-#define MAXBLOCKCELLS 10
+#define MAX_BLOCK_SIZE 10
 struct block {
   int id;
-  struct cell cells[MAXBLOCKCELLS];
+  struct cell cells[MAX_BLOCK_SIZE];
   int size;			/* number of cells */
 };
 
