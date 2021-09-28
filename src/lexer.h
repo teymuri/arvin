@@ -10,7 +10,7 @@ enum __Type {
 char *stringize_type(enum __Type);
 
 #define MAX_TOKLEN 50		/* bytes max token length */
-#define TLTOKSTR "__ToplevelToken"
+#define TLTOKSTR "__TLTOKSTR__"
 
 struct token {
   char str[MAX_TOKLEN];	/* token's string */
