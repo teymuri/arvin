@@ -74,9 +74,9 @@ struct block {
 
 
 /* is the block b directly or indirectly embedding the cell c? */
-bool is_embedded_in(struct cell c, struct block *b)
+bool is_embedded_in(struct cell c, struct block b)
 {
-  return (c.car.colsidx > b->cells[0].car.colsidx) && (c.car.linum >= b->cells[0].car.linum);
+  return (c.car.colsidx > b.cells[0].car.colsidx) && (c.car.linum >= b.cells[0].car.linum);
 }
 
 
@@ -86,7 +86,7 @@ struct block **embedding_blocks__Hp(struct cell c, struct block **blocks,
 {
   struct block **eb = NULL;
   for (int i = 0; i < bcount; i++)
-    if (is_embedded_in(c, blocks[i])) {
+    if (is_embedded_in(c, *blocks[i])) {
       if ((eb = realloc(eb, (*eb_count + 1) * sizeof(struct block *))) != NULL)
 	*(eb + (*eb_count)++) = *(blocks + i);
       else exit(EXIT_FAILURE);
@@ -111,12 +111,10 @@ struct block **bottommost_blocks__Hp(struct block **embedding_blocks,
   int bln = bottomline(embedding_blocks, eb_count);
   struct block **bm = NULL;
   for (int i = 0; i < eb_count; i++) {
-    if ((*(embedding_blocks + i))->cells[0].car.linum == bln)
-      {
+    if ((*(embedding_blocks + i))->cells[0].car.linum == bln) {
       if ((bm = realloc(bm, (*bmb_count + 1) * sizeof(struct block *))) != NULL) {
 	*(bm + (*bmb_count)++) = *(embedding_blocks +i);
-      }	
-      else exit(EXIT_FAILURE);
+      }	else exit(EXIT_FAILURE);
     }
   }
   free(embedding_blocks);
