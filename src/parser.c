@@ -46,16 +46,6 @@ struct symbol {
   struct env *env;		/* symbol's environment */
   lambda_t lambda;		/* has a function value? */
 };
-/* This should be in a builtins.h or somethign like that! */
-/* void _addition(struct cell *); */
-/* void add_lambda(lambda_t lam, struct symbol *lams, int *lams_count) */
-/* { */
-/*   lams + lams_count = struct symbol {.lambda=lam, .name="FOO"}; */
-/* } */
-/* int __Builtins_count = 1; */
-/* struct symbol __Builtins[] = { */
-/*   {.lambda=_addition, .name="_addition"} */
-/* }; */
 
 int __Envid = 0;
 
@@ -72,15 +62,13 @@ bool knowsym(struct symbol sym, struct env e)
       return true;
   return false;
 }
-/* *********** blocks start *********** */
+
 
 int __Blockid = 0;
 #define MAXBLOCKCELLS 10
 struct block {
   int id;
   struct cell cells[MAXBLOCKCELLS];
-  /* struct block *emblock;		/\* embedding block *\/ */
-  /* struct env env; */
   int size;			/* number of cells */
 };
 
@@ -97,34 +85,14 @@ struct block **embedding_blocks__Hp(struct cell c, struct block **blocks,
 				   int bcount, int *eb_count)
 {
   struct block **eb = NULL;
-  for (int i = 0; i < bcount; i++) {
+  for (int i = 0; i < bcount; i++)
     if (is_embedded_in(c, blocks[i])) {
       if ((eb = realloc(eb, (*eb_count + 1) * sizeof(struct block *))) != NULL)
-	{
-	  *(eb + (*eb_count)++) = *(blocks + i);
-	  /* printf("Pointers %p == %p = %d\n", *(eb + (*eb_count)-1),*(blocks + i), */
-	  /* 	 *(eb + (*eb_count)-1)==*(blocks + i)); */
-	}
-
+	*(eb + (*eb_count)++) = *(blocks + i);
       else exit(EXIT_FAILURE);
     }
-  }
   return eb;			/* free(eb) */
 }
-/* { */
-/*   struct block *eb = NULL; */
-/*   for (int i = 0; i < bcount; i++) { */
-/*     if (is_embedded_in(c, blocks[i])) { */
-/*       /\* printf("* %s embed in %s[%d]\n", c.car.str, blocks[i].cells[0].car.str, *\/ */
-/*       /\* 	     blocks[i].id); *\/ */
-/*       if ((eb = realloc(eb, (*eb_count + 1) * sizeof(struct block))) != NULL) */
-/* 	eb[(*eb_count)++] = blocks[i]; */
-/*       else exit(EXIT_FAILURE); */
-/*     } */
-/*   } */
-/*   /\* printf("****** bcount %d eb_count %d\n", bcount, *eb_count); *\/ */
-/*   return eb; */
-/* } */
 
 /* returns the max line number */
 int bottomline(struct block **embedding_blocks, int eb_count)
@@ -136,16 +104,6 @@ int bottomline(struct block **embedding_blocks, int eb_count)
   }
   return ln;
 }
-/* int bottomline(struct block *embedding_blocks, int eb_count) */
-/* { */
-/*   int ln = 0; */
-/*   for (int i = 0; i < eb_count; i++) { */
-/*     if (embedding_blocks[i].cells[0].car.linum > ln) { */
-/*       ln = embedding_blocks[i].cells[0].car.linum; */
-/*     } */
-/*   } */
-/*   return ln; */
-/* } */
 
 struct block **bottommost_blocks__Hp(struct block **embedding_blocks,
 				     int eb_count, int *bmb_count)
@@ -165,25 +123,6 @@ struct block **bottommost_blocks__Hp(struct block **embedding_blocks,
   return bm;
 }
 
-
-/* struct block *bottommost_blocks__Hp(struct block *embedding_blocks, */
-/* 				    int eb_count, int *bmb_count) */
-/* /\* eb_count: embedding blocks count *\/ */
-/* { */
-/*   int bln = bottomline(embedding_blocks, eb_count); */
-/*   struct block *bm = NULL; */
-/*   for (int i = 0; i < eb_count; i++) { */
-/*     if (embedding_blocks[i].cells[0].car.linum == bln) */
-/*       { */
-/*       if ((bm = realloc(bm, (*bmb_count + 1) * sizeof(struct block))) != NULL) { */
-/* 	bm[(*bmb_count)++] = embedding_blocks[i]; */
-/*       }	 */
-/*       else exit(EXIT_FAILURE); */
-/*     } */
-/*   } */
-/*   return bm; */
-/* } */
-
 struct block *rightmost_block__Hp(struct block **bottommost_blocks, int bmb_count)
 {
   int sidx = -1;			/* start index */
@@ -196,18 +135,6 @@ struct block *rightmost_block__Hp(struct block **bottommost_blocks, int bmb_coun
   free(bottommost_blocks);
   return rm;
 }
-/* struct block *rightmost_block__Hp(struct block *bottommost_blocks, int bmb_count) */
-/* { */
-/*   int sidx = -1;			/\* start index *\/ */
-/*   struct block *rm; */
-/*   for (int i = 0; i < bmb_count; i++) */
-/*     if (bottommost_blocks[i].cells[0].car.sidx > sidx) { */
-/*       /\* printf("%p\n", bottommost_blocks + i); *\/ */
-/*       rm = bottommost_blocks + i; */
-/*       sidx = rm->cells[0].car.sidx; */
-/*     } */
-/*   return rm; */
-/* } */
 
 
 struct block *embedding_block__Hp(struct cell c, struct block **blocks, int bcount)
@@ -219,17 +146,6 @@ struct block *embedding_block__Hp(struct cell c, struct block **blocks, int bcou
 							  &bmb_count);
   return rightmost_block__Hp(bottommost_blocks, bmb_count);
 }
-/* struct block *embedding_block__Hp(struct cell c, struct block *blocks, int bcount) */
-/* { */
-/*   int eb_count = 0; */
-/*   struct block *embedding_blocks = embedding_blocks__Hp(c, blocks, bcount, &eb_count); */
-/*   int bmb_count = 0; */
-/*   struct block *bottommost_blocks = bottommost_blocks__Hp(embedding_blocks, eb_count, */
-/* 							  &bmb_count); */
-/*   return rightmost_block__Hp(bottommost_blocks, bmb_count); */
-/* } */
-
-/* ******************* blocks end ******************* */
 
 /* passing a token pointer to set it's fields */
 void guess_token_type(struct token *t)
@@ -284,18 +200,18 @@ struct cell *linked_cells__H(struct token tokens[], size_t count)
   return root;
 }
 
-struct cell *doubly_linked_cells(struct cell *c)
-{
-  struct cell *root = c;	/* keep the address of root for return */
-  struct cell *curr = NULL;		/* current cell */
-  while (c->cdr) {
-    c->linker = curr;
-    curr = c;
-    c = c->cdr;
-  }
-  c->linker = curr;
-  return root;
-}
+/* struct cell *doubly_linked_cells(struct cell *c) */
+/* { */
+/*   struct cell *root = c;	/\* keep the address of root for return *\/ */
+/*   struct cell *curr = NULL;		/\* current cell *\/ */
+/*   while (c->cdr) { */
+/*     c->linker = curr; */
+/*     curr = c; */
+/*     c = c->cdr; */
+/*   } */
+/*   c->linker = curr; */
+/*   return root; */
+/* } */
 
 void free_linked_cells(struct cell *c)
 {
@@ -353,27 +269,6 @@ struct block __TLBlock = {
   1
 };
 
-
-bool islex(struct cell c)
-{
-  static char *lexical_block_builders[] = {
-    "name", "lambda"
-  };
-  static int count = 2;
-  for (int i = 0; i < count; i++)
-    if (!strcmp(c.car.str, lexical_block_builders[i]))
-      return true;
-  return false;
-}
-
-/* void append_cell(struct block *b, struct cell c) */
-/* { */
-/*   for (int i = 0; i < b->size; i++) { */
-/*     b->head = *(b->head.in_block_cdr); */
-/*   } */
-/*   *b->head.in_block_cdr = c; */
-/*   b->size++; */
-/* } */
 
 struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 {
