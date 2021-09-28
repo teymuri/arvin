@@ -127,7 +127,7 @@ struct block **bottommost_blocks__Hp(struct block **embedding_blocks,
   return bmb;
 }
 
-static struct block *rightmost_block__Hp(struct block **bottommost_blocks, int bmb_count)
+static struct block *rightmost_block(struct block **bottommost_blocks, int bmb_count)
 {
   int colsidx = -1;			/* start index */
   struct block *rmb;
@@ -143,14 +143,14 @@ static struct block *rightmost_block__Hp(struct block **bottommost_blocks, int b
 }
 
 /* which one of the blocks is the direct embedding block of c? */
-struct block *embedding_block__Hp(struct cell c, struct block **blocks, int bcount)
+struct block *embedding_block(struct cell c, struct block **blocks, int bcount)
 {
   int eb_count = 0;
   struct block **embedding_blocks = embedding_blocks__Hp(c, blocks, bcount, &eb_count);
   int bmb_count = 0;
   struct block **bottommost_blocks = bottommost_blocks__Hp(embedding_blocks, eb_count,
 							  &bmb_count);
-  return rightmost_block__Hp(bottommost_blocks, bmb_count);
+  return rightmost_block(bottommost_blocks, bmb_count);
 }
 
 /* passing a token pointer to set it's fields */
@@ -288,7 +288,7 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
   while (c) {
 
     /* pick the direct embedding block of the current cell out of blocks */
-    eblock = embedding_block__Hp(*c, blocks, *bcount);
+    eblock = embedding_block(*c, blocks, *bcount);
     if (!strcmp(c->car.str, "+")) {
       if ((blocks = realloc(blocks, (*bcount + 1) * sizeof(struct block *))) != NULL) {
 	struct block *newb = malloc(sizeof *newb);
