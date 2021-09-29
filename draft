@@ -1,4 +1,39 @@
 
+(lexical stuff)
+varlet
+funlet
+maclet
+
+(always global stuff)
+defun (Funktion)
+defmac (Macro)
+defcon (Konstante)
+defvar (Variablen)
+defsys (System)
+
+defun FOO x: y: + x 2 (ist `+ x 2` body oder default für y:?)
+defun FOO x: y:= + x 2 (:= means assignment) z: + x y z
+(jetzt ist es eindeutig, dass `+ x y z` body ist und nicht default für z:)
+defun FOO x: (=> unspecified, this will be interpreted as `x:= nil`)
+ y:= x &rest:= list 123
+ cons y rest
+
+(some calls:)
+FOO (=> `list nil 123`)
+FOO y: 0 (=> `list 0 123`)
+FOO y:0 rest: list 1 2 3 (=> `list 0 1 2 3`)
+FOO -2 (=> das ist x hier) -1 (und das ist y) (=> `list -1 123`)
+FOO -2 (=> `list -2 123`, wir haben nur das x gegeben)
+FOO -2 -1 0 1 2 3 4 5 6 (=> `list -2 -1 0 1 2 3 4 5 6`, ab 0 beginnt das rest)
+
+
+defvar z 34 (Globale Varaible definiert)
+varlet x: 10 y:= x
+  z:=
+   * y x
+  + z 0.5 (=> 100.5)
+
+-----------------------------
 (Quoting)(: quote function: do not lookup values of names, just use their
 string-representation)
 quote list 1
