@@ -66,7 +66,7 @@ bool knowsym(struct symbol sym, struct env e)
 }
 
 
-int __Blockid = 0;
+/* int __Blockid = 0; */
 #define MAX_BLOCK_SIZE 10
 struct block {
   int id;
@@ -75,7 +75,7 @@ struct block {
 };
 
 
-/* is the block b directly or indirectly embedding the cell c? */
+/* is b directly or indirectly embedding c? */
 bool is_embedded_in(struct cell c, struct block b)
 {
   return (c.car.colsidx > b.cells[0].car.colsidx) && (c.car.linum >= b.cells[0].car.linum);
