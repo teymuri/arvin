@@ -53,7 +53,7 @@ int isempty(char *s)
 
 
 
-char **read_lines(char *path, size_t *count)
+char **read_lines__Hp(char *path, size_t *count)
 {
   FILE *stream;
   stream = fopen(path, "r");
@@ -87,7 +87,7 @@ void free_lines(char **lines, size_t count)
 
 
 
-struct token *tokenize_line__H(char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum)
+struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum)
 {
   regex_t re;
   int errcode;			
@@ -137,19 +137,19 @@ struct token *tokenize_line__H(char *line, size_t *line_toks_count, size_t *all_
 
 
 
-struct token *tokenize_source__H(char *path, size_t *all_tokens_count)
+struct token *tokenize_source__Hp(char *path, size_t *all_tokens_count)
 {
   size_t lines_count = 0;
-  char **lines = read_lines(path, &lines_count);
+  char **lines = read_lines__Hp(path, &lines_count);
   struct token *tokens = NULL;
   struct token *lntoks = NULL;
   size_t line_toks_count, global_toks_count_cpy;
   for (size_t l = 0; l < lines_count; l++) {
     line_toks_count = 0;
     /* take a snapshot of the number of source tokens sofar, before
-       it's changed by tokenize_line__H */
+       it's changed by tokenize_line__Hp */
     global_toks_count_cpy = *all_tokens_count;
-    lntoks = tokenize_line__H(lines[l], &line_toks_count, all_tokens_count, l);
+    lntoks = tokenize_line__Hp(lines[l], &line_toks_count, all_tokens_count, l);
     if ((tokens = realloc(tokens, *all_tokens_count * sizeof(struct token))) != NULL) {
       for (size_t i = 0; i < line_toks_count; i++) {
 	*(tokens + i + global_toks_count_cpy) = lntoks[i];
@@ -164,14 +164,8 @@ struct token *tokenize_source__H(char *path, size_t *all_tokens_count)
   return tokens;
 }
 
-int iscom_open(struct token tok)
-{
-  return !strcmp(tok.str, COMMOP);
-}
-int iscom_close(struct token tok)
-{
-  return !strcmp(tok.str, COMMCL);
-}
+int iscom_open(struct token tok) {return !strcmp(tok.str, COMMOP);}
+int iscom_close(struct token tok) {return !strcmp(tok.str, COMMCL);}
 
 /* comment index 1 is the start of an outer-most comment block. this
    function is the equivalent of set_commidx_ip(toks) in the let.py
@@ -187,7 +181,7 @@ void index_comments(struct token *tokens, size_t all_tokens_count)
   }
 }
 
-struct token *remove_comments__H(struct token *toks, size_t *nctok_count, size_t all_tokens_count) /* nct = non-comment token */
+struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count, size_t all_tokens_count) /* nct = non-comment token */
 {
   index_comments(toks, all_tokens_count);
   struct token *nctoks = NULL;	/* non-comment tokens */
@@ -215,13 +209,13 @@ struct token *remove_comments__H(struct token *toks, size_t *nctok_count, size_t
 /* int main() */
 /* { */
 /*   /\* size_t n = 0; *\/ */
-/*   /\* char **lns = read_lines("/home/amir/a.let", &n); *\/ */
+/*   /\* char **lns = read_lines__Hp("/home/amir/a.let", &n); *\/ */
 /*   /\* printf("%zu\n", n); *\/ */
 /*   /\* free_lines2(lns, n); *\/ */
 /*   size_t all_tokens_count = 0; */
-/*   struct token *toks = tokenize_source__H("/home/amir/a.let", &all_tokens_count); */
+/*   struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
 /*   size_t nctok_count = 0; */
-/*   struct token *nct = remove_comments__H(toks, &nctok_count, all_tokens_count); */
+/*   struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count); */
 /*   for (size_t i = 0; i<nctok_count;i++) { */
 /*     printf("%zu- %s \n", i, nct[i].str); */
 /*   } */

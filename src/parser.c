@@ -315,9 +315,9 @@ void free_parser_blocks(struct block **blocks, int bcount)
 int main()
 {
   size_t all_tokens_count = 0;
-  struct token *toks = tokenize_source__H("/home/amir/a.let", &all_tokens_count);
+  struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count);
   size_t nctok_count = 0;
-  struct token *nct = remove_comments__H(toks, &nctok_count, all_tokens_count);
+  struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
   
   /* for (size_t i = 0; i<nctok_count;i++) { */
   /*   printf("TOK-%zu. %s \n", i, nct[i].str); */
