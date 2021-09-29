@@ -67,8 +67,8 @@ char **read_lines__Hp(char *path, size_t *count)
   while ((getline(&lineptr, &n, stream) != -1)) {
     if (!isempty(lineptr)) {
       /* increment *count first, otherwise realloc will be called with size 0 :-O */
-      if ((srclns = realloc(srclns, ++*count * sizeof(char *))) != NULL) {
-	*(srclns + *count - 1) = lineptr;
+      if ((srclns = realloc(srclns, (*count + 1) * sizeof(char *))) != NULL) {
+	*(srclns + (*count)++) = lineptr;
 	lineptr = NULL;
       } else exit(EXIT_FAILURE);
     }

@@ -341,7 +341,7 @@ int main()
   /* } */
   printf("=====\nbcount %d\n", bcount);
   for (int i = 0; i <bcount;i++) {
-    printf("id %d, sz %d head %s\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str);
+    printf("id %d, sz %d head[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str);
     for (int j = 0; j<b[i]->size;j++)
       printf("  str %s\n", b[i]->cells[j].car.str);
   }
