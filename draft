@@ -20,7 +20,7 @@ defun FOO x: (=> unspecified, this will be interpreted as `x:= nil`)
 
 (some calls:)
 FOO (=> `list nil 123`)
-(in function call use the assignment syntax)
+(in function call use the assignment syntax?)
 FOO y:= 0 (=> `list 0 123`)
 FOO y:= 0 rest:= list 1 2 3 (=> `list 0 1 2 3`)
 FOO -2 (=> das ist x hier) -1 (und das ist y) (=> `list -1 123`)
