@@ -339,7 +339,7 @@ int main()
   /*   if (c->cdr == NULL) break; */
   /*   else c = c->cdr; */
   /* } */
-  printf("=====\nbcount %d\n", bcount);
+  printf("=====\nblock count: %d\n", bcount);
   for (int i = 0; i <bcount;i++) {
     printf("id %d, sz %d head[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str);
     for (int j = 0; j<b[i]->size;j++)
