@@ -41,13 +41,36 @@ struct cell {
 char *cellstr(struct cell *c) {return c->car.str;}
 
 typedef void (*lambda_t)(struct cell *);
+
 struct env;
+
 /* only symbols will have envs!!! */
 struct symbol {
+  int id;
   char *name;
   struct env *env;		/* symbol's environment */
   lambda_t lambda;		/* has a function value? */
+  struct symbol *next;		/* order to use inside environment */
 };
+
+
+/* builtin functions */
+char *__Builtins[] = {
+  "+", "*", "-", "/"
+};
+int __Builtins_count = 4;
+
+/* is the cell c a builtin? */
+bool isbuiltin(struct cell *c)
+{
+  for (int i = 0; i < __Builtins_count; i++)
+    if (!strcmp(cellstr(c), __Builtins[i]))
+      return true;
+  return false;
+}
+
+
+
 
 int __Envid = 0;
 
@@ -57,13 +80,6 @@ struct env {
   int syms_count;
   struct env *parenv;		/* parent environment */
 };
-bool knowsym(struct symbol sym, struct env e)
-{
-  for (int i = 0; i < e.syms_count; i++)
-    if (!strcmp(sym.name, e.syms[i].name))
-      return true;
-  return false;
-}
 
 
 /* int __Blockid = 0; */
@@ -274,7 +290,9 @@ struct block __TLBlock = {
   /* size */
   1
 };
-
+/* 
+valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./tst 
+*/
 
 struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 {
@@ -289,7 +307,8 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 
     /* pick the direct embedding block of the current cell out of blocks */
     eblock = embedding_block(*c, blocks, *bcount);
-    if (!strcmp(c->car.str, "+")) {
+    if (isbuiltin(c)) {
+      printf("* builtin %d %s\n", isbuiltin(c), cellstr(c));
       if ((blocks = realloc(blocks, (*bcount + 1) * sizeof(struct block *))) != NULL) {
 	struct block *newb = malloc(sizeof *newb);
 	newb->id = bid++;
@@ -339,7 +358,7 @@ int main()
   /*   if (c->cdr == NULL) break; */
   /*   else c = c->cdr; */
   /* } */
-  printf("=====\nblock count: %d\n", bcount);
+  printf("=======================\nblock count: %d\n", bcount);
   for (int i = 0; i <bcount;i++) {
     printf("id %d, sz %d head[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str);
     for (int j = 0; j<b[i]->size;j++)
