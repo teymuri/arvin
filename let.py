@@ -534,18 +534,18 @@ def interpstr(s):
     return eval_(parse(rmcomm(tokenize_str(s))), tlenv)
 
 
-import argparse
-argparser = argparse.ArgumentParser(description='Process Source.')
-argparser.add_argument("-s", nargs="+", required=True)
-args = argparser.parse_args()
-# Eval lang-core first
-for src in ["toplevel.let"]:
-    with open(src, "r") as s:
-        interpstr(s.read())
-# Jetzt das _Zeug vom user
-for src in args.s:
-    with open(src, "r") as s:
-        interpstr(s.read())
+# import argparse
+# argparser = argparse.ArgumentParser(description='Process Source.')
+# argparser.add_argument("-s", nargs="+", required=True)
+# args = argparser.parse_args()
+# # Eval lang-core first
+# for src in ["toplevel.let"]:
+#     with open(src, "r") as s:
+#         interpstr(s.read())
+# # Jetzt das _Zeug vom user
+# for src in args.s:
+#     with open(src, "r") as s:
+#         interpstr(s.read())
 
 
 
@@ -584,7 +584,10 @@ name tl ja
         f p1
 pret f2 2
 """
-
+s="""
+pret + 2 * 2 2
+       + 1 1 2
+"""
 # print(tokenize_str(s))
 # print(parse(tokenize_str(s)).body[2].body[2].body[1].body[1].body[1].body[1].body)
-# interpstr(s)
+interpstr(s)

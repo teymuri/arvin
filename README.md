@@ -1,4 +1,12 @@
 # Let
+## The operator on line
+The rightmost operator on line is applied, the the one before it and so on.
+If there is a line **without** any operators, the operands are considered to be in the block of their operator 1, 2, 3, 4, ... lines above.
+```
++ 2 3 + 4 5
+  6 7 8 9
+```
+the second line consists of only operands (no own operators), so 9 is considered to be in the block of the 2d + line 1 `+ 4 5 9`
 
 ## Comments
 Comments in Let are written using `(` and `)` tokens. Let will ignore
