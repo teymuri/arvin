@@ -263,7 +263,7 @@ void free_linked_cells(struct cell *c)
 /*   base->ival = i; */
 /* } */
 
-struct block __TLBlock = {
+struct block __GBlock = {
   /* id */
   0,
   {				/* cells[] */
@@ -298,14 +298,14 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 {
   /* this is the blocktracker in the python prototype */
   struct block **blocks = malloc(sizeof(struct block *));
-  *(blocks + (*bcount)++)  = &__TLBlock;
+  *(blocks + (*bcount)++)  = &__GBlock;
   struct cell *c = linked_cells_root;
   struct block *eblock;
   int bid = 1;			/* block id */
 
   while (c) {
 
-    /* pick the direct embedding block of the current cell out of blocks */
+    /* find out the direct embedding block of the current cell */
     eblock = embedding_block(*c, blocks, *bcount);
     if (isbuiltin(c)) {
       printf("* builtin %d %s\n", isbuiltin(c), cellstr(c));
@@ -333,8 +333,15 @@ void free_parser_blocks(struct block **blocks, int bcount)
 
 int main()
 {
+
+  char *srclns[3] = {
+    "+ 2 3 4",
+    "  5 6 7",
+    "* 10 20"
+  };
   size_t all_tokens_count = 0;
-  struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count);
+  /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
+  struct token *toks = tokenize_srclns__Hp(srclns, 3, &all_tokens_count);
   size_t nctok_count = 0;
   struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
   
@@ -342,43 +349,26 @@ int main()
   /*   printf("TOK-%zu. %s \n", i, nct[i].str); */
   /* } */
 
-  /* struct cell b = {.car=nct[2], .cdr=NULL, .type=NUMBER}; */
-  /* struct cell a = {.car=nct[1], .cdr=&b, .type=NUMBER}; */
-  /* struct cell p = {.car=nct[0], .cdr=&a, .type=LAMBDA}; */
-  /* eval(&p); */
-  /* printf("%d \n", p.ival); */
-
   struct cell *c = linked_cells__H(nct, nctok_count);
   struct cell *base = c;
+  
   int bcount = 0;
   struct block **b = parse__Hp(c, &bcount);
 
-  /* while (1) { */
-  /*   printf("cell %d -> %s [type] %s [linker] %s [CDR] %s\n", c->car.id, c->car.str, stringize_type(c->car.type), c->linker->car.str, c->cdr->car.str); */
-  /*   if (c->cdr == NULL) break; */
-  /*   else c = c->cdr; */
-  /* } */
   printf("=======================\nblock count: %d\n", bcount);
   for (int i = 0; i <bcount;i++) {
     printf("id %d, sz %d head[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str);
     for (int j = 0; j<b[i]->size;j++)
       printf("  str %s\n", b[i]->cells[j].car.str);
   }
+  
   free_parser_blocks(b, bcount);
-  /* free(b); */
-  free_linked_cells(base);  
+  
+  free_linked_cells(base);
+  
   free(nct);
     
   exit(EXIT_SUCCESS);
 
-  /* //struct cell *(*p)(struct cell *a); */
-  /* struct symbol s = {.lambda = f, .name="addition"}; */
-  /* struct cell z = {.icar=3, .cdr=NULL}; */
-  /* struct cell b ={.icar =10, .cdr=&z}; */
-  /* struct cell a = {.icar =4, .cdr =&b}; */
-  /* struct cell *ant =s.lambda(&b); /\* lambda member funktioniert! *\/ */
-  /* printf("%s %d\n", s.name, ant->icar); */
 
-  /* free(ant); */
-  /* return 0; */
 }

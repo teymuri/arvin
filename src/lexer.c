@@ -136,7 +136,6 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
 }
 
 
-
 struct token *tokenize_source__Hp(char *path, size_t *all_tokens_count)
 {
   size_t lines_count = 0;
@@ -164,6 +163,32 @@ struct token *tokenize_source__Hp(char *path, size_t *all_tokens_count)
   return tokens;
 }
 
+struct token *tokenize_srclns__Hp(char **srclns, size_t lines_count,
+				  size_t *all_tokens_count)
+{
+  struct token *tokens = NULL;
+  struct token *lntoks = NULL;
+  size_t line_toks_count, global_toks_count_cpy;
+  for (size_t l = 0; l < lines_count; l++) {
+    line_toks_count = 0;
+    /* take a snapshot of the number of source tokens sofar, before
+       it's changed by tokenize_line__Hp */
+    global_toks_count_cpy = *all_tokens_count;
+    lntoks = tokenize_line__Hp(srclns[l], &line_toks_count, all_tokens_count, l);
+    if ((tokens = realloc(tokens, *all_tokens_count * sizeof(struct token))) != NULL) {
+      for (size_t i = 0; i < line_toks_count; i++) {
+	*(tokens + i + global_toks_count_cpy) = lntoks[i];
+      }
+    } else {
+      exit(EXIT_FAILURE);
+    }
+    free(lntoks);
+    lntoks=NULL;
+  }
+  return tokens;
+}
+
+
 int iscom_open(struct token tok) {return !strcmp(tok.str, COMMOP);}
 int iscom_close(struct token tok) {return !strcmp(tok.str, COMMCL);}
 
@@ -181,7 +206,8 @@ void index_comments(struct token *tokens, size_t all_tokens_count)
   }
 }
 
-struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count, size_t all_tokens_count) /* nct = non-comment token */
+struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count,
+				  size_t all_tokens_count) /* nct = non-comment token */
 {
   index_comments(toks, all_tokens_count);
   struct token *nctoks = NULL;	/* non-comment tokens */
@@ -208,19 +234,20 @@ struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count, size_
 
 /* int main() */
 /* { */
-/*   /\* size_t n = 0; *\/ */
-/*   /\* char **lns = read_lines__Hp("/home/amir/a.let", &n); *\/ */
-/*   /\* printf("%zu\n", n); *\/ */
-/*   /\* free_lines2(lns, n); *\/ */
+/*   char *strarr[2] = { */
+/*     "pret + 2 3", */
+/*     "       40 5" */
+/*   }; */
 /*   size_t all_tokens_count = 0; */
-/*   struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
+/*   /\* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); *\/ */
+/*   struct token *toks = tokenize_srclns__Hp(strarr, 2, &all_tokens_count); */
 /*   size_t nctok_count = 0; */
 /*   struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count); */
+/*   printf(">>> %zu\n", all_tokens_count); */
 /*   for (size_t i = 0; i<nctok_count;i++) { */
 /*     printf("%zu- %s \n", i, nct[i].str); */
 /*   } */
-/*   free(nct); */
-    
+/*   free(nct);     */
 /*   exit(EXIT_SUCCESS); */
 /* } */
 
