@@ -334,14 +334,14 @@ void free_parser_blocks(struct block **blocks, int bcount)
 int main()
 {
 
-  char *srclns[3] = {
+  char *lines[3] = {
     "+ 2 3 4",
-    "  5 6 7",
-    "* 10 + 20 30"
+    "  5 + 6 7",
+    " 10 20 30"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
-  struct token *toks = tokenize_lines__Hp(srclns, 3, &all_tokens_count);
+  struct token *toks = tokenize_lines__Hp(lines, 3, &all_tokens_count);
   size_t nctok_count = 0;
   struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
   
