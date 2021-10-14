@@ -263,7 +263,7 @@ void free_linked_cells(struct cell *c)
 /*   base->ival = i; */
 /* } */
 
-struct block __GBlock = {
+struct block __TLBlock = {
   /* id */
   0,
   {				/* cells[] */
@@ -298,7 +298,7 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 {
   /* this is the blocktracker in the python prototype */
   struct block **blocks = malloc(sizeof(struct block *));
-  *(blocks + (*bcount)++)  = &__GBlock;
+  *(blocks + (*bcount)++)  = &__TLBlock;
   struct cell *c = linked_cells_root;
   struct block *eblock;
   int bid = 1;			/* block id */
@@ -337,7 +337,7 @@ int main()
   char *srclns[3] = {
     "+ 2 3 4",
     "  5 6 7",
-    "* 10 20"
+    "* 10 + 20 30"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
