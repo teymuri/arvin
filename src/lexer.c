@@ -163,7 +163,7 @@ struct token *tokenize_source__Hp(char *path, size_t *all_tokens_count)
   return tokens;
 }
 
-struct token *tokenize_srclns__Hp(char **srclns, size_t lines_count,
+struct token *tokenize_lines__Hp(char **srclns, size_t lines_count,
 				  size_t *all_tokens_count)
 {
   struct token *tokens = NULL;
@@ -240,7 +240,7 @@ struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count,
 /*   }; */
 /*   size_t all_tokens_count = 0; */
 /*   /\* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); *\/ */
-/*   struct token *toks = tokenize_srclns__Hp(strarr, 2, &all_tokens_count); */
+/*   struct token *toks = tokenize_lines__Hp(strarr, 2, &all_tokens_count); */
 /*   size_t nctok_count = 0; */
 /*   struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count); */
 /*   printf(">>> %zu\n", all_tokens_count); */

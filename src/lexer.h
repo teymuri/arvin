@@ -26,7 +26,7 @@ struct token {
 
 
 struct token *tokenize_source__Hp(char *, size_t *);
-struct token *tokenize_srclns__Hp(char **, size_t, size_t *);
+struct token *tokenize_lines__Hp(char **, size_t, size_t *);
 struct token *remove_comments__Hp(struct token *, size_t *, size_t);
 
 #endif

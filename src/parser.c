@@ -341,7 +341,7 @@ int main()
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
-  struct token *toks = tokenize_srclns__Hp(srclns, 3, &all_tokens_count);
+  struct token *toks = tokenize_lines__Hp(srclns, 3, &all_tokens_count);
   size_t nctok_count = 0;
   struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
   
