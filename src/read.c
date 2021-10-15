@@ -7,8 +7,32 @@
 #include <string.h>
 /* #define NDEBUG */
 #include <assert.h>
-#include "lexer.h"
+/* #include "lexer.h" */
 
+
+
+enum __Type {
+  NUMBER, INTEGER, FLOAT,
+  LAMBDA,
+  UNDEFINED
+};
+
+char *stringize_type(enum __Type);
+
+#define MAX_TOKLEN 50		/* bytes max token length */
+#define TLTOKSTR "__TLTOKSTR__"
+
+struct token {
+  char str[MAX_TOKLEN];	/* token's string */
+  int colsidx;			/* start index in line (column start index) */
+  int coleidx;			/* end index in line (column end index) */
+  int linum;			/* line number */
+  int id;			/* id of this token (tracked globally) */
+  int comidx;			/* comment indices: 0 = (, 1 = ) */
+  enum __Type type;
+  int ival;
+  double fval;
+};
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 
@@ -587,7 +611,7 @@ int main()
   char *lines[3] = {
     "+ 2 3 4",
     "  5 + 6 7",
-    " 10 20 * 30"
+    " 10 20 30"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
