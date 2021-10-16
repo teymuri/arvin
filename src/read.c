@@ -1,3 +1,10 @@
+/*
+if using glib compile with:
+
+gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedantic -o /tmp/read read.c
+
+*/
+
 #define _GNU_SOURCE
 #include <stdlib.h>
 #include <stdbool.h>
@@ -7,7 +14,7 @@
 #include <string.h>
 /* #define NDEBUG */
 #include <assert.h>
-/* #include "lexer.h" */
+#include <glib.h>
 
 
 
@@ -314,6 +321,8 @@ struct cell {
 
 char *cellstr(struct cell *c) {return c->car.str;}
 
+
+/* Type Lambda */
 typedef void (*lambda_t)(struct cell *);
 
 struct env;
@@ -322,10 +331,31 @@ struct env;
 struct symbol {
   int id;
   char *name;
-  struct env *env;		/* symbol's environment */
+  /* struct env *env;		/\* symbol's environment *\/ */
   lambda_t lambda;		/* has a function value? */
-  struct symbol *next;		/* order to use inside environment */
+  int ival;
+  char *sval;
 };
+
+/* 
+defun add x: y: + x y
+
+
+ */
+/* void let_add(struct cell *args) */
+/* { */
+/*   struct cell *base = args; */
+/*   int i = 0;		/\* ival of + *\/ */
+/*   do { */
+/*     args = args->cdr; */
+/*     eval(args); */
+/*     i += args->ival; */
+/*   } while (args->cdr != NULL); */
+/*   base->ival = i; */
+/* } */
+/* 
+defun f 
+ */
 
 
 /* builtin functions */
@@ -350,17 +380,27 @@ int __Envid = 0;
 
 struct env {
   int id;
-  struct symbol *syms;			/* in env known names */
-  int syms_count;
+  GHashTable *syms_ht;
   struct env *parenv;		/* parent environment */
 };
+
+struct env *make_env__Hp(int id, struct env *parenv)
+{
+  struct env *e = malloc(sizeof(struct env));
+  e->id = id;
+  e->syms_ht = g_hash_table_new(g_str_hash, g_str_equal);
+  e->parenv = parenv;
+  return e;
+}
 
 
 /* int __Blockid = 0; */
 #define MAX_BLOCK_SIZE 10
+
 struct block {
   int id;
   struct cell cells[MAX_BLOCK_SIZE];
+  struct env env;
   int size;			/* number of cells */
 };
 
@@ -518,29 +558,12 @@ void free_linked_cells(struct cell *c)
     free(tmp);
   }
 }
-/*
- ----------     -----------
-|    |  *--|-->|    | NULL |
- ----------     -----------
-*/
-/* _apply(struct cell *(*f)(struct cell *), struct cell *args) */
-
-/* void _addition(struct cell *args) */
-/* { */
-/*   struct cell *base = args; */
-/*   int i = 0;		/\* ival of + *\/ */
-/*   do { */
-/*     args = args->cdr; */
-/*     eval(args); */
-/*     i += args->ival; */
-/*   } while (args->cdr != NULL); */
-/*   base->ival = i; */
-/* } */
 
 struct block __TLBlock = {
   /* id */
   0,
-  {				/* cells[] */
+  /* cells */
+  {
     {				/* cells[0] */
       /* car token */
       {.str = TLTOKSTR,
@@ -559,13 +582,24 @@ struct block __TLBlock = {
       NULL
     }
   },
-  /* /\* embedding block *\/ */
-  /* NULL, */
+  /* env (Toplevel Environment) */
+  {
+    /* id */
+    0,
+    /* syms (GHashtable *), must be populated yet */
+    NULL,
+    /* parenv */
+    NULL
+  },
   /* size */
   1
 };
+
+
+
+
 /* 
-valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./tst 
+valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
 struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
@@ -607,6 +641,7 @@ void free_parser_blocks(struct block **blocks, int bcount)
 #define X 6
 int main()
 {
+
   char *lines[X] = {
     "+ 2 3 4",
     "  5 + 6 7",
