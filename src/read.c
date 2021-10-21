@@ -14,15 +14,26 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <string.h>
 /* #define NDEBUG */
 #include <assert.h>
-/* #include <glib.h> */
+#include <glib.h>
 
 
 
 enum __Type {
   NUMBER, INTEGER, FLOAT,
-  LAMBDA,
+  SYMBOL,
   UNDEFINED
 };
+
+char *stringize_type(enum __Type t)
+{
+  switch (t) {
+  case 0: return "UNKNOWN/NUMBER?";
+  case 1: return "INTEGER";
+  case 2: return "FLOAT";
+  case 3: return "SYMBOL";
+  default: return "UNDEFINED";
+  }
+}
 
 char *stringize_type(enum __Type);
 
@@ -37,14 +48,17 @@ struct token {
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */
   enum __Type type;
-  int ival;
-  double fval;
+  /* int ival; */
+  /* double fval; */
 };
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 
 #define COMMOP "("		/* comment opening token */
 #define COMMCL ")"		/* comment closing token */
+
+
+
 
 /* naming convention:
    global variables have 2 leading underscores and a Capital letter
@@ -54,16 +68,6 @@ int __Tokid = 1;		/* id 0 is reserved for the toplevel
 				   token */
 
 
-char *stringize_type(enum __Type t)
-{
-  switch (t) {
-  case 0: return "unknown";
-  case 1: return "integer";
-  case 2: return "float";
-  case 3: return "lambda";
-  default: return "undefined";
-  }
-}
 
 
 
@@ -116,13 +120,12 @@ void free_lines(char **lines, size_t count)
   free(base);
 }
 
-
-
+/* Generates tokens */
 struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum)
 {
   regex_t re;
   int errcode;			
-  if ((errcode = regcomp(&re, TOKPATT, REG_EXTENDED))) { /* compilation failed */
+  if ((errcode = regcomp(&re, TOKPATT, REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
     size_t buff_size = regerror(errcode, &re, NULL, 0); /* inspect the required buffer size */
     char buff[buff_size+1];	/* need +1 for the null terminator??? */
     (void)regerror(errcode, &re, buff, buff_size);
@@ -130,6 +133,35 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
     fprintf(stderr, "regcomp failed with: %s\n", buff);
     exit(errcode);
   }
+
+  /* For type guessing */
+  regex_t reint, refloat, resym;
+  if ((errcode = regcomp(&reint, "^[0-9]+$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+    size_t buff_size = regerror(errcode, &reint, NULL, 0); /* inspect the required buffer size */
+    char buff[buff_size+1];	/* need +1 for the null terminator??? */
+    (void)regerror(errcode, &reint, buff, buff_size);
+    fprintf(stderr, "parse error\n");
+    fprintf(stderr, "regcomp failed with: %s\n", buff);
+    exit(EXIT_FAILURE);
+  }
+  if ((errcode = regcomp(&refloat, "^[0-9]*\\.([0-9]*)?$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+    size_t buff_size = regerror(errcode, &refloat, NULL, 0); /* inspect the required buffer size */
+    char buff[buff_size+1];	/* need +1 for the null terminator??? */
+    (void)regerror(errcode, &refloat, buff, buff_size);
+    fprintf(stderr, "parse error\n");
+    fprintf(stderr, "regcomp failed with: %s\n", buff);
+    exit(EXIT_FAILURE);
+  }
+  if ((errcode = regcomp(&resym, TOKPATT, REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+    size_t buff_size = regerror(errcode, &resym, NULL, 0); /* inspect the required buffer size */
+    char buff[buff_size+1];	/* need +1 for the null terminator??? */
+    (void)regerror(errcode, &resym, buff, buff_size);
+    fprintf(stderr, "parse error\n");
+    fprintf(stderr, "regcomp failed with: %s\n", buff);
+    exit(EXIT_FAILURE);
+  }
+  
+  
   regmatch_t match[1];	/* interesed only in the whole match */
   int offset = 0, tokstrlen;
   struct token *tokptr = NULL;
@@ -144,6 +176,20 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
       struct token t;
       memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
+
+      /* guess type */
+      if (!regexec(&reint, t.str, 0, NULL, 0)) {
+	t.type = INTEGER;
+      } else if (!regexec(&refloat, t.str, 0, NULL, 0)) {
+	t.type = FLOAT;
+      } else if (!regexec(&resym, t.str, 0, NULL, 0)) {
+	t.type = SYMBOL;
+      } else {
+	/* fprintf(stderr, "couldn't guess type of token %s", t.str); */
+	/* exit(EXIT_FAILURE); */
+	t.type = UNDEFINED;
+      }
+      
       /* t.numtype = numtype(t.str); */
       /* t.isprim = isprim(t.str); */
       t.id = __Tokid++;
@@ -261,32 +307,6 @@ struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count,
   return nctoks;
 }
 
-/* *********************************************************** */
-
-/* int main() */
-/* { */
-/*   char *strarr[2] = { */
-/*     "pret + 2 3", */
-/*     "       40 5" */
-/*   }; */
-/*   size_t all_tokens_count = 0; */
-/*   /\* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); *\/ */
-/*   struct token *toks = tokenize_lines__Hp(strarr, 2, &all_tokens_count); */
-/*   size_t nctok_count = 0; */
-/*   struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count); */
-/*   printf(">>> %zu\n", all_tokens_count); */
-/*   for (size_t i = 0; i<nctok_count;i++) { */
-/*     printf("%zu- %s \n", i, nct[i].str); */
-/*   } */
-/*   free(nct);     */
-/*   exit(EXIT_SUCCESS); */
-/* } */
-
-/* *********************************************************** */
-
-
-// alle funktionen mussen ein cell * nehmen und eins zurückgeben!!!
-
 
 int isdig(char c)
 {
@@ -308,6 +328,26 @@ enum __Type numtype(char *s)
   }
   return dot ? FLOAT : INTEGER;
 }
+
+/* /\* passing a token pointer to set it's fields *\/ */
+/* void guess_token_type(struct token *t) */
+/* { */
+/*   enum __Type tp; */
+/*   if ((tp = (numtype(t->str)))) { */
+/*     if (tp == INTEGER) { */
+/*       t->ival = atoi(t->str); */
+/*       t->type = INTEGER; */
+/*     } else if (tp == FLOAT) { */
+/*       t->fval = atof(t->str); */
+/*       t->type = FLOAT; */
+/*     } */
+/*   } else { */
+/*     t->type = UNDEFINED; */
+/*   } */
+/* } */
+
+
+
 struct block;
 
 struct cell {
@@ -317,6 +357,8 @@ struct cell {
   enum __Type type;
   struct block *emblock;	/* embedding block of this cell */
   struct cell *linker;		/* the cell linking into this cell */
+  /* supported Let-types */
+  /* int ival; */
 };
 
 char *cellstr(struct cell *c) {return c->car.str;}
@@ -380,20 +422,20 @@ bool isbuiltin(struct cell *c)
 
 /* int __Envid = 0; */
 
-/* struct env { */
-/*   int id; */
-/*   GHashTable *symht;		/\* hashtable keeping known symbols *\/ */
-/*   struct env *parenv;		/\* parent environment *\/ */
-/* }; */
+struct env {
+  int id;
+  GHashTable *symsht;		/* hashtable keeping known symbols */
+  struct env *parenv;		/* parent environment */
+};
 
-/* struct env *make_env__Hp(int id, struct env *parenv) */
-/* { */
-/*   struct env *e = malloc(sizeof(struct env)); */
-/*   e->id = id; */
-/*   e->symht = g_hash_table_new(g_str_hash, g_str_equal); */
-/*   e->parenv = parenv; */
-/*   return e; */
-/* } */
+struct env *make_env__Hp(int id, struct env *parenv)
+{
+  struct env *e = malloc(sizeof(struct env));
+  e->id = id;
+  e->symsht = g_hash_table_new(g_str_hash, g_str_equal);
+  e->parenv = parenv;
+  return e;
+}
 
 
 /* int __Blockid = 0; */
@@ -402,7 +444,7 @@ bool isbuiltin(struct cell *c)
 struct block {
   int id;
   struct cell cells[MAX_BLOCK_SIZE];
-  /* struct env env; */
+  struct env env;
   int size;			/* number of cells */
 
   int child_blocks_count;
@@ -503,22 +545,6 @@ struct block *embedding_block(struct cell c, struct block **blocks, int bcount)
   return eb;
 }
 
-/* passing a token pointer to set it's fields */
-void guess_token_type(struct token *t)
-{
-  enum __Type tp;
-  if ((tp = (numtype(t->str)))) {
-    if (tp == INTEGER) {
-      t->ival = atoi(t->str);
-      t->type = INTEGER;
-    } else if (tp == FLOAT) {
-      t->fval = atof(t->str);
-      t->type = FLOAT;
-    }
-  } else {
-    t->type = UNDEFINED;
-  }
-}
 
 
 
@@ -545,7 +571,9 @@ struct cell *linked_cells__Hp(struct token tokens[], size_t count)
   for (size_t i = 0; i < count; i++) {
     struct cell *c = malloc(sizeof(struct cell));
     if (i == 0) root = c;
-    guess_token_type(tokens+i);	/* pass the pointer to the token */
+    
+    /* guess_token_type(tokens+i);	/\* pass the pointer to the token *\/ */
+    
     c->car = tokens[i];
     if (i > 0)
       prev->cdr = c;
@@ -603,15 +631,15 @@ struct block __TLBlock = {
     }
   },
   
-  /* /\* env (Toplevel Environment) *\/ */
-  /* { */
-  /*   /\* id *\/ */
-  /*   0, */
-  /*   /\* syms (GHashtable *), must be populated yet *\/ */
-  /*   NULL, */
-  /*   /\* parenv *\/ */
-  /*   NULL */
-  /* }, */
+  /* env (Toplevel Environment) */
+  {
+    /* id */
+    0,
+    /* syms (GHashtable *), must be populated yet */
+    NULL,
+    /* parenv */
+    NULL
+  },
   
   /* size */
   1,
@@ -654,8 +682,8 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 	new_block->id = bid++;
 	new_block->cells[0] = *c;
 	new_block->size = 1;
-	new_block->child_blocks_count = 0;
-	new_block->child_blocks = NULL;
+	/* new_block->child_blocks_count = 0; */
+	/* new_block->child_blocks = NULL; */
 	new_block->emblock = emblock;
 	
 	*(blocks + (*bcount)++) = new_block;
@@ -664,13 +692,13 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 	   Für so einen der emblock ist einfach der TLBlock. Alle andere new_blocks
 	   müssen schon einen anderen eigenen emblock haben!
 	 */
-	if (emblock != NULL) {
-	  emblock->child_blocks = realloc(emblock->child_blocks, sizeof(struct block *) * (emblock->child_blocks_count + 1));
-	  emblock->child_blocks[emblock->child_blocks_count++] = new_block;	
-	} else {		/* dann embedding block ist toplevel block */
-	  __TLBlock.child_blocks = realloc(__TLBlock.child_blocks, sizeof(struct block *) * (__TLBlock.child_blocks_count + 1));
-	  __TLBlock.child_blocks[__TLBlock.child_blocks_count++] = new_block;
-	}
+	/* if (emblock != NULL) { */
+	/*   emblock->child_blocks = realloc(emblock->child_blocks, sizeof(struct block *) * (emblock->child_blocks_count + 1)); */
+	/*   emblock->child_blocks[emblock->child_blocks_count++] = new_block;	 */
+	/* } else {		/\* dann embedding block ist toplevel block *\/ */
+	/*   __TLBlock.child_blocks = realloc(__TLBlock.child_blocks, sizeof(struct block *) * (__TLBlock.child_blocks_count + 1)); */
+	/*   __TLBlock.child_blocks[__TLBlock.child_blocks_count++] = new_block; */
+	/* } */
 	
       } else exit(EXIT_FAILURE);
       
@@ -694,13 +722,12 @@ void free_parser_blocks(struct block **blocks, int bcount)
   
 /* } */
 
-#define X 2
+#define X 1
 int main()
 {
 
   char *lines[X] = {
-    "+ 3 / 4 20",
-    "* 2 3"
+    "+ 1 klj0 4.5 .231p 345. asd",
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -721,11 +748,11 @@ int main()
 
   for (int i = 0; i <bcount;i++) {
     printf("block id %d, sz %d head[%s] EmblockHead[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str,
-	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "NULL");
+	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "Nil");
     /* for (int j =0; j<b[i]->child_blocks_count;j++) */
     /*   printf(" ChildBlock: %s\n", b[i]->child_blocks[j]->cells[0].car.str); */
     for (int j = 0; j<b[i]->size;j++)
-      printf("  CellStr %s\n", b[i]->cells[j].car.str);
+      printf("  Cell: Str %s Type %s\n", b[i]->cells[j].car.str, stringize_type(b[i]->cells[j].car.type));
   }
   
   free_parser_blocks(b, bcount);
