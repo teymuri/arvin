@@ -695,7 +695,7 @@ int main()
 {
 
   char *lines[X] = {
-    "+ 3 / 4 2",
+    "+ 3 / 4 20",
     "* 2 3"
   };
   size_t all_tokens_count = 0;
