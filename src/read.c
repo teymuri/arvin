@@ -14,7 +14,7 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <string.h>
 /* #define NDEBUG */
 #include <assert.h>
-#include <glib.h>
+/* #include <glib.h> */
 
 
 
@@ -27,12 +27,12 @@ enum __Type {
 char *stringize_type(enum __Type);
 
 #define MAX_TOKLEN 50		/* bytes max token length */
-#define TLTOKSTR "__TLTOKSTR__"
+#define TLTOKSTR "TLTOKSTR"
 
 struct token {
   char str[MAX_TOKLEN];	/* token's string */
-  int colsidx;			/* start index in line (column start index) */
-  int coleidx;			/* end index in line (column end index) */
+  int col_start_idx;			/* start index in line (column start index) */
+  int col_end_idx;			/* end index in line (column end index) */
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */
@@ -147,8 +147,8 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
       /* t.numtype = numtype(t.str); */
       /* t.isprim = isprim(t.str); */
       t.id = __Tokid++;
-      t.colsidx = offset + match[0].rm_so;
-      t.coleidx = t.colsidx + tokstrlen;
+      t.col_start_idx = offset + match[0].rm_so;
+      t.col_end_idx = t.col_start_idx + tokstrlen;
       t.linum = linum;
       t.comidx = 0;
       *(tokptr + *line_toks_count) = t;
@@ -331,18 +331,23 @@ struct env;
 struct symbol {
   int id;
   char *name;
-  /* struct env *env;		/\* symbol's environment *\/ */
   lambda_t lambda;		/* has a function value? */
-  int ival;
-  char *sval;
+  struct cell *cell;
+};
+
+struct symbol add = {
+  .id=23,
+  .name="ADD",
+  .lambda=NULL,
+  
 };
 
 /* 
 defun add x: y: + x y
 
-
  */
-/* void let_add(struct cell *args) */
+
+/* void add(struct cell *args) */
 /* { */
 /*   struct cell *base = args; */
 /*   int i = 0;		/\* ival of + *\/ */
@@ -353,9 +358,6 @@ defun add x: y: + x y
 /*   } while (args->cdr != NULL); */
 /*   base->ival = i; */
 /* } */
-/* 
-defun f 
- */
 
 
 /* builtin functions */
@@ -376,22 +378,22 @@ bool isbuiltin(struct cell *c)
 
 
 
-int __Envid = 0;
+/* int __Envid = 0; */
 
-struct env {
-  int id;
-  GHashTable *syms_ht;
-  struct env *parenv;		/* parent environment */
-};
+/* struct env { */
+/*   int id; */
+/*   GHashTable *symht;		/\* hashtable keeping known symbols *\/ */
+/*   struct env *parenv;		/\* parent environment *\/ */
+/* }; */
 
-struct env *make_env__Hp(int id, struct env *parenv)
-{
-  struct env *e = malloc(sizeof(struct env));
-  e->id = id;
-  e->syms_ht = g_hash_table_new(g_str_hash, g_str_equal);
-  e->parenv = parenv;
-  return e;
-}
+/* struct env *make_env__Hp(int id, struct env *parenv) */
+/* { */
+/*   struct env *e = malloc(sizeof(struct env)); */
+/*   e->id = id; */
+/*   e->symht = g_hash_table_new(g_str_hash, g_str_equal); */
+/*   e->parenv = parenv; */
+/*   return e; */
+/* } */
 
 
 /* int __Blockid = 0; */
@@ -400,15 +402,18 @@ struct env *make_env__Hp(int id, struct env *parenv)
 struct block {
   int id;
   struct cell cells[MAX_BLOCK_SIZE];
-  struct env env;
+  /* struct env env; */
   int size;			/* number of cells */
+  
+  int child_blocks_count;
+  struct block **child_blocks;
 };
 
 
 /* is b directly or indirectly embedding c? */
 bool is_embedded_in(struct cell c, struct block b)
 {
-  return (c.car.colsidx > b.cells[0].car.colsidx) && (c.car.linum >= b.cells[0].car.linum);
+  return (c.car.col_start_idx > b.cells[0].car.col_start_idx) && (c.car.linum >= b.cells[0].car.linum);
 }
 
 
@@ -417,23 +422,25 @@ bool is_embedded_in(struct cell c, struct block b)
    be freed (which doesn't any harm to the actual structure pointers
    it points to!) */
 struct block **embedding_blocks__Hp(struct cell c, struct block **blocks,
-				   int bcount, int *eb_count)
+				   int bcount, int *ebs_count)
 {
-  struct block **eb = NULL;
+  struct block **ebs = NULL;
   for (int i = 0; i < bcount; i++)
     if (is_embedded_in(c, *blocks[i])) {
-      if ((eb = realloc(eb, (*eb_count + 1) * sizeof(struct block *))) != NULL)
-	*(eb + (*eb_count)++) = *(blocks + i);
+      if ((ebs = realloc(ebs, (*ebs_count + 1) * sizeof(struct block *))) != NULL)
+	*(ebs + (*ebs_count)++) = *(blocks + i);
       else exit(EXIT_FAILURE);
     }
-  return eb;			/* free(eb) */
+  /* for (int i =0; i< *ebs_count;i++) */
+  /*   printf("%s %s\n", c.car.str, ebs[i]->cells[0].car.str); */
+  return ebs;			/* free(ebs) */
 }
 
 /* returns the max line number */
-int bottomline(struct block **embedding_blocks, int eb_count)
+int bottomline(struct block **embedding_blocks, int ebs_count)
 {
   int ln = 0;
-  for (int i = 0; i < eb_count; i++) {
+  for (int i = 0; i < ebs_count; i++) {
     if ((*(embedding_blocks + i))->cells[0].car.linum > ln)
       ln = (*(embedding_blocks + i))->cells[0].car.linum;
   }
@@ -441,33 +448,41 @@ int bottomline(struct block **embedding_blocks, int eb_count)
 }
 
 struct block **bottommost_blocks__Hp(struct block **embedding_blocks,
-				     int eb_count, int *bmb_count)
+				     int ebs_count, int *bmbs_count)
 {
-  int bln = bottomline(embedding_blocks, eb_count);
-  struct block **bmb = NULL;
-  for (int i = 0; i < eb_count; i++) {
+  int bln = bottomline(embedding_blocks, ebs_count);
+  struct block **bmbs = NULL;
+  for (int i = 0; i < ebs_count; i++) {
     if ((*(embedding_blocks + i))->cells[0].car.linum == bln) {
-      if ((bmb = realloc(bmb, (*bmb_count + 1) * sizeof(struct block *))) != NULL) {
-	*(bmb + (*bmb_count)++) = *(embedding_blocks +i);
+      if ((bmbs = realloc(bmbs, (*bmbs_count + 1) * sizeof(struct block *))) != NULL) {
+	*(bmbs + (*bmbs_count)++) = *(embedding_blocks + i);
       }	else exit(EXIT_FAILURE);
     }
   }
   /* free the pointer to selected (i.e. embedding) block pointers */
   free(embedding_blocks);
-  return bmb;
+  
+  /* for (int i = 0; i<*bmbs_count;i++) */
+  /*   printf("%d %d %s\n", *bmbs_count ,bln, bmbs[i]->cells[0].car.str); */
+  
+  return bmbs;
 }
 
-static struct block *rightmost_block(struct block **bottommost_blocks, int bmb_count)
+static struct block *rightmost_block(struct block **bottommost_blocks, int bmbs_count)
 {
-  int colsidx = -1;			/* start index */
-  struct block *rmb;
-  for (int i = 0; i < bmb_count; i++)
-    if ((*(bottommost_blocks+i))->cells[0].car.colsidx > colsidx) {
+  int col_start_idx = -1;			/* start index */
+  struct block *rmb =NULL;
+  for (int i = 0; i < bmbs_count; i++) {
+    if ((*(bottommost_blocks + i))->cells[0].car.col_start_idx > col_start_idx) {
+      /* printf("%d.%d.%d\n", i, col_start_idx, (*(bottommost_blocks + i))->cells[0].car.col_start_idx); */
       /* pick the hitherto rightmost block (note that the address is
 	 coming from the original blocks in parse__Hp) */
       rmb = *(bottommost_blocks + i);
-      colsidx = rmb->cells[0].car.colsidx;
+      /* col_start_idx = (*(bottommost_blocks + i))->cells[0].car.col_start_idx; */
+      col_start_idx = rmb->cells[0].car.col_start_idx;
     }
+  }
+  /* printf("RMB %p\n", rmb); */
   free(bottommost_blocks);
   return rmb;
 }
@@ -475,12 +490,16 @@ static struct block *rightmost_block(struct block **bottommost_blocks, int bmb_c
 /* which one of the blocks is the direct embedding block of c? */
 struct block *embedding_block(struct cell c, struct block **blocks, int bcount)
 {
-  int eb_count = 0;
-  struct block **embedding_blocks = embedding_blocks__Hp(c, blocks, bcount, &eb_count);
-  int bmb_count = 0;
-  struct block **bottommost_blocks = bottommost_blocks__Hp(embedding_blocks, eb_count,
-							  &bmb_count);
-  return rightmost_block(bottommost_blocks, bmb_count);
+  int ebs_count = 0;
+  struct block **embedding_blocks = embedding_blocks__Hp(c, blocks, bcount, &ebs_count);
+  int bmbs_count = 0;
+  struct block **bottommost_blocks = bottommost_blocks__Hp(embedding_blocks, ebs_count, &bmbs_count);
+  struct block *eb = rightmost_block(bottommost_blocks, bmbs_count);
+  /* printf("C %s bmbscount %d\n", c.car.str, bmbs_count); */
+  /* for (int i =0;i<bmbs_count;i++) */
+  /*   printf("B %p EB: %p | ", bottommost_blocks[i], eb); */
+  /* printf("\n"); */
+  return eb;
 }
 
 /* passing a token pointer to set it's fields */
@@ -519,7 +538,7 @@ void guess_token_type(struct token *t)
 
 
 /* returns a list of linked cells made of tokens */
-struct cell *linked_cells__H(struct token tokens[], size_t count)
+struct cell *linked_cells__Hp(struct token tokens[], size_t count)
 {
   struct cell *prev, *root;	/* store previous and first cell address */
   for (size_t i = 0; i < count; i++) {
@@ -567,8 +586,8 @@ struct block __TLBlock = {
     {				/* cells[0] */
       /* car token */
       {.str = TLTOKSTR,
-       .colsidx = -1,
-       .coleidx = 100,
+       .col_start_idx = -1,
+       .col_end_idx = 100,		/* ???????????????????????????????????????? */
        .linum = -1,
        .id = 0
       },
@@ -582,17 +601,23 @@ struct block __TLBlock = {
       NULL
     }
   },
-  /* env (Toplevel Environment) */
-  {
-    /* id */
-    0,
-    /* syms (GHashtable *), must be populated yet */
-    NULL,
-    /* parenv */
-    NULL
-  },
+  
+  /* /\* env (Toplevel Environment) *\/ */
+  /* { */
+  /*   /\* id *\/ */
+  /*   0, */
+  /*   /\* syms (GHashtable *), must be populated yet *\/ */
+  /*   NULL, */
+  /*   /\* parenv *\/ */
+  /*   NULL */
+  /* }, */
+  
   /* size */
-  1
+  1,
+  /* child_blocks_count */
+  0,
+  /* child_blocks */
+  NULL
 };
 
 
@@ -602,28 +627,49 @@ struct block __TLBlock = {
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
+
+
 struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 {
   /* this is the blocktracker in the python prototype */
-  struct block **blocks = malloc(sizeof(struct block *));
+  /* struct block *root = malloc(sizeof(struct block *)); */
+  struct block **blocks = malloc(sizeof(struct block *)); /* make room for &__TLBlock */
   *(blocks + (*bcount)++)  = &__TLBlock;
+  /* root = &__TLBlock; */
   struct cell *c = linked_cells_root;
-  struct block *eblock;
+  struct block *eblock = NULL;
   int bid = 1;			/* block id */
 
   while (c) {
-
     /* find out the direct embedding block of the current cell */
     eblock = embedding_block(*c, blocks, *bcount);
+    /* if (eblock == NULL) */
+    /*   printf("cell %s eblock %p %p\n", c->car.str, eblock, &__TLBlock); */
     if (isbuiltin(c)) {
-      printf("* builtin %d %s\n", isbuiltin(c), cellstr(c));
+      /* printf("* builtin %d %s\n", isbuiltin(c), cellstr(c)); */
       if ((blocks = realloc(blocks, (*bcount + 1) * sizeof(struct block *))) != NULL) {
-	struct block *newb = malloc(sizeof *newb);
-	newb->id = bid++;
-	newb->cells[0] = *c;
-	newb->size = 1;
-	*(blocks + (*bcount)++) = newb;
+	struct block *new_block = malloc(sizeof *new_block);
+	new_block->id = bid++;
+	new_block->cells[0] = *c;
+	new_block->size = 1;
+	new_block->child_blocks_count = 0;
+	new_block->child_blocks = NULL;
+	*(blocks + (*bcount)++) = new_block;
+	/* 
+	   Wenn eblock null ist, dann ist es ein block dessen HEAD am Anfang einer Zeile steht!
+	   Für so einen der eblock ist einfach der TLBlock. Alle andere new_blocks
+	   müssen schon einen anderen eigenen eblock haben!
+	 */
+	if (eblock != NULL) {
+	  eblock->child_blocks = realloc(eblock->child_blocks, sizeof(struct block *) * (eblock->child_blocks_count + 1));
+	  eblock->child_blocks[eblock->child_blocks_count++] = new_block;	
+	} else {		/* dann embedding block ist toplevel block */
+	  __TLBlock.child_blocks = realloc(__TLBlock.child_blocks, sizeof(struct block *) * (__TLBlock.child_blocks_count + 1));
+	  __TLBlock.child_blocks[__TLBlock.child_blocks_count++] = new_block;
+	}
+	
       } else exit(EXIT_FAILURE);
+      
     } else eblock->cells[eblock->size++] = *c;
     c = c->cdr;
   }
@@ -638,17 +684,19 @@ void free_parser_blocks(struct block **blocks, int bcount)
   for (int i = 1; i < bcount; i++) free(*(blocks + i));
   free(blocks);
 }
-#define X 6
+
+/* struct block **eval(struct block **blocks, int blocks_count) */
+/* { */
+  
+/* } */
+
+#define X 2
 int main()
 {
 
   char *lines[X] = {
-    "+ 2 3 4",
-    "  5 + 6 7",
-    " 10 20 30",
-    " / 01 02",
-    " 03 04 05",
-    " 06 07 08"
+    "+ 3 / 4 2",
+    "* 2 3"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -660,15 +708,17 @@ int main()
   /*   printf("TOK-%zu. %s \n", i, nct[i].str); */
   /* } */
 
-  struct cell *c = linked_cells__H(nct, nctok_count);
+  struct cell *c = linked_cells__Hp(nct, nctok_count);
   struct cell *base = c;
   
   int bcount = 0;
+  /* struct block **b = parse__Hp(c, &bcount); */
   struct block **b = parse__Hp(c, &bcount);
 
-  printf("=======================\nblock count: %d\n", bcount);
   for (int i = 0; i <bcount;i++) {
-    printf("id %d, sz %d head[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str);
+    printf("block id %d, sz %d head[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str);
+    for (int j =0; j<b[i]->child_blocks_count;j++)
+      printf(" ChildBlock: %s\n", b[i]->child_blocks[j]->cells[0].car.str);
     for (int j = 0; j<b[i]->size;j++)
       printf("  str %s\n", b[i]->cells[j].car.str);
   }
