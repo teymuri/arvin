@@ -47,7 +47,7 @@ struct token {
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */
-  enum __Type type;
+  enum __Type toktype;		/* guessed types at token-generation time */
   /* int ival; */
   /* double fval; */
 };
@@ -179,15 +179,15 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
 
       /* guess type */
       if (!regexec(&reint, t.str, 0, NULL, 0)) {
-	t.type = INTEGER;
+	t.toktype = INTEGER;
       } else if (!regexec(&refloat, t.str, 0, NULL, 0)) {
-	t.type = FLOAT;
+	t.toktype = FLOAT;
       } else if (!regexec(&resym, t.str, 0, NULL, 0)) {
-	t.type = SYMBOL;
+	t.toktype = SYMBOL;
       } else {
 	/* fprintf(stderr, "couldn't guess type of token %s", t.str); */
 	/* exit(EXIT_FAILURE); */
-	t.type = UNDEFINED;
+	t.toktype = UNDEFINED;
       }
       
       /* t.numtype = numtype(t.str); */
@@ -349,18 +349,35 @@ enum __Type numtype(char *s)
 
 
 struct block;
+struct symbol;
 
 struct cell {
   struct token car;
   struct cell *cdr;
   struct cell *in_block_cdr;
+  
   enum __Type type;
+  
   struct block *emblock;	/* embedding block of this cell */
   struct cell *linker;		/* the cell linking into this cell */
   /* supported Let-types */
-  /* int ival; */
+  int ival;
+  float fval;
 };
-
+void setval(struct cell *c)
+{
+  switch (c->car.toktype)
+    {
+    case INTEGER:
+      c->ival = atoi(c->car.str);
+      break;
+    case FLOAT:
+      c->fval = atof(c->car.str);
+      break;
+      /* case SYMBOL: */
+      /*   c->symval = makesym */
+    }
+}
 char *cellstr(struct cell *c) {return c->car.str;}
 
 
@@ -377,12 +394,8 @@ struct symbol {
   struct cell *cell;
 };
 
-struct symbol add = {
-  .id=23,
-  .name="ADD",
-  .lambda=NULL,
-  
-};
+
+
 
 /* 
 defun add x: y: + x y
@@ -445,12 +458,39 @@ struct block {
   int id;
   struct cell cells[MAX_BLOCK_SIZE];
   struct env env;
-  int size;			/* number of cells */
+  int size;			/* number of cells contained in this block*/
 
   int child_blocks_count;
   struct block **child_blocks;
   struct block *emblock; 	/* embedding block */
 };
+
+/* /\* Only blocks have evaluation types *\/ */
+/* void set_eval_type(struct block *b) */
+/* { */
+/*   for (int i = 1; i < b.size; i++) {     */
+/*   } */
+/* } */
+
+void add(struct block *b)
+{
+  float sum;
+  for (int i = 1; i<b->size;i++) {
+    switch (b->cells[i].car.toktype)
+      {
+      case INTEGER:
+	sum += b->cells[i].ival;
+	break;
+      case FLOAT:
+	sum += b->cells[i].fval;
+	break;
+      }
+  }
+  /* hardcoded */
+  b->cells[0].type = FLOAT;
+  b->cells[0].fval = sum;
+}
+
 
 
 /* is b directly or indirectly embedding c? */
@@ -579,6 +619,7 @@ struct cell *linked_cells__Hp(struct token tokens[], size_t count)
       prev->cdr = c;
     if (i == count-1)
       c->cdr = NULL;
+    setval(c);
     prev = c;
   }
   return root;
@@ -626,8 +667,9 @@ struct block __TLBlock = {
       NULL,
       /* type ??? */
       UNDEFINED,
-      NULL,
-      NULL
+      NULL,			/* linker */
+      .ival=0,			/* ival */
+      .fval=0.0			/* fval */
     }
   },
   
@@ -657,7 +699,28 @@ struct block __TLBlock = {
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
+bool endswith(const char *str, const char *suffix)
+{
+  if (!str || !suffix) return 0;
+  size_t lenstr = strlen(str);
+  size_t lensuffix = strlen(suffix);
+  if (lensuffix > lenstr) return 0;
+  return !strcmp(str + lenstr - lensuffix, suffix);
+}
 
+bool need_new_block(struct cell *c)
+{
+  bool need;
+  if (c->emblock == NULL)
+    need = isbuiltin(c) || !strcmp(c->car.str, "lambda");
+  else {
+    need = isbuiltin(c) || !strcmp(c->car.str, "lambda") ||
+      (!strcmp(c->emblock->cells[0].car.str, "lambda") && endswith(c->car.str, ":="));
+    printf("%s---%d\n",c->car.str, !strcmp(c->emblock->cells[0].car.str, "lambda"));  
+  }
+    printf("Need? %s %d %d\n", c->car.str, need, endswith(c->car.str, ":="));
+  return need;
+}
 
 struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 {
@@ -667,15 +730,16 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
   *(blocks + (*bcount)++)  = &__TLBlock;
   /* root = &__TLBlock; */
   struct cell *c = linked_cells_root;
-  struct block *emblock = NULL;
+  struct block *emblock;
   int bid = 1;			/* block id */
 
   while (c) {
     /* find out the direct embedding block of the current cell */
     emblock = embedding_block(*c, blocks, *bcount);
-    /* if (emblock == NULL) */
-    /*   printf("cell %s emblock %p %p\n", c->car.str, emblock, &__TLBlock); */
-    if (isbuiltin(c)) {
+
+    /* if (need_new_block(c)) { */
+    if (isbuiltin(c) || !strcmp(c->car.str, "lambda") ||
+	(!strcmp(emblock->cells[0].car.str, "lambda") && endswith(c->car.str, ":="))) {
       /* printf("* builtin %d %s\n", isbuiltin(c), cellstr(c)); */
       if ((blocks = realloc(blocks, (*bcount + 1) * sizeof(struct block *))) != NULL) {
 	struct block *new_block = malloc(sizeof *new_block);
@@ -702,7 +766,10 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 	
       } else exit(EXIT_FAILURE);
       
-    } else emblock->cells[emblock->size++] = *c;
+    } else {
+      c->emblock = emblock;
+      emblock->cells[emblock->size++] = *c;
+    }
     c = c->cdr;
   }
   return blocks;
@@ -722,12 +789,13 @@ void free_parser_blocks(struct block **blocks, int bcount)
   
 /* } */
 
-#define X 1
+#define X 2
 int main()
 {
 
   char *lines[X] = {
-    "+ 1 klj0 4.5 .231p 345. asd",
+    "lambda x:= ",
+    "  7        8"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -749,10 +817,17 @@ int main()
   for (int i = 0; i <bcount;i++) {
     printf("block id %d, sz %d head[%s] EmblockHead[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str,
 	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "Nil");
+    
+    /* add(b[i]); */
+    /* printf("=====> %s %f\n", stringize_type(b[i]->cells[0].type), b[i]->cells[0].fval); */
+    
     /* for (int j =0; j<b[i]->child_blocks_count;j++) */
     /*   printf(" ChildBlock: %s\n", b[i]->child_blocks[j]->cells[0].car.str); */
-    for (int j = 0; j<b[i]->size;j++)
-      printf("  Cell: Str %s Type %s\n", b[i]->cells[j].car.str, stringize_type(b[i]->cells[j].car.type));
+    for (int j = 0; j<b[i]->size;j++) {
+      printf("  Cell: Str %s | Type %s\n", b[i]->cells[j].car.str, stringize_type(b[i]->cells[j].car.toktype));
+    }
+    puts("");
+      
   }
   
   free_parser_blocks(b, bcount);

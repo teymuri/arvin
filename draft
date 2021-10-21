@@ -18,6 +18,12 @@ defun FOO x: (=> unspecified, this will be interpreted as `x:= nil`)
  y:= x &rest:= list 123
  cons y rest
 
+lambda x: y:= 348 q:= nil
+  + x y
+(=> void (*fp)(struct block *))
+
+
+
 (some calls:)
 FOO (=> `list nil 123`)
 (in function call use the assignment syntax?)
