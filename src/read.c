@@ -404,9 +404,10 @@ struct block {
   struct cell cells[MAX_BLOCK_SIZE];
   /* struct env env; */
   int size;			/* number of cells */
-  
+
   int child_blocks_count;
   struct block **child_blocks;
+  struct block *emblock; 	/* embedding block */
 };
 
 
@@ -617,6 +618,7 @@ struct block __TLBlock = {
   /* child_blocks_count */
   0,
   /* child_blocks */
+  NULL,
   NULL
 };
 
@@ -637,14 +639,14 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
   *(blocks + (*bcount)++)  = &__TLBlock;
   /* root = &__TLBlock; */
   struct cell *c = linked_cells_root;
-  struct block *eblock = NULL;
+  struct block *emblock = NULL;
   int bid = 1;			/* block id */
 
   while (c) {
     /* find out the direct embedding block of the current cell */
-    eblock = embedding_block(*c, blocks, *bcount);
-    /* if (eblock == NULL) */
-    /*   printf("cell %s eblock %p %p\n", c->car.str, eblock, &__TLBlock); */
+    emblock = embedding_block(*c, blocks, *bcount);
+    /* if (emblock == NULL) */
+    /*   printf("cell %s emblock %p %p\n", c->car.str, emblock, &__TLBlock); */
     if (isbuiltin(c)) {
       /* printf("* builtin %d %s\n", isbuiltin(c), cellstr(c)); */
       if ((blocks = realloc(blocks, (*bcount + 1) * sizeof(struct block *))) != NULL) {
@@ -654,15 +656,17 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 	new_block->size = 1;
 	new_block->child_blocks_count = 0;
 	new_block->child_blocks = NULL;
+	new_block->emblock = emblock;
+	
 	*(blocks + (*bcount)++) = new_block;
 	/* 
-	   Wenn eblock null ist, dann ist es ein block dessen HEAD am Anfang einer Zeile steht!
-	   Für so einen der eblock ist einfach der TLBlock. Alle andere new_blocks
-	   müssen schon einen anderen eigenen eblock haben!
+	   Wenn emblock null ist, dann ist es ein block dessen HEAD am Anfang einer Zeile steht!
+	   Für so einen der emblock ist einfach der TLBlock. Alle andere new_blocks
+	   müssen schon einen anderen eigenen emblock haben!
 	 */
-	if (eblock != NULL) {
-	  eblock->child_blocks = realloc(eblock->child_blocks, sizeof(struct block *) * (eblock->child_blocks_count + 1));
-	  eblock->child_blocks[eblock->child_blocks_count++] = new_block;	
+	if (emblock != NULL) {
+	  emblock->child_blocks = realloc(emblock->child_blocks, sizeof(struct block *) * (emblock->child_blocks_count + 1));
+	  emblock->child_blocks[emblock->child_blocks_count++] = new_block;	
 	} else {		/* dann embedding block ist toplevel block */
 	  __TLBlock.child_blocks = realloc(__TLBlock.child_blocks, sizeof(struct block *) * (__TLBlock.child_blocks_count + 1));
 	  __TLBlock.child_blocks[__TLBlock.child_blocks_count++] = new_block;
@@ -670,7 +674,7 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
 	
       } else exit(EXIT_FAILURE);
       
-    } else eblock->cells[eblock->size++] = *c;
+    } else emblock->cells[emblock->size++] = *c;
     c = c->cdr;
   }
   return blocks;
@@ -716,11 +720,12 @@ int main()
   struct block **b = parse__Hp(c, &bcount);
 
   for (int i = 0; i <bcount;i++) {
-    printf("block id %d, sz %d head[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str);
-    for (int j =0; j<b[i]->child_blocks_count;j++)
-      printf(" ChildBlock: %s\n", b[i]->child_blocks[j]->cells[0].car.str);
+    printf("block id %d, sz %d head[%s] EmblockHead[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str,
+	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "NULL");
+    /* for (int j =0; j<b[i]->child_blocks_count;j++) */
+    /*   printf(" ChildBlock: %s\n", b[i]->child_blocks[j]->cells[0].car.str); */
     for (int j = 0; j<b[i]->size;j++)
-      printf("  str %s\n", b[i]->cells[j].car.str);
+      printf("  CellStr %s\n", b[i]->cells[j].car.str);
   }
   
   free_parser_blocks(b, bcount);
