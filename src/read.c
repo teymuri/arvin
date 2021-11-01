@@ -551,11 +551,11 @@ struct block **bottommost_blocks__Hp(struct block **emblocks, int emblocks_count
   return botmost_blocks;
 }
 
-
+#define LEAST_COL_START_IDX -2
 /* here we test column start index of block heads to decide */
 static struct block *rightmost_block(struct block **botmost_blocks, int botmost_blocks_count)
 {
-  int col_start_idx = -2;			/* start index */
+  int col_start_idx = LEAST_COL_START_IDX;			/* start index */
   struct block *rmost_block = NULL;
   for (int i = 0; i < botmost_blocks_count; i++) {    
     if ((*(botmost_blocks + i))->cells[0].car.col_start_idx > col_start_idx) {
@@ -808,7 +808,7 @@ int main()
   char *lines[X] = {
     "// 2 3 4.5",
     "  + i am a lisp",
-    "* 2 3 findus"
+    "* 2 3 - findus"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
