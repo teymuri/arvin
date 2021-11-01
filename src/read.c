@@ -501,8 +501,7 @@ void add(struct block *b)
 /* is b directly or indirectly embedding c? */
 bool is_embedded_in(struct cell c, struct block b)
 {
-
-  return (c.car.col_start_idx >= b.cells[0].car.col_start_idx) &&
+  return (c.car.col_start_idx > b.cells[0].car.col_start_idx) &&
     (c.car.linum >= b.cells[0].car.linum);
 }
 
@@ -556,7 +555,7 @@ struct block **bottommost_blocks__Hp(struct block **emblocks, int emblocks_count
 /* here we test column start index of block heads to decide */
 static struct block *rightmost_block(struct block **botmost_blocks, int botmost_blocks_count)
 {
-  int col_start_idx = -1;			/* start index */
+  int col_start_idx = -2;			/* start index */
   struct block *rmost_block = NULL;
   for (int i = 0; i < botmost_blocks_count; i++) {    
     if ((*(botmost_blocks + i))->cells[0].car.col_start_idx > col_start_idx) {
@@ -570,8 +569,7 @@ static struct block *rightmost_block(struct block **botmost_blocks, int botmost_
 
 /* which one of the blocks is the direct embedding block of c? */
 struct block *embedding_block(struct cell c, struct block **blocks, int blocks_count)
-{
-  
+{  
   int emblocks_count = 0;
   struct block **emblocks = embedding_blocks__Hp(c, blocks, blocks_count, &emblocks_count);
   int botmost_blocks_count = 0;
@@ -756,7 +754,7 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
   
 /* } */
 
-#define X 1
+#define X 3
 int main()
 {
 
@@ -768,8 +766,8 @@ int main()
     {
       {				/* cells[0] */
 	/* car token */
-	{.str = TLTOKSTR "+++++++",
-	 .col_start_idx = 0,
+	{.str = TLTOKSTR "_______",
+	 .col_start_idx = -1,
 	 .col_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
 	 .linum = -1,
 	 .id = 0
@@ -809,8 +807,8 @@ int main()
 
   char *lines[X] = {
     "// 2 3 4.5",
-    /* "- lummerland 4 * name 5. + .3 pumuckl", */
-    /* "+ i am a lisp" */
+    "  + i am a lisp",
+    "* 2 3 findus"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
