@@ -551,6 +551,12 @@ struct block **bottommost_blocks__Hp(struct block **emblocks, int emblocks_count
   return botmost_blocks;
 }
 
+
+/* 
+-2 can never exist as a starting index for a column the least existing
+one ist -1 which belongs to the (invisible) toplevel block's head
+cell.
+ */
 #define LEAST_COL_START_IDX -2
 /* here we test column start index of block heads to decide */
 static struct block *rightmost_block(struct block **botmost_blocks, int botmost_blocks_count)
@@ -690,7 +696,8 @@ valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 bool need_new_block(struct cell *c, struct block *emblock)
 {
 
-  return !strcmp(c->car.str, "name") || !strcmp(block_head(emblock).car.str, "name");
+  return isbuiltin(c) ||
+    !strcmp(c->car.str, "name") || !strcmp(block_head(emblock).car.str, "name");
   /* bool need; */
   /* if (c->emblock == NULL) */
   /*   need = isbuiltin(c) || !strcmp(c->car.str, "lambda"); */
@@ -707,7 +714,7 @@ bool need_new_block(struct cell *c, struct block *emblock)
 struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, int *blocks_count)
 {
   /* this is the blocktracker in the python prototype */
-  struct block **blocks = malloc(sizeof(struct block *)); /* make room for &__TLBlock */
+  struct block **blocks = malloc(sizeof(struct block *)); /* make room for the toplevel block */
   *(blocks + (*blocks_count)++) = tlblock;
   struct cell *c = linked_cells_root;
   struct block *emblock;
@@ -716,11 +723,11 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
   while (c) {
     /* find out the direct embedding block of the current cell */
     emblock = embedding_block(*c, blocks, *blocks_count);
-    printf("%s %s id %d\n", c->car.str, block_head(emblock).car.str, emblock->id);
-    /* if (need_new_block(c, emblock)) { */
-    if (isbuiltin(c) ||
-	!strcmp(c->car.str, "name") ||
-	!strcmp(block_head(emblock).car.str, "name")) {
+    /* printf("%s %s id %d\n", c->car.str, block_head(emblock).car.str, emblock->id); */
+    if (need_new_block(c, emblock)) {
+    /* if (isbuiltin(c) || */
+    /* 	!strcmp(c->car.str, "name") || */
+    /* 	!strcmp(block_head(emblock).car.str, "name")) { */
       
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
 	struct block *new_block = malloc(sizeof *new_block);
@@ -806,8 +813,8 @@ int main()
   };
 
   char *lines[X] = {
-    "// 2 3 4.5",
-    "  + i am a lisp",
+    "// 2 3 4.p5 10times",
+    " name am a lisp",
     "* 2 3 - findus"
   };
   size_t all_tokens_count = 0;
@@ -828,7 +835,7 @@ int main()
 
   for (int i = 0; i <blocks_count;i++) {
     printf("block id %d, sz %d head: [%s] EmblockHead: [%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str,
-	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "Nil");
+	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "");
     
     /* add(b[i]); */
     /* printf("=====> %s %f\n", stringize_type(b[i]->cells[0].type), b[i]->cells[0].fval); */
