@@ -47,7 +47,7 @@ struct token {
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */
-  enum __Type toktype;		/* guessed types at token-generation time */
+  enum __Type type;		/* guessed types at token-generation time */
   /* int ival; */
   /* double fval; */
 };
@@ -179,15 +179,15 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
 
       /* guess type */
       if (!regexec(&reint, t.str, 0, NULL, 0)) {
-	t.toktype = INTEGER;
+	t.type = INTEGER;
       } else if (!regexec(&refloat, t.str, 0, NULL, 0)) {
-	t.toktype = FLOAT;
+	t.type = FLOAT;
       } else if (!regexec(&resym, t.str, 0, NULL, 0)) {
-	t.toktype = SYMBOL;
+	t.type = SYMBOL;
       } else {
 	/* fprintf(stderr, "couldn't guess type of token %s", t.str); */
 	/* exit(EXIT_FAILURE); */
-	t.toktype = UNDEFINED;
+	t.type = UNDEFINED;
       }
       
       /* t.numtype = numtype(t.str); */
@@ -364,19 +364,18 @@ struct cell {
   int ival;
   float fval;
 };
-void setval(struct cell *c)
+void set_cell_val(struct cell *c)
 {
-  switch (c->car.toktype)
-    {
-    case INTEGER:
-      c->ival = atoi(c->car.str);
-      break;
-    case FLOAT:
-      c->fval = atof(c->car.str);
-      break;
-      /* case SYMBOL: */
-      /*   c->symval = makesym */
-    }
+  switch (c->car.type) {
+  case INTEGER:
+    c->ival = atoi(c->car.str);
+    break;
+  case FLOAT:
+    c->fval = atof(c->car.str);
+    break;
+    /* case SYMBOL: */
+    /*   c->symval = makesym */
+  }
 }
 char *cellstr(struct cell *c) {return c->car.str;}
 
@@ -384,7 +383,13 @@ char *cellstr(struct cell *c) {return c->car.str;}
 /* Type Lambda */
 typedef void (*lambda_t)(struct cell *);
 
-struct env;
+
+struct env {
+  int id;
+  GHashTable *symht;		/* hashtable keeping known symbols */
+  struct env *parenv;		/* parent environment */
+  int symcount;
+};
 
 /* only symbols will have envs!!! */
 struct symbol {
@@ -394,30 +399,24 @@ struct symbol {
   struct cell *cell;
 };
 
-
+struct symbol *newsym__Hp(struct cell *c, struct env *e)
+{
+  struct symbol *s = malloc(sizeof(struct symbol));
+  s->name = c->car.str;
+  g_hash_table_insert(e->symht, s->name, s);
+  s->id = e->symcount++;
+  return s;
+}
 
 
 /* 
-defun add x: y: + x y
+name thing 2
 
- */
-
-/* void add(struct cell *args) */
-/* { */
-/*   struct cell *base = args; */
-/*   int i = 0;		/\* ival of + *\/ */
-/*   do { */
-/*     args = args->cdr; */
-/*     eval(args); */
-/*     i += args->ival; */
-/*   } while (args->cdr != NULL); */
-/*   base->ival = i; */
-/* } */
-
+*/
 
 /* builtin functions */
 char *__Builtins[] = {
-  "+", "*", "-", "/"
+  "+", "*", "-", "//"
 };
 int __Builtins_count = 4;
 
@@ -431,22 +430,25 @@ bool isbuiltin(struct cell *c)
 }
 
 
-
+/* 
+welche konstrukte generieren neue eigene envs?
+* let
+* lambda
+ */
 
 /* int __Envid = 0; */
+/* 
+name foo
+       34
+ */
 
-struct env {
-  int id;
-  GHashTable *symsht;		/* hashtable keeping known symbols */
-  struct env *parenv;		/* parent environment */
-};
-
-struct env *make_env__Hp(int id, struct env *parenv)
+struct env *newenv__Hp(int id, struct env *parenv)
 {
   struct env *e = malloc(sizeof(struct env));
   e->id = id;
-  e->symsht = g_hash_table_new(g_str_hash, g_str_equal);
+  e->symht = g_hash_table_new(g_str_hash, g_str_equal); /* empty hashtable */
   e->parenv = parenv;
+  e->symcount = 0;
   return e;
 }
 
@@ -462,8 +464,11 @@ struct block {
 
   int child_blocks_count;
   struct block **child_blocks;
-  struct block *emblock; 	/* embedding block */
+  /* the embedding block */
+  struct block *emblock;
 };
+struct cell block_head(struct block *b) { return b->cells[0]; }
+
 
 /* /\* Only blocks have evaluation types *\/ */
 /* void set_eval_type(struct block *b) */
@@ -476,7 +481,7 @@ void add(struct block *b)
 {
   float sum;
   for (int i = 1; i<b->size;i++) {
-    switch (b->cells[i].car.toktype)
+    switch (b->cells[i].car.type)
       {
       case INTEGER:
 	sum += b->cells[i].ival;
@@ -496,7 +501,9 @@ void add(struct block *b)
 /* is b directly or indirectly embedding c? */
 bool is_embedded_in(struct cell c, struct block b)
 {
-  return (c.car.col_start_idx > b.cells[0].car.col_start_idx) && (c.car.linum >= b.cells[0].car.linum);
+
+  return (c.car.col_start_idx >= b.cells[0].car.col_start_idx) &&
+    (c.car.linum >= b.cells[0].car.linum);
 }
 
 
@@ -505,103 +512,74 @@ bool is_embedded_in(struct cell c, struct block b)
    be freed (which doesn't any harm to the actual structure pointers
    it points to!) */
 struct block **embedding_blocks__Hp(struct cell c, struct block **blocks,
-				   int bcount, int *ebs_count)
+				    int blocks_count, int *emblocks_count)
 {
-  struct block **ebs = NULL;
-  for (int i = 0; i < bcount; i++)
-    if (is_embedded_in(c, *blocks[i])) {
-      if ((ebs = realloc(ebs, (*ebs_count + 1) * sizeof(struct block *))) != NULL)
-	*(ebs + (*ebs_count)++) = *(blocks + i);
+  struct block **emblocks = NULL;
+  for (int i = 0; i < blocks_count; i++) {
+    if (is_embedded_in(c, *(blocks[i]))) {
+      if ((emblocks = realloc(emblocks, (*emblocks_count + 1) * sizeof(struct block *))) != NULL)
+	*(emblocks + (*emblocks_count)++) = *(blocks + i);
       else exit(EXIT_FAILURE);
     }
-  /* for (int i =0; i< *ebs_count;i++) */
-  /*   printf("%s %s\n", c.car.str, ebs[i]->cells[0].car.str); */
-  return ebs;			/* free(ebs) */
+  }
+  return emblocks;
 }
 
-/* returns the max line number */
-int bottomline(struct block **embedding_blocks, int ebs_count)
+/* returns the bottom line number */
+int botlinum(struct block **emblocks, int emblocks_count)
 {
-  int ln = 0;
-  for (int i = 0; i < ebs_count; i++) {
-    if ((*(embedding_blocks + i))->cells[0].car.linum > ln)
-      ln = (*(embedding_blocks + i))->cells[0].car.linum;
+  int ln = -1;
+  for (int i = 0; i < emblocks_count; i++) {
+    if ((*(emblocks + i))->cells[0].car.linum > ln)
+      ln = (*(emblocks + i))->cells[0].car.linum;
   }
   return ln;
 }
 
-struct block **bottommost_blocks__Hp(struct block **embedding_blocks,
-				     int ebs_count, int *bmbs_count)
+struct block **bottommost_blocks__Hp(struct block **emblocks, int emblocks_count, int *botmost_blocks_count)
 {
-  int bln = bottomline(embedding_blocks, ebs_count);
-  struct block **bmbs = NULL;
-  for (int i = 0; i < ebs_count; i++) {
-    if ((*(embedding_blocks + i))->cells[0].car.linum == bln) {
-      if ((bmbs = realloc(bmbs, (*bmbs_count + 1) * sizeof(struct block *))) != NULL) {
-	*(bmbs + (*bmbs_count)++) = *(embedding_blocks + i);
+  int bln = botlinum(emblocks, emblocks_count);
+  struct block **botmost_blocks = NULL;
+  for (int i = 0; i < emblocks_count; i++) {
+    if ((*(emblocks + i))->cells[0].car.linum == bln) {
+      if ((botmost_blocks = realloc(botmost_blocks, (*botmost_blocks_count + 1) * sizeof(struct block *))) != NULL) {
+	*(botmost_blocks + (*botmost_blocks_count)++) = *(emblocks + i);
       }	else exit(EXIT_FAILURE);
     }
   }
   /* free the pointer to selected (i.e. embedding) block pointers */
-  free(embedding_blocks);
-  
-  /* for (int i = 0; i<*bmbs_count;i++) */
-  /*   printf("%d %d %s\n", *bmbs_count ,bln, bmbs[i]->cells[0].car.str); */
-  
-  return bmbs;
+  free(emblocks);
+  return botmost_blocks;
 }
 
-static struct block *rightmost_block(struct block **bottommost_blocks, int bmbs_count)
+
+/* here we test column start index of block heads to decide */
+static struct block *rightmost_block(struct block **botmost_blocks, int botmost_blocks_count)
 {
   int col_start_idx = -1;			/* start index */
-  struct block *rmb =NULL;
-  for (int i = 0; i < bmbs_count; i++) {
-    if ((*(bottommost_blocks + i))->cells[0].car.col_start_idx > col_start_idx) {
-      /* printf("%d.%d.%d\n", i, col_start_idx, (*(bottommost_blocks + i))->cells[0].car.col_start_idx); */
-      /* pick the hitherto rightmost block (note that the address is
-	 coming from the original blocks in parse__Hp) */
-      rmb = *(bottommost_blocks + i);
-      /* col_start_idx = (*(bottommost_blocks + i))->cells[0].car.col_start_idx; */
-      col_start_idx = rmb->cells[0].car.col_start_idx;
+  struct block *rmost_block = NULL;
+  for (int i = 0; i < botmost_blocks_count; i++) {    
+    if ((*(botmost_blocks + i))->cells[0].car.col_start_idx > col_start_idx) {
+      rmost_block = *(botmost_blocks + i);
+      col_start_idx = rmost_block->cells[0].car.col_start_idx;
     }
   }
-  /* printf("RMB %p\n", rmb); */
-  free(bottommost_blocks);
-  return rmb;
+  free(botmost_blocks);
+  return rmost_block;
 }
 
 /* which one of the blocks is the direct embedding block of c? */
-struct block *embedding_block(struct cell c, struct block **blocks, int bcount)
+struct block *embedding_block(struct cell c, struct block **blocks, int blocks_count)
 {
-  int ebs_count = 0;
-  struct block **embedding_blocks = embedding_blocks__Hp(c, blocks, bcount, &ebs_count);
-  int bmbs_count = 0;
-  struct block **bottommost_blocks = bottommost_blocks__Hp(embedding_blocks, ebs_count, &bmbs_count);
-  struct block *eb = rightmost_block(bottommost_blocks, bmbs_count);
-  /* printf("C %s bmbscount %d\n", c.car.str, bmbs_count); */
-  /* for (int i =0;i<bmbs_count;i++) */
-  /*   printf("B %p EB: %p | ", bottommost_blocks[i], eb); */
-  /* printf("\n"); */
-  return eb;
+  
+  int emblocks_count = 0;
+  struct block **emblocks = embedding_blocks__Hp(c, blocks, blocks_count, &emblocks_count);
+  int botmost_blocks_count = 0;
+  struct block **botmost_blocks = bottommost_blocks__Hp(emblocks, emblocks_count, &botmost_blocks_count);
+  return rightmost_block(botmost_blocks, botmost_blocks_count);
 }
 
 
-
-
-/* void eval(struct cell *sexp) */
-/* { */
-/*   switch (sexp->type) { */
-/*   case NUMBER: */
-/*     /\* guess_token_type(sexp); *\/ */
-/*     printf("type %d %s\n", sexp->type, sexp->car.str); */
-/*     break; */
-/*   case LAMBDA: */
-/*     _addition(sexp); */
-/*     break; */
-/*   default: */
-/*     break; */
-/*   } */
-/* } */
 
 
 /* returns a list of linked cells made of tokens */
@@ -619,7 +597,7 @@ struct cell *linked_cells__Hp(struct token tokens[], size_t count)
       prev->cdr = c;
     if (i == count-1)
       c->cdr = NULL;
-    setval(c);
+    set_cell_val(c);
     prev = c;
   }
   return root;
@@ -648,49 +626,52 @@ void free_linked_cells(struct cell *c)
   }
 }
 
-struct block __TLBlock = {
-  /* id */
-  0,
-  /* cells */
-  {
-    {				/* cells[0] */
-      /* car token */
-      {.str = TLTOKSTR,
-       .col_start_idx = -1,
-       .col_end_idx = 100,		/* ???????????????????????????????????????? */
-       .linum = -1,
-       .id = 0
-      },
-      /* cdr cell pointer */
-      NULL,
-      /* in block cdr */
-      NULL,
-      /* type ??? */
-      UNDEFINED,
-      NULL,			/* linker */
-      .ival=0,			/* ival */
-      .fval=0.0			/* fval */
-    }
-  },
+
+/* struct block __TLBlock = { */
+/*   /\* id *\/ */
+/*   0, */
+/*   /\* cells *\/ */
+/*   { */
+/*     {				/\* cells[0] *\/ */
+/*       /\* car token *\/ */
+/*       {.str = TLTOKSTR, */
+/*        .col_start_idx = -1, */
+/*        .col_end_idx = 100,		/\* ???????????????????????????????????????? *\/ */
+/*        .linum = -1, */
+/*        .id = 0 */
+/*       }, */
+/*       /\* cdr cell pointer *\/ */
+/*       NULL, */
+/*       /\* in block cdr *\/ */
+/*       NULL, */
+/*       /\* type ??? *\/ */
+/*       UNDEFINED, */
+/*       NULL,			/\* linker *\/ */
+/*       .ival=0,			/\* ival *\/ */
+/*       .fval=0.0			/\* fval *\/ */
+/*     } */
+/*   }, */
   
-  /* env (Toplevel Environment) */
-  {
-    /* id */
-    0,
-    /* syms (GHashtable *), must be populated yet */
-    NULL,
-    /* parenv */
-    NULL
-  },
+/*   /\* env (Toplevel Environment) *\/ */
+/*   { */
+/*     /\* id *\/ */
+/*     0, */
+/*     /\* symht (GHashtable *), to be populated yet *\/ */
+/*     NULL, */
+/*     /\* parenv *\/ */
+/*     NULL, */
+/*     /\* symcount *\/ */
+/*     0 */
+/*   }, */
   
-  /* size */
-  1,
-  /* child_blocks_count */
-  0,
-  /* child_blocks */
-  NULL,
-  NULL
-};
+/*   /\* size *\/ */
+/*   1, */
+/*   /\* child_blocks_count *\/ */
+/*   0, */
+/*   /\* child_blocks *\/ */
+/*   NULL, */
+/*   NULL */
+/* }; */
 
 
 
@@ -699,71 +680,57 @@ struct block __TLBlock = {
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
-bool endswith(const char *str, const char *suffix)
+/* bool endswith(const char *str, const char *suffix) */
+/* { */
+/*   if (!str || !suffix) return 0; */
+/*   size_t lenstr = strlen(str); */
+/*   size_t lensuffix = strlen(suffix); */
+/*   if (lensuffix > lenstr) return 0; */
+/*   return !strcmp(str + lenstr - lensuffix, suffix); */
+/* } */
+
+bool need_new_block(struct cell *c, struct block *emblock)
 {
-  if (!str || !suffix) return 0;
-  size_t lenstr = strlen(str);
-  size_t lensuffix = strlen(suffix);
-  if (lensuffix > lenstr) return 0;
-  return !strcmp(str + lenstr - lensuffix, suffix);
+
+  return !strcmp(c->car.str, "name") || !strcmp(block_head(emblock).car.str, "name");
+  /* bool need; */
+  /* if (c->emblock == NULL) */
+  /*   need = isbuiltin(c) || !strcmp(c->car.str, "lambda"); */
+  /* else { */
+  /*   need = isbuiltin(c) || !strcmp(c->car.str, "lambda") || */
+  /*     (!strcmp(c->emblock->cells[0].car.str, "lambda") && endswith(c->car.str, ":=")); */
+  /*   printf("%s---%d\n",c->car.str, !strcmp(c->emblock->cells[0].car.str, "lambda")); */
+  /* } */
+  /*   printf("Need? %s %d %d\n", c->car.str, need, endswith(c->car.str, ":=")); */
+  /* return need; */
 }
 
-bool need_new_block(struct cell *c)
-{
-  bool need;
-  if (c->emblock == NULL)
-    need = isbuiltin(c) || !strcmp(c->car.str, "lambda");
-  else {
-    need = isbuiltin(c) || !strcmp(c->car.str, "lambda") ||
-      (!strcmp(c->emblock->cells[0].car.str, "lambda") && endswith(c->car.str, ":="));
-    printf("%s---%d\n",c->car.str, !strcmp(c->emblock->cells[0].car.str, "lambda"));  
-  }
-    printf("Need? %s %d %d\n", c->car.str, need, endswith(c->car.str, ":="));
-  return need;
-}
 
-struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
+struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, int *blocks_count)
 {
   /* this is the blocktracker in the python prototype */
-  /* struct block *root = malloc(sizeof(struct block *)); */
   struct block **blocks = malloc(sizeof(struct block *)); /* make room for &__TLBlock */
-  *(blocks + (*bcount)++)  = &__TLBlock;
-  /* root = &__TLBlock; */
+  *(blocks + (*blocks_count)++) = tlblock;
   struct cell *c = linked_cells_root;
   struct block *emblock;
-  int bid = 1;			/* block id */
+  int blockid = 1;
 
   while (c) {
     /* find out the direct embedding block of the current cell */
-    emblock = embedding_block(*c, blocks, *bcount);
-
-    /* if (need_new_block(c)) { */
-    if (isbuiltin(c) || !strcmp(c->car.str, "lambda") ||
-	(!strcmp(emblock->cells[0].car.str, "lambda") && endswith(c->car.str, ":="))) {
-      /* printf("* builtin %d %s\n", isbuiltin(c), cellstr(c)); */
-      if ((blocks = realloc(blocks, (*bcount + 1) * sizeof(struct block *))) != NULL) {
+    emblock = embedding_block(*c, blocks, *blocks_count);
+    printf("%s %s id %d\n", c->car.str, block_head(emblock).car.str, emblock->id);
+    /* if (need_new_block(c, emblock)) { */
+    if (isbuiltin(c) ||
+	!strcmp(c->car.str, "name") ||
+	!strcmp(block_head(emblock).car.str, "name")) {
+      
+      if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
 	struct block *new_block = malloc(sizeof *new_block);
-	new_block->id = bid++;
+	new_block->id = blockid++;
 	new_block->cells[0] = *c;
 	new_block->size = 1;
-	/* new_block->child_blocks_count = 0; */
-	/* new_block->child_blocks = NULL; */
-	new_block->emblock = emblock;
-	
-	*(blocks + (*bcount)++) = new_block;
-	/* 
-	   Wenn emblock null ist, dann ist es ein block dessen HEAD am Anfang einer Zeile steht!
-	   Für so einen der emblock ist einfach der TLBlock. Alle andere new_blocks
-	   müssen schon einen anderen eigenen emblock haben!
-	 */
-	/* if (emblock != NULL) { */
-	/*   emblock->child_blocks = realloc(emblock->child_blocks, sizeof(struct block *) * (emblock->child_blocks_count + 1)); */
-	/*   emblock->child_blocks[emblock->child_blocks_count++] = new_block;	 */
-	/* } else {		/\* dann embedding block ist toplevel block *\/ */
-	/*   __TLBlock.child_blocks = realloc(__TLBlock.child_blocks, sizeof(struct block *) * (__TLBlock.child_blocks_count + 1)); */
-	/*   __TLBlock.child_blocks[__TLBlock.child_blocks_count++] = new_block; */
-	/* } */
-	
+	new_block->emblock = emblock;	
+	*(blocks + (*blocks_count)++) = new_block;
       } else exit(EXIT_FAILURE);
       
     } else {
@@ -775,12 +742,12 @@ struct block **parse__Hp(struct cell *linked_cells_root, int *bcount)
   return blocks;
 }
 
-void free_parser_blocks(struct block **blocks, int bcount)
+void free_parser_blocks(struct block **blocks, int blocks_count)
 {
   /* the first pointer in **blocks points to the tlblock, thats why we
      can't free *(blocks + 0). that first pointer will be freed after
      the loop. */
-  for (int i = 1; i < bcount; i++) free(*(blocks + i));
+  for (int i = 1; i < blocks_count; i++) free(*(blocks + i));
   free(blocks);
 }
 
@@ -789,13 +756,61 @@ void free_parser_blocks(struct block **blocks, int bcount)
   
 /* } */
 
-#define X 2
+#define X 1
 int main()
 {
 
+  /* struct block *__TLBlock__Hp = malloc(sizeof(struct block)); */
+  struct block __TLBlock__ = {
+    /* id */
+    0,
+    /* cells */
+    {
+      {				/* cells[0] */
+	/* car token */
+	{.str = TLTOKSTR "+++++++",
+	 .col_start_idx = 0,
+	 .col_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
+	 .linum = -1,
+	 .id = 0
+	},
+	/* cdr cell pointer */
+	NULL,
+	/* in block cdr */
+	NULL,
+	/* type ??? */
+	UNDEFINED,
+	NULL,			/* linker */
+	.ival=0,			/* ival */
+	.fval=0.0			/* fval */
+      }
+    },
+  
+    /* env (Toplevel Environment) */
+    {
+      /* id */
+      0,
+      /* symht (GHashtable *), to be populated yet */
+      NULL,
+      /* parenv */
+      NULL,
+      /* symcount */
+      0
+    },
+  
+    /* size */
+    1,
+    /* child_blocks_count */
+    0,
+    /* child_blocks */
+    NULL,
+    NULL
+  };
+
   char *lines[X] = {
-    "lambda x:= ",
-    "  7        8"
+    "// 2 3 4.5",
+    /* "- lummerland 4 * name 5. + .3 pumuckl", */
+    /* "+ i am a lisp" */
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -810,12 +825,11 @@ int main()
   struct cell *c = linked_cells__Hp(nct, nctok_count);
   struct cell *base = c;
   
-  int bcount = 0;
-  /* struct block **b = parse__Hp(c, &bcount); */
-  struct block **b = parse__Hp(c, &bcount);
+  int blocks_count = 0;
+  struct block **b = parse__Hp(&__TLBlock__, c, &blocks_count);
 
-  for (int i = 0; i <bcount;i++) {
-    printf("block id %d, sz %d head[%s] EmblockHead[%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str,
+  for (int i = 0; i <blocks_count;i++) {
+    printf("block id %d, sz %d head: [%s] EmblockHead: [%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str,
 	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "Nil");
     
     /* add(b[i]); */
@@ -823,14 +837,15 @@ int main()
     
     /* for (int j =0; j<b[i]->child_blocks_count;j++) */
     /*   printf(" ChildBlock: %s\n", b[i]->child_blocks[j]->cells[0].car.str); */
+    
     for (int j = 0; j<b[i]->size;j++) {
-      printf("  Cell: Str %s | Type %s\n", b[i]->cells[j].car.str, stringize_type(b[i]->cells[j].car.toktype));
+      printf("  Cell: Str %s | Type %s\n", b[i]->cells[j].car.str, stringize_type(b[i]->cells[j].car.type));
     }
     puts("");
       
   }
   
-  free_parser_blocks(b, bcount);
+  free_parser_blocks(b, blocks_count);
   
   free_linked_cells(base);
   
