@@ -1,8 +1,6 @@
 
-
-name this-is-evaled-to-NIL (weil nix danach kommt)
+name this-is-evaled-to-NIL (weil nix danach kommt wird es auf nil gesetzt.)
 name nextnil
-
 
 name F
   lambda
