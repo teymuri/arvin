@@ -387,8 +387,9 @@ typedef void (*lambda_t)(struct cell *);
 struct env {
   int id;
   GHashTable *symht;		/* hashtable keeping known symbols */
+  int symcount;			/* number of symbols */
   struct env *parenv;		/* parent environment */
-  int symcount;
+
 };
 
 /* only symbols will have envs!!! */
@@ -399,7 +400,7 @@ struct symbol {
   struct cell *cell;
 };
 
-struct symbol *newsym__Hp(struct cell *c, struct env *e)
+struct symbol *make_symbol__Hp(struct cell *c, struct env *e)
 {
   struct symbol *s = malloc(sizeof(struct symbol));
   s->name = c->car.str;
@@ -442,13 +443,13 @@ name foo
        34
  */
 
-struct env *newenv__Hp(int id, struct env *parenv)
+struct env *make_env__Hp(int id, struct env *parenv)
 {
   struct env *e = malloc(sizeof(struct env));
   e->id = id;
   e->symht = g_hash_table_new(g_str_hash, g_str_equal); /* empty hashtable */
-  e->parenv = parenv;
   e->symcount = 0;
+  e->parenv = parenv;
   return e;
 }
 
@@ -459,9 +460,8 @@ struct env *newenv__Hp(int id, struct env *parenv)
 struct block {
   int id;
   struct cell cells[MAX_BLOCK_SIZE];
-  struct env env;
+  struct env *env;
   int size;			/* number of cells contained in this block*/
-
   int child_blocks_count;
   struct block **child_blocks;
   /* the embedding block */
@@ -693,21 +693,12 @@ valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 /*   return !strcmp(str + lenstr - lensuffix, suffix); */
 /* } */
 
+
 bool need_new_block(struct cell *c, struct block *emblock)
 {
-
-  return isbuiltin(c) ||
-    !strcmp(c->car.str, "name") || !strcmp(block_head(emblock).car.str, "name");
-  /* bool need; */
-  /* if (c->emblock == NULL) */
-  /*   need = isbuiltin(c) || !strcmp(c->car.str, "lambda"); */
-  /* else { */
-  /*   need = isbuiltin(c) || !strcmp(c->car.str, "lambda") || */
-  /*     (!strcmp(c->emblock->cells[0].car.str, "lambda") && endswith(c->car.str, ":=")); */
-  /*   printf("%s---%d\n",c->car.str, !strcmp(c->emblock->cells[0].car.str, "lambda")); */
-  /* } */
-  /*   printf("Need? %s %d %d\n", c->car.str, need, endswith(c->car.str, ":=")); */
-  /* return need; */
+  return isbuiltin(c)
+    || !strcmp(c->car.str, "name")
+    || !strcmp(block_head(emblock).car.str, "name");
 }
 
 
@@ -725,19 +716,24 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
     emblock = embedding_block(*c, blocks, *blocks_count);
     /* printf("%s %s id %d\n", c->car.str, block_head(emblock).car.str, emblock->id); */
     if (need_new_block(c, emblock)) {
-    /* if (isbuiltin(c) || */
-    /* 	!strcmp(c->car.str, "name") || */
-    /* 	!strcmp(block_head(emblock).car.str, "name")) { */
-      
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
 	struct block *new_block = malloc(sizeof *new_block);
 	new_block->id = blockid++;
 	new_block->cells[0] = *c;
 	new_block->size = 1;
-	new_block->emblock = emblock;	
+	new_block->emblock = emblock;
+	/* decide environment */
+	if (!strcmp(block_head(emblock).car.str, "name")) {
+	  printf(">>>>>>babash name %s\n", c->car.str);
+	  new_block->env = emblock->env;
+	  (new_block->env->symcount)++;
+	  printf(">>>>>>%p %p %d\n", (void *)new_block->env ,(void *)emblock->env, new_block->env->symcount);
+	} else if (!strcmp(c->car.str, "name")) {
+	  printf(">>>>>>khodesh name %s\n", c->car.str);
+	  new_block->env = emblock->env;
+	}
 	*(blocks + (*blocks_count)++) = new_block;
-      } else exit(EXIT_FAILURE);
-      
+      } else exit(EXIT_FAILURE); /* realloc failed */      
     } else {
       c->emblock = emblock;
       emblock->cells[emblock->size++] = *c;
@@ -761,10 +757,15 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
   
 /* } */
 
-#define X 3
+#define X 2
 int main()
 {
-
+  struct env tlenv = {
+      .id=0,
+      .symht=NULL,
+      .parenv=NULL,
+      .symcount=0
+  };
   /* struct block *__TLBlock__Hp = malloc(sizeof(struct block)); */
   struct block __TLBlock__ = {
     /* id */
@@ -790,19 +791,16 @@ int main()
 	.fval=0.0			/* fval */
       }
     },
-  
     /* env (Toplevel Environment) */
-    {
-      /* id */
-      0,
-      /* symht (GHashtable *), to be populated yet */
-      NULL,
-      /* parenv */
-      NULL,
-      /* symcount */
-      0
-    },
-  
+    .env=&tlenv,
+
+    /* { */
+    /*   .id=0, */
+    /*   .symht=NULL, */
+    /*   .parenv=NULL, */
+    /*   .symcount=0 */
+    /* }, */
+    
     /* size */
     1,
     /* child_blocks_count */
@@ -813,9 +811,8 @@ int main()
   };
 
   char *lines[X] = {
-    "// 2 3 4.p5 10times",
-    " name am a lisp",
-    "* 2 3 - findus"
+    "name var1 3",
+    " var2    4"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -834,8 +831,13 @@ int main()
   struct block **b = parse__Hp(&__TLBlock__, c, &blocks_count);
 
   for (int i = 0; i <blocks_count;i++) {
-    printf("block id %d, sz %d head: [%s] EmblockHead: [%s]\n", b[i]->id, b[i]->size, b[i]->cells[0].car.str,
-	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "");
+    printf("block id %d, sz %d head: [%s] EmblockHead: [%s/%d] | Env id %d sz %d \n",
+	   b[i]->id, b[i]->size, b[i]->cells[0].car.str,
+	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "",
+	   /* wo ist emblock NULL? emblock von tlblock!!! */
+	   b[i]->emblock ? b[i]->emblock->id : -1,
+	   b[i]->emblock?b[i]->env->id :-1,
+	   b[i]->emblock? b[i]->env->symcount : -1);
     
     /* add(b[i]); */
     /* printf("=====> %s %f\n", stringize_type(b[i]->cells[0].type), b[i]->cells[0].fval); */
@@ -844,7 +846,8 @@ int main()
     /*   printf(" ChildBlock: %s\n", b[i]->child_blocks[j]->cells[0].car.str); */
     
     for (int j = 0; j<b[i]->size;j++) {
-      printf("  Cell: Str %s | Type %s\n", b[i]->cells[j].car.str, stringize_type(b[i]->cells[j].car.type));
+      printf("  Cell: Str %s | Type %s\n", b[i]->cells[j].car.str,
+	     stringize_type(b[i]->cells[j].car.type));
     }
     puts("");
       
