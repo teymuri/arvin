@@ -722,16 +722,6 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	new_block->cells[0] = *c;
 	new_block->size = 1;
 	new_block->emblock = emblock;
-	/* decide environment */
-	if (!strcmp(block_head(emblock).car.str, "name")) {
-	  printf(">>>>>>babash name %s\n", c->car.str);
-	  new_block->env = emblock->env;
-	  (new_block->env->symcount)++;
-	  printf(">>>>>>%p %p %d\n", (void *)new_block->env ,(void *)emblock->env, new_block->env->symcount);
-	} else if (!strcmp(c->car.str, "name")) {
-	  printf(">>>>>>khodesh name %s\n", c->car.str);
-	  new_block->env = emblock->env;
-	}
 	*(blocks + (*blocks_count)++) = new_block;
       } else exit(EXIT_FAILURE); /* realloc failed */      
     } else {
@@ -760,14 +750,14 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
 #define X 2
 int main()
 {
-  struct env tlenv = {
-      .id=0,
-      .symht=NULL,
-      .parenv=NULL,
-      .symcount=0
-  };
-  /* struct block *__TLBlock__Hp = malloc(sizeof(struct block)); */
-  struct block __TLBlock__ = {
+  /* struct env tlenv = { */
+  /*     .id=0, */
+  /*     .symht=NULL, */
+  /*     .parenv=NULL, */
+  /*     .symcount=0 */
+  /* }; */
+  
+  struct block tlblock = {
     /* id */
     0,
     /* cells */
@@ -792,14 +782,8 @@ int main()
       }
     },
     /* env (Toplevel Environment) */
-    .env=&tlenv,
-
-    /* { */
-    /*   .id=0, */
-    /*   .symht=NULL, */
-    /*   .parenv=NULL, */
-    /*   .symcount=0 */
-    /* }, */
+    /* .env=&tlenv, */
+    .env=NULL,
     
     /* size */
     1,
@@ -811,8 +795,8 @@ int main()
   };
 
   char *lines[X] = {
-    "name var1 3",
-    " var2    4"
+    "name var1 + 3 2",
+    "name var2    8 * 2 99"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -828,16 +812,15 @@ int main()
   struct cell *base = c;
   
   int blocks_count = 0;
-  struct block **b = parse__Hp(&__TLBlock__, c, &blocks_count);
+  struct block **b = parse__Hp(&tlblock, c, &blocks_count);
 
   for (int i = 0; i <blocks_count;i++) {
-    printf("block id %d, sz %d head: [%s] EmblockHead: [%s/%d] | Env id %d sz %d \n",
+    printf("block id %d, sz %d head: [%s] EmblockHead: [%s/%d]\n",
 	   b[i]->id, b[i]->size, b[i]->cells[0].car.str,
 	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "",
 	   /* wo ist emblock NULL? emblock von tlblock!!! */
-	   b[i]->emblock ? b[i]->emblock->id : -1,
-	   b[i]->emblock?b[i]->env->id :-1,
-	   b[i]->emblock? b[i]->env->symcount : -1);
+	   b[i]->emblock ? b[i]->emblock->id : -1
+	   );
     
     /* add(b[i]); */
     /* printf("=====> %s %f\n", stringize_type(b[i]->cells[0].type), b[i]->cells[0].fval); */
