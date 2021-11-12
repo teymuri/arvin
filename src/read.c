@@ -346,8 +346,21 @@ enum __Type numtype(char *s)
 /*   } */
 /* } */
 
-
-
+enum __Block_cont_type { CELL, BLOCK };
+char *stringize_block_cont_type(enum __Block_cont_type t)
+{
+  switch (t) {
+  case CELL:
+    return "CELL";
+    break;
+  case BLOCK:
+    return "BLOCK";
+    break;
+  default:
+    return "INVALID";
+    break;
+  }
+}
 struct block;
 struct symbol;
 
@@ -355,11 +368,10 @@ struct cell {
   struct token car;
   struct cell *cdr;
   struct cell *in_block_cdr;
-  
   enum __Type type;
-  
   struct block *emblock;	/* embedding block of this cell */
   struct cell *linker;		/* the cell linking into this cell */
+  enum __Block_cont_type content_type;
   /* supported Let-types */
   int ival;
   float fval;
@@ -417,7 +429,7 @@ name thing 2
 
 /* builtin functions */
 char *__Builtins[] = {
-  "+", "*", "-", "//"
+  "+", "*", "-", "/"
 };
 int __Builtins_count = 4;
 
@@ -457,13 +469,18 @@ struct env *make_env__Hp(int id, struct env *parenv)
 /* int __Blockid = 0; */
 #define MAX_BLOCK_SIZE 10
 
+struct bcont {
+  struct cell *c;		/* cell content */
+  struct block *b;		/* block content */
+  enum __Block_cont_type type;
+};
+
 struct block {
   int id;
   struct cell cells[MAX_BLOCK_SIZE];
   struct env *env;
   int size;			/* number of cells contained in this block*/
-  int child_blocks_count;
-  struct block **child_blocks;
+  struct bcont *cont;		/* content cells & child blocks */
   /* the embedding block */
   struct block *emblock;
 };
@@ -709,12 +726,10 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
   *(blocks + (*blocks_count)++) = tlblock;
   struct cell *c = linked_cells_root;
   struct block *emblock;
-  int blockid = 1;
-
+  int blockid = 1;  
   while (c) {
     /* find out the direct embedding block of the current cell */
     emblock = embedding_block(*c, blocks, *blocks_count);
-    /* printf("%s %s id %d\n", c->car.str, block_head(emblock).car.str, emblock->id); */
     if (need_new_block(c, emblock)) {
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
 	struct block *new_block = malloc(sizeof *new_block);
@@ -722,11 +737,19 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	new_block->cells[0] = *c;
 	new_block->size = 1;
 	new_block->emblock = emblock;
+	/* new_block->content_type = BLOCK; */
 	*(blocks + (*blocks_count)++) = new_block;
-      } else exit(EXIT_FAILURE); /* realloc failed */      
-    } else {
+	if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
+	  *(emblock->cont + (emblock->size)++) = (struct bcont) { .type = BLOCK, .b = new_block };
+	  /*  */
+	}
+      } else exit(EXIT_FAILURE); /* blocks realloc failed */      
+    } else {			 /* es handelt sich um ein cell */
+      if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
+	*(emblock->cont + (emblock->size)++) = (struct bcont){ .type = CELL, .c = c };
+      }
       c->emblock = emblock;
-      emblock->cells[emblock->size++] = *c;
+      emblock->cells[emblock->size] = *c;
     }
     c = c->cdr;
   }
@@ -742,61 +765,99 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
   free(blocks);
 }
 
-/* struct block **eval(struct block **blocks, int blocks_count) */
-/* { */
-  
-/* } */
+void assign_envs(struct block **b, int blocks_count, struct env *tlenv)
+{
+  if (b[0]->id == 0)		/* assert? */
+    b[0]->env = tlenv;
+  for (int i = 1; i < blocks_count; i++) {
+    if (
+	!strcmp(block_head(b[i]->emblock).car.str, "name")
+	) {
+      b[i]->env = b[i]->emblock->env;
+      b[i]->env->symcount++;
+      g_hash_table_insert(b[i]->env->symht, b[i]->cells[0].car.str, &(b[i]->cells[1]));
+    } else if (!strcmp(b[i]->cells[0].car.str, "name") || true) {
+      b[i]->env = b[i]->emblock->env;
+    }
+  }
+}
+void smult(char c, int i)
+{
+  char s[i];
+  for (int k =0; k<i;k++)
+    s[k] = c;
+  s[i] = '\0';
+  printf("%s", s);
+}
+/* *************************************FIX******************* */
+void eval(struct block *b, int depth)
+{
+  for (int i = 0; i < b->size; i++) {
+    switch (b->cont[i].type) {
+    case CELL:
+      smult('.', depth);
+      printf("Cell %s\n", b->cont[i].c->car.str);
+      break;
+    case BLOCK:
+      printf("Block %s\n", b->cont[i].b->cells[0].car.str);
+      eval(b->cont[i].b, depth+1);
+      break;
+    }
+  }
+}
 
 #define X 2
 int main()
 {
-  /* struct env tlenv = { */
-  /*     .id=0, */
-  /*     .symht=NULL, */
-  /*     .parenv=NULL, */
-  /*     .symcount=0 */
-  /* }; */
   
+  struct env tlenv = {
+    .id = 0,
+    .symht = g_hash_table_new(g_str_hash, g_str_equal),
+    .parenv = NULL,
+    .symcount = 0
+  };
+  /* struct token tltok = { */
+  /*   .str = TLTOKSTR, */
+  /*   .col_start_idx = -1, */
+  /*   .col_end_idx = 100,		/\* ???????????????????????????????????????? set auf maximum*\/ */
+  /*   .linum = -1, */
+  /*   .id = 0 */
+  /* }; */
   struct block tlblock = {
-    /* id */
-    0,
-    /* cells */
-    {
+    .id = 0,
+    .cells = {
       {				/* cells[0] */
 	/* car token */
-	{.str = TLTOKSTR "_______",
-	 .col_start_idx = -1,
-	 .col_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
-	 .linum = -1,
-	 .id = 0
+	.car = {
+	  .str = TLTOKSTR,
+	  .col_start_idx = -1,
+	  .col_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
+	  .linum = -1,
+	  .id = 0
 	},
 	/* cdr cell pointer */
-	NULL,
+	.cdr = NULL,
 	/* in block cdr */
-	NULL,
+	.in_block_cdr = NULL,
 	/* type ??? */
-	UNDEFINED,
-	NULL,			/* linker */
-	.ival=0,			/* ival */
-	.fval=0.0			/* fval */
+	.type = UNDEFINED,
+	.content_type = CELL,
+	.linker = NULL,			/* linker */
+	.ival = 0,			/* ival */
+	.fval = 0.0			/* fval */
       }
     },
     /* env (Toplevel Environment) */
     /* .env=&tlenv, */
-    .env=NULL,
-    
-    /* size */
-    1,
-    /* child_blocks_count */
-    0,
-    /* child_blocks */
-    NULL,
-    NULL
+    .env = NULL,
+    .size = 1,
+    .emblock = NULL,
+    .cont = NULL
   };
 
   char *lines[X] = {
-    "name var1 + 3 2",
-    "name var2    8 * 2 99"
+    "* 1 200 + 2 3",
+    " 3        4 5"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -810,32 +871,41 @@ int main()
 
   struct cell *c = linked_cells__Hp(nct, nctok_count);
   struct cell *base = c;
-  
   int blocks_count = 0;
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
-
-  for (int i = 0; i <blocks_count;i++) {
-    printf("block id %d, sz %d head: [%s] EmblockHead: [%s/%d]\n",
-	   b[i]->id, b[i]->size, b[i]->cells[0].car.str,
-	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "",
-	   /* wo ist emblock NULL? emblock von tlblock!!! */
-	   b[i]->emblock ? b[i]->emblock->id : -1
-	   );
-    
-    /* add(b[i]); */
-    /* printf("=====> %s %f\n", stringize_type(b[i]->cells[0].type), b[i]->cells[0].fval); */
-    
-    /* for (int j =0; j<b[i]->child_blocks_count;j++) */
-    /*   printf(" ChildBlock: %s\n", b[i]->child_blocks[j]->cells[0].car.str); */
-    
-    for (int j = 0; j<b[i]->size;j++) {
-      printf("  Cell: Str %s | Type %s\n", b[i]->cells[j].car.str,
-	     stringize_type(b[i]->cells[j].car.type));
-    }
-    puts("");
-      
-  }
+  assign_envs(b, blocks_count, &tlenv);
+  printf("%d %s\n",
+	 tlblock.size,
+	 stringize_block_cont_type(tlblock.cont[1].type));
+  eval(&tlblock, 0);
   
+  /* printf("%s %d contsize %d\n", tlblock.cells[0].car.str, tlblock.size, tlblock.content_size); */
+  /* printf("%s\n", ((struct block *)(tlblock.cont[1]))->cells[0].car.str); */
+  /* printf("%s\n", ((struct block *)b[1])->cells[0].car.str); */
+  /* printf("%s\n", ((struct cell *)(((struct block *)b[2])->cont[1]))->car.str); */
+  
+  /* printf("%s\n", ((tlcont[0])->cont[1])->cells[0].car.str); */
+  /* for (int i = 0; i < blocks_count; i++) { */
+  /*   printf("block id %d, sz %d head: [%s] EmblockHead: [%s/id:%d] Env [id:%d,sz:%d,?:%p]\n", */
+  /* 	   b[i]->id, b[i]->size, b[i]->cells[0].car.str, */
+  /* 	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "", */
+  /* 	   /\* wo ist emblock NULL? emblock von tlblock!!! *\/ */
+  /* 	   b[i]->emblock ? b[i]->emblock->id : -1, */
+  /* 	   b[i]->env->id, */
+  /* 	   b[i]->env->symcount, */
+  /* 	   g_hash_table_lookup(b[i]->env->symht, "XXX") */
+  /* 	   ); */
+  /*   for (int j = 0; j<b[i]->size;j++) { */
+  /*     printf(" Cell: str %s | toktype %s at %p val:%d\n", */
+  /* 	     b[i]->cells[j].car.str, */
+  /* 	     stringize_type(b[i]->cells[j].car.type), */
+  /* 	     (void *)&(b[i]->cells[j]), */
+  /* 	     b[i]->cells[j].ival */
+  /* 	     ); */
+  /*   } */
+  /*   puts(""); */
+  /* } */
+
   free_parser_blocks(b, blocks_count);
   
   free_linked_cells(base);
@@ -846,4 +916,3 @@ int main()
 
 
 }
-
