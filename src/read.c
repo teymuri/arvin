@@ -37,7 +37,7 @@ char *stringize_type(enum __Type t)
 
 char *stringize_type(enum __Type);
 
-#define MAX_TOKLEN 50		/* bytes max token length */
+#define MAX_TOKLEN 50		/* max token length in bytes */
 #define TLTOKSTR "TLTOKSTR"
 
 struct token {
@@ -371,7 +371,6 @@ struct cell {
   enum __Type type;
   struct block *emblock;	/* embedding block of this cell */
   struct cell *linker;		/* the cell linking into this cell */
-  enum __Block_cont_type content_type;
   /* supported Let-types */
   int ival;
   float fval;
@@ -467,7 +466,7 @@ struct env *make_env__Hp(int id, struct env *parenv)
 
 
 /* int __Blockid = 0; */
-#define MAX_BLOCK_SIZE 10
+#define MAX_BLOCK_SIZE 1000
 
 struct bcont {
   struct cell *c;		/* cell content */
@@ -481,6 +480,7 @@ struct block {
   struct env *env;
   int size;			/* number of cells contained in this block*/
   struct bcont *cont;		/* content cells & child blocks */
+  int contsz;
   /* the embedding block */
   struct block *emblock;
 };
@@ -728,7 +728,7 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
   struct block *emblock;
   int blockid = 1;  
   while (c) {
-    /* find out the direct embedding block of the current cell */
+    /* find out the DIRECT embedding block of the current cell */
     emblock = embedding_block(*c, blocks, *blocks_count);
     if (need_new_block(c, emblock)) {
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
@@ -740,13 +740,22 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	/* new_block->content_type = BLOCK; */
 	*(blocks + (*blocks_count)++) = new_block;
 	if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
-	  *(emblock->cont + (emblock->size)++) = (struct bcont) { .type = BLOCK, .b = new_block };
+	  /* *(emblock->cont + (emblock->size)++) = (struct bcont) { .type = BLOCK, .b = new_block }; */
+	  (*(emblock->cont + emblock->size)).type = BLOCK;
+	  (*(emblock->cont + emblock->size)).b = new_block;
+	  printf("-> %s %d\n", new_block->cells[0].car.str,
+		 (*(emblock->cont + emblock->size)).type);
+	  emblock->size++;
 	  /*  */
+	  
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* es handelt sich um ein cell */
       if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
-	*(emblock->cont + (emblock->size)++) = (struct bcont){ .type = CELL, .c = c };
+	/* *(emblock->cont + (emblock->size)++) = (struct bcont){ .type = CELL, .c = c }; */
+	(*(emblock->cont + emblock->size)).type = CELL;
+	(*(emblock->cont + emblock->size)).c = c;
+	emblock->size++;
       }
       c->emblock = emblock;
       emblock->cells[emblock->size] = *c;
@@ -781,27 +790,38 @@ void assign_envs(struct block **b, int blocks_count, struct env *tlenv)
     }
   }
 }
-void smult(char c, int i)
+void smult(int i)
 {
-  char s[i];
-  for (int k =0; k<i;k++)
-    s[k] = c;
-  s[i] = '\0';
+  char s[(i*2)+1];
+  for (int k =0; k<i;k++) {
+
+        s[k*2] = ' ';
+	s[(k*2)+1]=' ';
+  }
+
+  s[(i*2)] = '\0';
   printf("%s", s);
+
 }
+
 /* *************************************FIX******************* */
 void eval(struct block *b, int depth)
 {
-  for (int i = 0; i < b->size; i++) {
+  /* printf("-----------BLOCK %s, SIZE: %d\n",b->cells[0].car.str,b->size); */
+  for (int i = 1; i < b->size; i++) {
     switch (b->cont[i].type) {
     case CELL:
-      smult('.', depth);
-      printf("Cell %s\n", b->cont[i].c->car.str);
+      smult(depth);
+      printf("Cell.%d: %s\n", i, b->cont[i].c->car.str);
       break;
     case BLOCK:
-      printf("Block %s\n", b->cont[i].b->cells[0].car.str);
+      smult(depth);
+      printf("Block.%d: %s\n", i, b->cont[i].b->cells[0].car.str);
       eval(b->cont[i].b, depth+1);
       break;
+    default:
+      smult(depth);
+      printf("Invalid BCont type %s\n", b[i].cells[0].car.str);
     }
   }
 }
@@ -826,7 +846,7 @@ int main()
   struct block tlblock = {
     .id = 0,
     .cells = {
-      {				/* cells[0] */
+      {				/* cells[0] toplevel cell */
 	/* car token */
 	.car = {
 	  .str = TLTOKSTR,
@@ -841,7 +861,6 @@ int main()
 	.in_block_cdr = NULL,
 	/* type ??? */
 	.type = UNDEFINED,
-	.content_type = CELL,
 	.linker = NULL,			/* linker */
 	.ival = 0,			/* ival */
 	.fval = 0.0			/* fval */
@@ -850,14 +869,14 @@ int main()
     /* env (Toplevel Environment) */
     /* .env=&tlenv, */
     .env = NULL,
-    .size = 1,
+    .size = 1,			/* this is the toplevel cell */
     .emblock = NULL,
     .cont = NULL
   };
 
   char *lines[X] = {
-    "* 1 200 + 2 3",
-    " 3        4 5"
+    "* 1 20 / 2",
+    " 2 3 0 5 6 - 7 8 9"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -874,9 +893,9 @@ int main()
   int blocks_count = 0;
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   assign_envs(b, blocks_count, &tlenv);
-  printf("%d %s\n",
-	 tlblock.size,
-	 stringize_block_cont_type(tlblock.cont[1].type));
+  /* printf("%d %s\n", */
+  /* 	 tlblock.size, */
+  /* 	 stringize_block_cont_type(tlblock.cont[1].type)); */
   eval(&tlblock, 0);
   
   /* printf("%s %d contsize %d\n", tlblock.cells[0].car.str, tlblock.size, tlblock.content_size); */
