@@ -159,9 +159,7 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
     fprintf(stderr, "parse error\n");
     fprintf(stderr, "regcomp failed with: %s\n", buff);
     exit(EXIT_FAILURE);
-  }
-  
-  
+  }  
   regmatch_t match[1];	/* interesed only in the whole match */
   int offset = 0, tokstrlen;
   struct token *tokptr = NULL;
@@ -188,8 +186,7 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
 	/* fprintf(stderr, "couldn't guess type of token %s", t.str); */
 	/* exit(EXIT_FAILURE); */
 	t.type = UNDEFINED;
-      }
-      
+      }   
       /* t.numtype = numtype(t.str); */
       /* t.isprim = isprim(t.str); */
       t.id = __Tokid++;
@@ -208,7 +205,10 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
       exit(EXIT_FAILURE);
     }
   }
-  regfree(&re);  
+  regfree(&re);
+  regfree(&reint);
+  regfree(&refloat);
+  regfree(&resym);
   return tokptr;
 }
 
@@ -736,7 +736,7 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	new_block->cells[0] = *c;
 	new_block->size = 1;
 	new_block->emblock = emblock;
-	/* new_block->content_type = BLOCK; */
+	new_block->cont = NULL;
 	*(blocks + (*blocks_count)++) = new_block;
 	if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
 	  (*(emblock->cont + emblock->size)).type = BLOCK;
@@ -762,8 +762,12 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
 {
   /* the first pointer in **blocks points to the tlblock, thats why we
      can't free *(blocks + 0). that first pointer will be freed after
-     the loop. */
-  for (int i = 1; i < blocks_count; i++) free(*(blocks + i));
+     the for loop. */
+  for (int i = 1; i < blocks_count; i++) {
+    free((*(blocks + i))->cont);
+    free(*(blocks + i));
+  }
+  free((*blocks)->cont);
   free(blocks);
 }
 
@@ -798,31 +802,32 @@ void print_indent(int i)
 }
 
 
-void printast(struct block *rootblk, int depth)
+void printast(struct block *rootbk, int depth)
 /* startpoint is the root block */
 {
-  for (int i = 1; i < rootblk->size; i++) {
-    switch (rootblk->cont[i].type) {
+  for (int i = 1; i < rootbk->size; i++) {
+    switch (rootbk->cont[i].type) {
     case CELL:
       print_indent(depth);
-      printf("Cell.%d: %s\n", i, rootblk->cont[i].c->car.str);
+      printf("Cell.%d: %s\n", i, rootbk->cont[i].c->car.str);
       break;
     case BLOCK:
       print_indent(depth);
-      printf("Block.%d [head:%s] [size:%d]\n",
+      printf("Block.%d [head:%s] [size:head 1 + body %d = %d]\n",
 	     i,
-	     rootblk->cont[i].b->cells[0].car.str,
-	     rootblk->cont[i].b->size);
-      printast(rootblk->cont[i].b, depth+1);
+	     rootbk->cont[i].b->cells[0].car.str,
+	     rootbk->cont[i].b->size - 1,
+	     rootbk->cont[i].b->size);
+      printast(rootbk->cont[i].b, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("Invalid BCont type %s\n", rootblk[i].cells[0].car.str);
+      printf("Invalid BCont type %s\n", rootbk[i].cells[0].car.str);
     }
   }
 }
 
-#define X 4
+#define X 2
 int main()
 {
   
@@ -872,9 +877,7 @@ int main()
 
   char *lines[X] = {
     "* 1 12 / 2",
-    " 2 3 0 5 6 - 7 8 9",
-    "* 4  5 / 8 3",
-    "10 20 30 40 50 60"
+    " 2 3 0 5 6 - 7 8 9"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
