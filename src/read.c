@@ -480,7 +480,6 @@ struct block {
   struct env *env;
   int size;			/* number of cells contained in this block*/
   struct bcont *cont;		/* content cells & child blocks */
-  int contsz;
   /* the embedding block */
   struct block *emblock;
 };
