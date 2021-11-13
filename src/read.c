@@ -740,19 +740,13 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	/* new_block->content_type = BLOCK; */
 	*(blocks + (*blocks_count)++) = new_block;
 	if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
-	  /* *(emblock->cont + (emblock->size)++) = (struct bcont) { .type = BLOCK, .b = new_block }; */
 	  (*(emblock->cont + emblock->size)).type = BLOCK;
 	  (*(emblock->cont + emblock->size)).b = new_block;
-	  printf("-> %s %d\n", new_block->cells[0].car.str,
-		 (*(emblock->cont + emblock->size)).type);
 	  emblock->size++;
-	  /*  */
-	  
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* es handelt sich um ein cell */
       if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
-	/* *(emblock->cont + (emblock->size)++) = (struct bcont){ .type = CELL, .c = c }; */
 	(*(emblock->cont + emblock->size)).type = CELL;
 	(*(emblock->cont + emblock->size)).c = c;
 	emblock->size++;
@@ -790,43 +784,46 @@ void assign_envs(struct block **b, int blocks_count, struct env *tlenv)
     }
   }
 }
-void smult(int i)
+void print_indent(int i)
 {
-  char s[(i*2)+1];
+  int n = 3;
+  char s[(i*n)+1];
   for (int k =0; k<i;k++) {
-
-        s[k*2] = ' ';
-	s[(k*2)+1]=' ';
+    s[k*n] = '|';
+    s[(k*n)+1]=' ';
+    s[(k*n)+2]=' ';
   }
-
-  s[(i*2)] = '\0';
+  s[(i*n)] = '\0';
   printf("%s", s);
 
 }
 
-/* *************************************FIX******************* */
-void eval(struct block *b, int depth)
+
+void printast(struct block *rootblk, int depth)
+/* startpoint is the root block */
 {
-  /* printf("-----------BLOCK %s, SIZE: %d\n",b->cells[0].car.str,b->size); */
-  for (int i = 1; i < b->size; i++) {
-    switch (b->cont[i].type) {
+  for (int i = 1; i < rootblk->size; i++) {
+    switch (rootblk->cont[i].type) {
     case CELL:
-      smult(depth);
-      printf("Cell.%d: %s\n", i, b->cont[i].c->car.str);
+      print_indent(depth);
+      printf("Cell.%d: %s\n", i, rootblk->cont[i].c->car.str);
       break;
     case BLOCK:
-      smult(depth);
-      printf("Block.%d: %s\n", i, b->cont[i].b->cells[0].car.str);
-      eval(b->cont[i].b, depth+1);
+      print_indent(depth);
+      printf("Block.%d [head:%s] [size:%d]\n",
+	     i,
+	     rootblk->cont[i].b->cells[0].car.str,
+	     rootblk->cont[i].b->size);
+      printast(rootblk->cont[i].b, depth+1);
       break;
     default:
-      smult(depth);
-      printf("Invalid BCont type %s\n", b[i].cells[0].car.str);
+      print_indent(depth);
+      printf("Invalid BCont type %s\n", rootblk[i].cells[0].car.str);
     }
   }
 }
 
-#define X 2
+#define X 4
 int main()
 {
   
@@ -875,8 +872,10 @@ int main()
   };
 
   char *lines[X] = {
-    "* 1 20 / 2",
-    " 2 3 0 5 6 - 7 8 9"
+    "* 1 12 / 2",
+    " 2 3 0 5 6 - 7 8 9",
+    "* 4  5 / 8 3",
+    "10 20 30 40 50 60"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -896,7 +895,7 @@ int main()
   /* printf("%d %s\n", */
   /* 	 tlblock.size, */
   /* 	 stringize_block_cont_type(tlblock.cont[1].type)); */
-  eval(&tlblock, 0);
+  printast(&tlblock, 0);
   
   /* printf("%s %d contsize %d\n", tlblock.cells[0].car.str, tlblock.size, tlblock.content_size); */
   /* printf("%s\n", ((struct block *)(tlblock.cont[1]))->cells[0].car.str); */
