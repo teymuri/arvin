@@ -483,6 +483,7 @@ struct block {
   /* the embedding block */
   struct block *enblock;
 };
+
 struct cell block_head(struct block *b) { return b->cells[0]; }
 
 
@@ -736,16 +737,20 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	new_block->cells[0] = *c;
 	new_block->size = 1;
 	new_block->enblock = enblock;
-	new_block->cont = NULL;
+	/* new_block->cont = NULL; */
+	/* set the new block's content */
+	new_block->cont = malloc(sizeof(struct bcont));
+	(*(new_block->cont)).type = CELL;
+	(*(new_block->cont)).c = c;
 	*(blocks + (*blocks_count)++) = new_block;
-	if ((enblock->cont = realloc(enblock->cont, (enblock->size + 1) * sizeof(struct bcont))) != NULL) {
+	if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct bcont))) != NULL) {
 	  (*(enblock->cont + enblock->size)).type = BLOCK;
 	  (*(enblock->cont + enblock->size)).b = new_block;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->cont = realloc(enblock->cont, (enblock->size + 1) * sizeof(struct bcont))) != NULL) {
+      if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct bcont))) != NULL) {
 	(*(enblock->cont + enblock->size)).type = CELL;
 	(*(enblock->cont + enblock->size)).c = c;
 	enblock->size++;
@@ -767,6 +772,9 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
     free((*(blocks + i))->cont);
     free(*(blocks + i));
   }
+  /* free the content of the toplevel block, since it surely
+     containts something when the parsed string hasn't been an empty
+     string! */
   free((*blocks)->cont);
   free(blocks);
 }
@@ -805,24 +813,27 @@ void print_indent(int i)
 void printast(struct block *rootblock, int depth)
 /* startpoint is the root block */
 {
-  for (int i = 1; i < rootblock->size; i++) {
+  /* printf("in %s %d\n", block_head(rootblock).car.str, rootblock->size); */
+  for (int i = 0; i < rootblock->size; i++) {
     switch (rootblock->cont[i].type) {
     case CELL:
       print_indent(depth);
-      printf("Cell.%d: %s\n", i, rootblock->cont[i].c->car.str);
+      printf("[Cell %d.%d] %s\n",
+	     i,
+	     depth,
+	     rootblock->cont[i].c->car.str);
       break;
     case BLOCK:
       print_indent(depth);
-      printf("Block.%d [head:%s] [size:head 1 + body %d = %d]\n",
+      printf("[Block %d.%d] size:%d\n",
 	     i,
-	     rootblock->cont[i].b->cells[0].car.str,
-	     rootblock->cont[i].b->size - 1,
+	     depth,
 	     rootblock->cont[i].b->size);
       printast(rootblock->cont[i].b, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("Invalid BCont type %s\n", rootblock[i].cells[0].car.str);
+      printf("[Invalid Content %d] %s %s\n", i,rootblock[i].cells[0].car.str, rootblock[i].cont[0].c->car.str);
     }
   }
 }
@@ -837,47 +848,76 @@ int main()
     .parenv = NULL,
     .symcount = 0
   };
-  /* struct token tltok = { */
-  /*   .str = TLTOKSTR, */
-  /*   .col_start_idx = -1, */
-  /*   .col_end_idx = 100,		/\* ???????????????????????????????????????? set auf maximum*\/ */
-  /*   .linum = -1, */
-  /*   .id = 0 */
-  /* }; */
+  struct token tltok = {
+    .str = TLTOKSTR,
+    .col_start_idx = -1,
+    .col_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
+    .linum = -1,
+    .id = 0
+  };
+  struct cell tlcell = {				/* cells[0] toplevel cell */
+    /* car token */
+    .car = tltok,
+    /* cdr cell pointer */
+    .cdr = NULL,
+    /* in block cdr */
+    .in_block_cdr = NULL,
+    /* type ??? */
+    .type = UNDEFINED,
+    .linker = NULL,			/* linker */
+    .ival = 0,			/* ival */
+    .fval = 0.0			/* fval */
+  };
+  
+  struct bcont *tlbcont = malloc(sizeof *tlbcont);
+  (*tlbcont).type = CELL;
+  (*tlbcont).c = &tlcell;
   struct block tlblock = {
     .id = 0,
-    .cells = {
-      {				/* cells[0] toplevel cell */
-	/* car token */
-	.car = {
-	  .str = TLTOKSTR,
-	  .col_start_idx = -1,
-	  .col_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
-	  .linum = -1,
-	  .id = 0
-	},
-	/* cdr cell pointer */
-	.cdr = NULL,
-	/* in block cdr */
-	.in_block_cdr = NULL,
-	/* type ??? */
-	.type = UNDEFINED,
-	.linker = NULL,			/* linker */
-	.ival = 0,			/* ival */
-	.fval = 0.0			/* fval */
-      }
-    },
+    .cells = { tlcell },
     /* env (Toplevel Environment) */
     /* .env=&tlenv, */
     .env = NULL,
     .size = 1,			/* this is the toplevel cell */
     .enblock = NULL,
-    .cont = NULL
+    .cont = tlbcont
   };
+
+  
+  /* struct block tlblock = { */
+  /*   .id = 0, */
+  /*   .cells = { */
+  /*     {				/\* cells[0] toplevel cell *\/ */
+  /* 	/\* car token *\/ */
+  /* 	.car = { */
+  /* 	  .str = TLTOKSTR, */
+  /* 	  .col_start_idx = -1, */
+  /* 	  .col_end_idx = 100,		/\* ???????????????????????????????????????? set auf maximum*\/ */
+  /* 	  .linum = -1, */
+  /* 	  .id = 0 */
+  /* 	}, */
+  /* 	/\* cdr cell pointer *\/ */
+  /* 	.cdr = NULL, */
+  /* 	/\* in block cdr *\/ */
+  /* 	.in_block_cdr = NULL, */
+  /* 	/\* type ??? *\/ */
+  /* 	.type = UNDEFINED, */
+  /* 	.linker = NULL,			/\* linker *\/ */
+  /* 	.ival = 0,			/\* ival *\/ */
+  /* 	.fval = 0.0			/\* fval *\/ */
+  /*     } */
+  /*   }, */
+  /*   /\* env (Toplevel Environment) *\/ */
+  /*   /\* .env=&tlenv, *\/ */
+  /*   .env = NULL, */
+  /*   .size = 1,			/\* this is the toplevel cell *\/ */
+  /*   .enblock = NULL, */
+  /*   .cont = NULL */
+  /* }; */
 
   char *lines[X] = {
     "* 1 12 / 2",
-    " 2 3 0 5 6 - 7 8 9"
+    "13 14 15 16"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
