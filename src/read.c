@@ -369,7 +369,7 @@ struct cell {
   struct cell *cdr;
   struct cell *in_block_cdr;
   enum __Type type;
-  struct block *emblock;	/* embedding block of this cell */
+  struct block *enblock;	/* embedding block of this cell */
   struct cell *linker;		/* the cell linking into this cell */
   /* supported Let-types */
   int ival;
@@ -481,7 +481,7 @@ struct block {
   int size;			/* number of cells contained in this block*/
   struct bcont *cont;		/* content cells & child blocks */
   /* the embedding block */
-  struct block *emblock;
+  struct block *enblock;
 };
 struct cell block_head(struct block *b) { return b->cells[0]; }
 
@@ -515,7 +515,7 @@ void add(struct block *b)
 
 
 /* is b directly or indirectly embedding c? */
-bool is_embedded_in(struct cell c, struct block b)
+bool is_enclosed_in(struct cell c, struct block b)
 {
   return (c.car.col_start_idx > b.cells[0].car.col_start_idx) &&
     (c.car.linum >= b.cells[0].car.linum);
@@ -526,44 +526,44 @@ bool is_embedded_in(struct cell c, struct block b)
    points to pointers to block structures, so it's return value must
    be freed (which doesn't any harm to the actual structure pointers
    it points to!) */
-struct block **embedding_blocks__Hp(struct cell c, struct block **blocks,
-				    int blocks_count, int *emblocks_count)
+struct block **enclosing_blocks__Hp(struct cell c, struct block **blocks,
+				    int blocks_count, int *enblocks_count)
 {
-  struct block **emblocks = NULL;
+  struct block **enblocks = NULL;
   for (int i = 0; i < blocks_count; i++) {
-    if (is_embedded_in(c, *(blocks[i]))) {
-      if ((emblocks = realloc(emblocks, (*emblocks_count + 1) * sizeof(struct block *))) != NULL)
-	*(emblocks + (*emblocks_count)++) = *(blocks + i);
+    if (is_enclosed_in(c, *(blocks[i]))) {
+      if ((enblocks = realloc(enblocks, (*enblocks_count + 1) * sizeof(struct block *))) != NULL)
+	*(enblocks + (*enblocks_count)++) = *(blocks + i);
       else exit(EXIT_FAILURE);
     }
   }
-  return emblocks;
+  return enblocks;
 }
 
 /* returns the bottom line number */
-int botlinum(struct block **emblocks, int emblocks_count)
+int botlinum(struct block **enblocks, int enblocks_count)
 {
   int ln = -1;
-  for (int i = 0; i < emblocks_count; i++) {
-    if ((*(emblocks + i))->cells[0].car.linum > ln)
-      ln = (*(emblocks + i))->cells[0].car.linum;
+  for (int i = 0; i < enblocks_count; i++) {
+    if ((*(enblocks + i))->cells[0].car.linum > ln)
+      ln = (*(enblocks + i))->cells[0].car.linum;
   }
   return ln;
 }
 
-struct block **bottommost_blocks__Hp(struct block **emblocks, int emblocks_count, int *botmost_blocks_count)
+struct block **bottommost_blocks__Hp(struct block **enblocks, int enblocks_count, int *botmost_blocks_count)
 {
-  int bln = botlinum(emblocks, emblocks_count);
+  int bln = botlinum(enblocks, enblocks_count);
   struct block **botmost_blocks = NULL;
-  for (int i = 0; i < emblocks_count; i++) {
-    if ((*(emblocks + i))->cells[0].car.linum == bln) {
+  for (int i = 0; i < enblocks_count; i++) {
+    if ((*(enblocks + i))->cells[0].car.linum == bln) {
       if ((botmost_blocks = realloc(botmost_blocks, (*botmost_blocks_count + 1) * sizeof(struct block *))) != NULL) {
-	*(botmost_blocks + (*botmost_blocks_count)++) = *(emblocks + i);
+	*(botmost_blocks + (*botmost_blocks_count)++) = *(enblocks + i);
       }	else exit(EXIT_FAILURE);
     }
   }
   /* free the pointer to selected (i.e. embedding) block pointers */
-  free(emblocks);
+  free(enblocks);
   return botmost_blocks;
 }
 
@@ -590,12 +590,12 @@ static struct block *rightmost_block(struct block **botmost_blocks, int botmost_
 }
 
 /* which one of the blocks is the direct embedding block of c? */
-struct block *embedding_block(struct cell c, struct block **blocks, int blocks_count)
+struct block *enclosing_block(struct cell c, struct block **blocks, int blocks_count)
 {  
-  int emblocks_count = 0;
-  struct block **emblocks = embedding_blocks__Hp(c, blocks, blocks_count, &emblocks_count);
+  int enblocks_count = 0;
+  struct block **enblocks = enclosing_blocks__Hp(c, blocks, blocks_count, &enblocks_count);
   int botmost_blocks_count = 0;
-  struct block **botmost_blocks = bottommost_blocks__Hp(emblocks, emblocks_count, &botmost_blocks_count);
+  struct block **botmost_blocks = bottommost_blocks__Hp(enblocks, enblocks_count, &botmost_blocks_count);
   return rightmost_block(botmost_blocks, botmost_blocks_count);
 }
 
@@ -710,11 +710,11 @@ valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 /* } */
 
 
-bool need_new_block(struct cell *c, struct block *emblock)
+bool need_new_block(struct cell *c, struct block *enblock)
 {
   return isbuiltin(c)
     || !strcmp(c->car.str, "name")
-    || !strcmp(block_head(emblock).car.str, "name");
+    || !strcmp(block_head(enblock).car.str, "name");
 }
 
 
@@ -724,34 +724,34 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
   struct block **blocks = malloc(sizeof(struct block *)); /* make room for the toplevel block */
   *(blocks + (*blocks_count)++) = tlblock;
   struct cell *c = linked_cells_root;
-  struct block *emblock;
+  struct block *enblock;
   int blockid = 1;  
   while (c) {
     /* find out the DIRECT embedding block of the current cell */
-    emblock = embedding_block(*c, blocks, *blocks_count);
-    if (need_new_block(c, emblock)) {
+    enblock = enclosing_block(*c, blocks, *blocks_count);
+    if (need_new_block(c, enblock)) {
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
 	struct block *new_block = malloc(sizeof *new_block);
 	new_block->id = blockid++;
 	new_block->cells[0] = *c;
 	new_block->size = 1;
-	new_block->emblock = emblock;
+	new_block->enblock = enblock;
 	new_block->cont = NULL;
 	*(blocks + (*blocks_count)++) = new_block;
-	if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
-	  (*(emblock->cont + emblock->size)).type = BLOCK;
-	  (*(emblock->cont + emblock->size)).b = new_block;
-	  emblock->size++;
+	if ((enblock->cont = realloc(enblock->cont, (enblock->size + 1) * sizeof(struct bcont))) != NULL) {
+	  (*(enblock->cont + enblock->size)).type = BLOCK;
+	  (*(enblock->cont + enblock->size)).b = new_block;
+	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
-	(*(emblock->cont + emblock->size)).type = CELL;
-	(*(emblock->cont + emblock->size)).c = c;
-	emblock->size++;
+      if ((enblock->cont = realloc(enblock->cont, (enblock->size + 1) * sizeof(struct bcont))) != NULL) {
+	(*(enblock->cont + enblock->size)).type = CELL;
+	(*(enblock->cont + enblock->size)).c = c;
+	enblock->size++;
       }
-      c->emblock = emblock;
-      emblock->cells[emblock->size] = *c;
+      c->enblock = enblock;
+      enblock->cells[enblock->size] = *c;
     }
     c = c->cdr;
   }
@@ -777,13 +777,13 @@ void assign_envs(struct block **b, int blocks_count, struct env *tlenv)
     b[0]->env = tlenv;
   for (int i = 1; i < blocks_count; i++) {
     if (
-	!strcmp(block_head(b[i]->emblock).car.str, "name")
+	!strcmp(block_head(b[i]->enblock).car.str, "name")
 	) {
-      b[i]->env = b[i]->emblock->env;
+      b[i]->env = b[i]->enblock->env;
       b[i]->env->symcount++;
       g_hash_table_insert(b[i]->env->symht, b[i]->cells[0].car.str, &(b[i]->cells[1]));
     } else if (!strcmp(b[i]->cells[0].car.str, "name") || true) {
-      b[i]->env = b[i]->emblock->env;
+      b[i]->env = b[i]->enblock->env;
     }
   }
 }
@@ -871,7 +871,7 @@ int main()
     /* .env=&tlenv, */
     .env = NULL,
     .size = 1,			/* this is the toplevel cell */
-    .emblock = NULL,
+    .enblock = NULL,
     .cont = NULL
   };
 
@@ -908,9 +908,9 @@ int main()
   /* for (int i = 0; i < blocks_count; i++) { */
   /*   printf("block id %d, sz %d head: [%s] EmblockHead: [%s/id:%d] Env [id:%d,sz:%d,?:%p]\n", */
   /* 	   b[i]->id, b[i]->size, b[i]->cells[0].car.str, */
-  /* 	   b[i]->emblock ? b[i]->emblock->cells[0].car.str : "", */
-  /* 	   /\* wo ist emblock NULL? emblock von tlblock!!! *\/ */
-  /* 	   b[i]->emblock ? b[i]->emblock->id : -1, */
+  /* 	   b[i]->enblock ? b[i]->enblock->cells[0].car.str : "", */
+  /* 	   /\* wo ist enblock NULL? enblock von tlblock!!! *\/ */
+  /* 	   b[i]->enblock ? b[i]->enblock->id : -1, */
   /* 	   b[i]->env->id, */
   /* 	   b[i]->env->symcount, */
   /* 	   g_hash_table_lookup(b[i]->env->symht, "XXX") */
