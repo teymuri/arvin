@@ -744,7 +744,7 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	  emblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
-    } else {			 /* es handelt sich um ein cell */
+    } else {			 /* no need for a new block, just a single lonely cell */
       if ((emblock->cont = realloc(emblock->cont, (emblock->size + 1) * sizeof(struct bcont))) != NULL) {
 	(*(emblock->cont + emblock->size)).type = CELL;
 	(*(emblock->cont + emblock->size)).c = c;
@@ -761,8 +761,8 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 void free_parser_blocks(struct block **blocks, int blocks_count)
 {
   /* the first pointer in **blocks points to the tlblock, thats why we
-     can't free *(blocks + 0). that first pointer will be freed after
-     the for loop. */
+     can't free *(blocks + 0), as tlblock is created on the
+     stack in main(). that first pointer will be freed after the for loop. */
   for (int i = 1; i < blocks_count; i++) {
     free((*(blocks + i))->cont);
     free(*(blocks + i));
@@ -789,12 +789,12 @@ void assign_envs(struct block **b, int blocks_count, struct env *tlenv)
 }
 void print_indent(int i)
 {
-  int n = 3;
+  int n = 2;
   char s[(i*n)+1];
   for (int k =0; k<i;k++) {
     s[k*n] = '|';
     s[(k*n)+1]=' ';
-    s[(k*n)+2]=' ';
+    /* s[(k*n)+2]=' '; */
   }
   s[(i*n)] = '\0';
   printf("%s", s);
@@ -802,27 +802,27 @@ void print_indent(int i)
 }
 
 
-void printast(struct block *rootbk, int depth)
+void printast(struct block *rootblock, int depth)
 /* startpoint is the root block */
 {
-  for (int i = 1; i < rootbk->size; i++) {
-    switch (rootbk->cont[i].type) {
+  for (int i = 1; i < rootblock->size; i++) {
+    switch (rootblock->cont[i].type) {
     case CELL:
       print_indent(depth);
-      printf("Cell.%d: %s\n", i, rootbk->cont[i].c->car.str);
+      printf("Cell.%d: %s\n", i, rootblock->cont[i].c->car.str);
       break;
     case BLOCK:
       print_indent(depth);
       printf("Block.%d [head:%s] [size:head 1 + body %d = %d]\n",
 	     i,
-	     rootbk->cont[i].b->cells[0].car.str,
-	     rootbk->cont[i].b->size - 1,
-	     rootbk->cont[i].b->size);
-      printast(rootbk->cont[i].b, depth+1);
+	     rootblock->cont[i].b->cells[0].car.str,
+	     rootblock->cont[i].b->size - 1,
+	     rootblock->cont[i].b->size);
+      printast(rootblock->cont[i].b, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("Invalid BCont type %s\n", rootbk[i].cells[0].car.str);
+      printf("Invalid BCont type %s\n", rootblock[i].cells[0].car.str);
     }
   }
 }
