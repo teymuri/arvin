@@ -29,10 +29,10 @@ char *stringize_type(enum __Type t)
 {
   switch (t) {
   case 0: return "UNKNOWN/NUMBER?";
-  case 1: return "INTEGER";
-  case 2: return "FLOAT";
-  case 3: return "SYMBOL";
-  default: return "UNDEFINED";
+  case 1: return "Integer";
+  case 2: return "Float";
+  case 3: return "Symbol";
+  default: return "Undefined";
   }
 }
 
@@ -347,8 +347,8 @@ enum __Type numtype(char *s)
 /*   } */
 /* } */
 
-enum __Block_item_type { CELL, BLOCK };
-char *stringize_block_cont_type(enum __Block_item_type t)
+enum __Block_content_type { CELL, BLOCK };
+char *stringize_block_cont_type(enum __Block_content_type t)
 {
   switch (t) {
   case CELL:
@@ -472,7 +472,7 @@ struct env *make_env__Hp(int id, struct env *parenv)
 struct block_content {
   struct cell *c;		/* for a cell */
   struct block *b;		/* for a block */
-  enum __Block_item_type type;
+  enum __Block_content_type type;
 };
 
 struct block {
@@ -808,25 +808,26 @@ void print_indent(int i)
   s[(i*n)] = '\0';
   printf("%s", s);
 }
-#define PRINT_AST_BLOCK_STR "[BLOCK HD:%s SZ:%d ENV:%d]\n"
-#define PRINT_AST_CELL_STR "[CELL %s]\n"
-void print_ast_main(struct block *rootblock, int depth)
+#define AST_PRINTER_BLOCK_STR "[Block HD:%s SZ:%d ENV:%d]\n"
+#define AST_PRINTER_CELL_STR "[Cell:%s TP:%s]\n"
+void print_ast_code(struct block *rootblock, int depth)
 /* startpoint is the root block */
 {
   for (int i = 0; i < rootblock->size; i++) {
     switch (rootblock->cont[i].type) {
     case CELL:
       print_indent(depth);
-      printf(PRINT_AST_CELL_STR,
-	     rootblock->cont[i].c->car.str);
+      printf(AST_PRINTER_CELL_STR,
+	     rootblock->cont[i].c->car.str,
+	     stringize_type(rootblock->cont[i].c->car.type));
       break;
     case BLOCK:
       print_indent(depth);
-      printf(PRINT_AST_BLOCK_STR,
+      printf(AST_PRINTER_BLOCK_STR,
 	     rootblock->cont[i].b->cells[0].car.str,
 	     rootblock->cont[i].b->size,
 	     rootblock->env ? rootblock->env->id : -1);
-      print_ast_main(rootblock->cont[i].b, depth+1);
+      print_ast_code(rootblock->cont[i].b, depth+1);
       break;
     default:
       print_indent(depth);
@@ -836,11 +837,11 @@ void print_ast_main(struct block *rootblock, int depth)
 }
 void print_ast(struct block *rootblock)
 {
-  printf(PRINT_AST_BLOCK_STR,
+  printf(AST_PRINTER_BLOCK_STR,
  	 rootblock->cont->c->car.str,
  	 rootblock->size,
 	 rootblock->env ? rootblock->env->id : -1);
-  print_ast_main(rootblock, 1);
+  print_ast_code(rootblock, 1);
 }
 
 #define X 1
@@ -942,7 +943,7 @@ int main()
   /* printf("%d %s\n", */
   /* 	 tlblock.size, */
   /* 	 stringize_block_cont_type(tlblock.cont[1].type)); */
-  /* print_ast_main(&tlblock, 0); */
+  /* print_ast_code(&tlblock, 0); */
   print_ast(&tlblock);
   
   /* printf("%s %d contsize %d\n", tlblock.cells[0].car.str, tlblock.size, tlblock.content_size); */
