@@ -803,8 +803,6 @@ void assign_envs(struct block **bs, int blocks_count, struct env *tlenv)
 	/* || !strcmp(bs[i]->cells[0].car.str, NAME_GIVER_KW) */) {    
       bs[i]->env = tlenv;
       bs[i]->env->symcount++;
-      /* g_hash_table_insert(bs[i]->env->symht, bs[i]->cells[0].car.str, &(bs[i]->cells[1])); */
-      printf("***%d*****%s\n",bs[i]->size, bs[i]->cells[1].car.str);
       g_hash_table_insert(bs[i]->env->symht, bs[i]->cells[0].car.str, &(bs[i]->cells[1]));
     }
   }
