@@ -17,7 +17,7 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <glib.h>
 
 /* definer words */
-#define NAMING_KW "name"		/* use to define symbols */
+#define NAME_GIVER_KW "name"		/* use to define symbols */
 
 enum __Type {
   NUMBER, INTEGER, FLOAT,
@@ -372,10 +372,22 @@ struct cell {
   enum __Type type;
   struct block *enblock;	/* embedding block of this cell */
   struct cell *linker;		/* the cell linking into this cell */
-  /* supported Let-types */
+  /* here will supported Let-types be stored as evaluating */
   int ival;
   float fval;
 };
+
+enum __Type celltype(struct cell *c)
+{
+  switch (c->car.type) {
+  case INTEGER: return INTEGER;
+  case FLOAT: return FLOAT;
+    /* case SYMBOL: */
+    /*   c->symval = makesym */
+  default: return UNDEFINED;
+  }
+}
+
 void set_cell_val(struct cell *c)
 {
   switch (c->car.type) {
@@ -715,8 +727,8 @@ valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 bool need_new_block(struct cell *c, struct block *enblock)
 {
   return isbuiltin(c)
-    || !strcmp(c->car.str, "name")
-    || !strcmp(block_head(enblock).car.str, "name");
+    || !strcmp(c->car.str, NAME_GIVER_KW)
+    || !strcmp(block_head(enblock).car.str, NAME_GIVER_KW);
 }
 
 
@@ -755,10 +767,10 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
       if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
 	(*(enblock->contents + enblock->size)).type = CELL;
 	(*(enblock->contents + enblock->size)).c = c;
-	enblock->size++;
       }
       c->enblock = enblock;
       enblock->cells[enblock->size] = *c;
+      enblock->size++;
     }
     c = c->cdr;
   }
@@ -787,10 +799,12 @@ void assign_envs(struct block **bs, int blocks_count, struct env *tlenv)
   if (bs[0]->id == 0)		/* assert toplevel? */
     bs[0]->env = tlenv;  
   for (int i = 1; i < blocks_count; i++) {
-    if (!strcmp(bs[i]->enblock->cells[0].car.str, NAMING_KW)
-	|| !strcmp(bs[i]->cells[0].car.str, NAMING_KW)) {    
+    if (!strcmp(bs[i]->enblock->cells[0].car.str, NAME_GIVER_KW)
+	/* || !strcmp(bs[i]->cells[0].car.str, NAME_GIVER_KW) */) {    
       bs[i]->env = tlenv;
       bs[i]->env->symcount++;
+      /* g_hash_table_insert(bs[i]->env->symht, bs[i]->cells[0].car.str, &(bs[i]->cells[1])); */
+      printf("***%d*****%s\n",bs[i]->size, bs[i]->cells[1].car.str);
       g_hash_table_insert(bs[i]->env->symht, bs[i]->cells[0].car.str, &(bs[i]->cells[1]));
     }
   }
@@ -809,8 +823,8 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-#define AST_PRINTER_BLOCK_STR "[Block, HD:%s, SZ:%d, <ENV(SZ:%d, ID:%d):%p> ]\n"
-#define AST_PRINTER_CELL_STR "[Cell %s, TP:%s]\n"
+#define AST_PRINTER_BLOCK_STR "[Block <HD %s> <SZ %d> <ENV(SZ %d, ID %d) %p>]\n"
+#define AST_PRINTER_CELL_STR "[Cell %s <TYP %s>]\n"
 void print_ast_code_part(struct block *root, int depth)
 /* startpoint is the root block */
 {
@@ -820,7 +834,9 @@ void print_ast_code_part(struct block *root, int depth)
       print_indent(depth);
       printf(AST_PRINTER_CELL_STR,
 	     root->contents[i].c->car.str,
-	     stringize_type(root->contents[i].c->car.type));
+	     /* stringize_type(root->contents[i].c->car.type) */
+	     stringize_type(celltype(root->contents[i].c))
+	     );
       break;
     case BLOCK:
       print_indent(depth);
