@@ -16,7 +16,8 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <assert.h>
 #include <glib.h>
 
-
+/* definer words */
+#define SYMDEF "name"		/* use to define symbols */
 
 enum __Type {
   NUMBER, INTEGER, FLOAT,
@@ -468,7 +469,7 @@ struct env *make_env__Hp(int id, struct env *parenv)
 /* int __Blockid = 0; */
 #define MAX_BLOCK_SIZE 1000
 
-struct block_item {
+struct block_content {
   struct cell *c;		/* for a cell */
   struct block *b;		/* for a block */
   enum __Block_item_type type;
@@ -479,7 +480,7 @@ struct block {
   struct cell cells[MAX_BLOCK_SIZE];
   struct env *env;
   int size;			/* number of cells contained in this block*/
-  struct block_item *cont;		/* content cells & child blocks */
+  struct block_content *cont;		/* content cells & child blocks */
   /* the embedding block */
   struct block *enblock;
 };
@@ -739,19 +740,19 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	new_block->enblock = enblock;
 
 	/* set the new block's content */
-	new_block->cont = malloc(sizeof(struct block_item));
+	new_block->cont = malloc(sizeof(struct block_content));
 	(*(new_block->cont)).type = CELL;
 	(*(new_block->cont)).c = c;
 	
 	*(blocks + (*blocks_count)++) = new_block;
-	if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
+	if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
 	  (*(enblock->cont + enblock->size)).type = BLOCK;
 	  (*(enblock->cont + enblock->size)).b = new_block;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
+      if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
 	(*(enblock->cont + enblock->size)).type = CELL;
 	(*(enblock->cont + enblock->size)).c = c;
 	enblock->size++;
@@ -781,18 +782,17 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
 }
 
 void assign_envs(struct block **b, int blocks_count, struct env *tlenv)
+/* only blocks have envs??? */
 {
   if (b[0]->id == 0)		/* assert toplevel? */
     b[0]->env = tlenv;
   for (int i = 1; i < blocks_count; i++) {
     if (
-	!strcmp(block_head(b[i]->enblock).car.str, "name")
+	!strcmp(block_head(b[i]->enblock).car.str, SYMDEF) /* a named symbol */
 	) {
-      b[i]->env = b[i]->enblock->env;
+      b[i]->env = tlenv;
       b[i]->env->symcount++;
       g_hash_table_insert(b[i]->env->symht, b[i]->cells[0].car.str, &(b[i]->cells[1]));
-    } else if (!strcmp(b[i]->cells[0].car.str, "name") || true) {
-      b[i]->env = b[i]->enblock->env;
     }
   }
 }
@@ -808,28 +808,25 @@ void print_indent(int i)
   s[(i*n)] = '\0';
   printf("%s", s);
 }
-
-
-void printast(struct block *rootblock, int depth)
+#define PRINT_AST_BLOCK_STR "[BLOCK HD:%s SZ:%d ENV:%d]\n"
+#define PRINT_AST_CELL_STR "[CELL %s]\n"
+void print_ast_main(struct block *rootblock, int depth)
 /* startpoint is the root block */
 {
-  /* printf("in %s %d\n", block_head(rootblock).car.str, rootblock->size); */
   for (int i = 0; i < rootblock->size; i++) {
     switch (rootblock->cont[i].type) {
     case CELL:
       print_indent(depth);
-      printf("[Cell %d.%d] %s\n",
-	     i,
-	     depth,
+      printf(PRINT_AST_CELL_STR,
 	     rootblock->cont[i].c->car.str);
       break;
     case BLOCK:
       print_indent(depth);
-      printf("[Block %d.%d] size:%d\n",
-	     i,
-	     depth,
-	     rootblock->cont[i].b->size);
-      printast(rootblock->cont[i].b, depth+1);
+      printf(PRINT_AST_BLOCK_STR,
+	     rootblock->cont[i].b->cells[0].car.str,
+	     rootblock->cont[i].b->size,
+	     rootblock->env ? rootblock->env->id : -1);
+      print_ast_main(rootblock->cont[i].b, depth+1);
       break;
     default:
       print_indent(depth);
@@ -837,8 +834,16 @@ void printast(struct block *rootblock, int depth)
     }
   }
 }
+void print_ast(struct block *rootblock)
+{
+  printf(PRINT_AST_BLOCK_STR,
+ 	 rootblock->cont->c->car.str,
+ 	 rootblock->size,
+	 rootblock->env ? rootblock->env->id : -1);
+  print_ast_main(rootblock, 1);
+}
 
-#define X 2
+#define X 1
 int main()
 {
   
@@ -869,9 +874,10 @@ int main()
     .fval = 0.0			/* fval */
   };
   
-  struct block_item *tlbcont = malloc(sizeof *tlbcont);
-  (*tlbcont).type = CELL;
-  (*tlbcont).c = &tlcell;
+  struct block_content *tlcont = malloc(sizeof *tlcont);
+  (*tlcont).type = CELL;
+  (*tlcont).c = &tlcell;
+
   struct block tlblock = {
     .id = 0,
     .cells = { tlcell },
@@ -880,7 +886,7 @@ int main()
     .env = NULL,
     .size = 1,			/* this is the toplevel cell */
     .enblock = NULL,
-    .cont = tlbcont
+    .cont = tlcont
   };
 
   
@@ -916,8 +922,7 @@ int main()
   /* }; */
 
   char *lines[X] = {
-    "* 1 12 / 2",
-    "13 14 15 16"
+    "name pi 3.14"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -937,7 +942,8 @@ int main()
   /* printf("%d %s\n", */
   /* 	 tlblock.size, */
   /* 	 stringize_block_cont_type(tlblock.cont[1].type)); */
-  printast(&tlblock, 0);
+  /* print_ast_main(&tlblock, 0); */
+  print_ast(&tlblock);
   
   /* printf("%s %d contsize %d\n", tlblock.cells[0].car.str, tlblock.size, tlblock.content_size); */
   /* printf("%s\n", ((struct block *)(tlblock.cont[1]))->cells[0].car.str); */
