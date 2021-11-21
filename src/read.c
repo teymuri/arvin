@@ -17,7 +17,7 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <glib.h>
 
 /* definer words */
-#define SYMDEF "name"		/* use to define symbols */
+#define NAMING_KW "name"		/* use to define symbols */
 
 enum __Type {
   NUMBER, INTEGER, FLOAT,
@@ -781,21 +781,21 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
   free(blocks);
 }
 
-void assign_envs(struct block **b, int blocks_count, struct env *tlenv)
+void assign_envs(struct block **bs, int blocks_count, struct env *tlenv)
 /* only blocks have envs??? */
 {
-  if (b[0]->id == 0)		/* assert toplevel? */
-    b[0]->env = tlenv;
+  if (bs[0]->id == 0)		/* assert toplevel? */
+    bs[0]->env = tlenv;  
   for (int i = 1; i < blocks_count; i++) {
-    if (
-	!strcmp(block_head(b[i]->enblock).car.str, SYMDEF) /* a named symbol */
-	) {
-      b[i]->env = tlenv;
-      b[i]->env->symcount++;
-      g_hash_table_insert(b[i]->env->symht, b[i]->cells[0].car.str, &(b[i]->cells[1]));
+    if (!strcmp(bs[i]->enblock->cells[0].car.str, NAMING_KW)
+	|| !strcmp(bs[i]->cells[0].car.str, NAMING_KW)) {    
+      bs[i]->env = tlenv;
+      bs[i]->env->symcount++;
+      g_hash_table_insert(bs[i]->env->symht, bs[i]->cells[0].car.str, &(bs[i]->cells[1]));
     }
   }
 }
+
 void print_indent(int i)
 {
   int n = 2;
@@ -808,48 +808,66 @@ void print_indent(int i)
   s[(i*n)] = '\0';
   printf("%s", s);
 }
-#define AST_PRINTER_BLOCK_STR "[Block HD:%s SZ:%d ENV:%d]\n"
-#define AST_PRINTER_CELL_STR "[Cell:%s TP:%s]\n"
-void print_ast_code(struct block *rootblock, int depth)
+
+#define AST_PRINTER_BLOCK_STR "[Block, HD:%s, SZ:%d, <ENV(SZ:%d, ID:%d):%p> ]\n"
+#define AST_PRINTER_CELL_STR "[Cell %s, TP:%s]\n"
+void print_ast_code_part(struct block *root, int depth)
 /* startpoint is the root block */
 {
-  for (int i = 0; i < rootblock->size; i++) {
-    switch (rootblock->contents[i].type) {
+  for (int i = 0; i < root->size; i++) {
+    switch (root->contents[i].type) {
     case CELL:
       print_indent(depth);
       printf(AST_PRINTER_CELL_STR,
-	     rootblock->contents[i].c->car.str,
-	     stringize_type(rootblock->contents[i].c->car.type));
+	     root->contents[i].c->car.str,
+	     stringize_type(root->contents[i].c->car.type));
       break;
     case BLOCK:
       print_indent(depth);
       printf(AST_PRINTER_BLOCK_STR,
-	     rootblock->contents[i].b->cells[0].car.str,
-	     rootblock->contents[i].b->size,
-	     rootblock->env ? rootblock->env->id : -1);
-      print_ast_code(rootblock->contents[i].b, depth+1);
+	     root->contents[i].b->cells[0].car.str,
+	     root->contents[i].b->size,
+	     root->contents[i].b->env ? root->contents[i].b->env->symcount : -1,
+	     root->contents[i].b->env ? root->contents[i].b->env->id : -1,
+	     root->contents[i].b->env ? (void *)root->contents[i].b->env : NULL
+	     );
+      print_ast_code_part(root->contents[i].b, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("[Invalid Content %d] %s %s\n", i,rootblock[i].cells[0].car.str, rootblock[i].contents[0].c->car.str);
+      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0].car.str, root[i].contents[0].c->car.str);
     }
   }
 }
-void print_ast(struct block *rootblock)
+void print_ast(struct block *root)
 {
-  /* rootblock's (the toplevel block) contents is a block_content of
-     type CELL, so when iterating over rootblock's contents this CELL
+  /* root's (the toplevel block) contents is a block_content of
+     type CELL, so when iterating over root's contents this CELL
      will be printed but there will be no BLOCK printed on top of that
      CELL, thats why we are cheating here and print a BLOCK-Like on
      top of the whole ast. */
+  printf("----------------------------------\n");
   printf(AST_PRINTER_BLOCK_STR,
- 	 rootblock->contents->c->car.str,
- 	 rootblock->size,
-	 rootblock->env ? rootblock->env->id : -1);
-  print_ast_code(rootblock, 1);
+ 	 root->contents->c->car.str,
+ 	 root->size,
+	 root->env ? root->env->symcount : -1,
+	 root->env ? root->env->id : -1,
+	 root->env ? (void *)root->env : NULL);
+  print_ast_code_part(root, 1);
+  printf("----------------------------------\n");
 }
 
-#define X 1
+/* void eval(struct block *root) */
+/* { */
+/*   for (int i = 0; i < root->size; i++) { */
+/*     switch (root->contents[i].type) { */
+/*     case CELL: */
+/*       root->contents[i].c */
+/*     } */
+/*   } */
+/* } */
+
+#define X 2
 int main()
 {
   
@@ -888,8 +906,8 @@ int main()
     .id = 0,
     .cells = { tlcell },
     /* env (Toplevel Environment) */
-    /* .env=&tlenv, */
-    .env = NULL,
+    .env = &tlenv,
+    /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
     .enblock = NULL,
     .contents = tlcont
@@ -928,7 +946,8 @@ int main()
   /* }; */
 
   char *lines[X] = {
-    "name pi 3.14"
+    "name pi 3.14",
+    "name e 123453"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -945,10 +964,7 @@ int main()
   int blocks_count = 0;
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   assign_envs(b, blocks_count, &tlenv);
-  /* printf("%d %s\n", */
-  /* 	 tlblock.size, */
-  /* 	 stringize_block_cont_type(tlblock.contents[1].type)); */
-  /* print_ast_code(&tlblock, 0); */
+  /* print_ast_code_part(&tlblock, 0); */
   print_ast(&tlblock);
   
   /* printf("%s %d contsize %d\n", tlblock.cells[0].car.str, tlblock.size, tlblock.content_size); */

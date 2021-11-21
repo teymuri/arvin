@@ -1,4 +1,8 @@
 
+
+
+
+
 name this-is-evaled-to-NIL (weil nix danach kommt wird es auf nil gesetzt.)
 name nextnil
 
@@ -9,6 +13,7 @@ name F
       name y (=> default is NIL)
       namepack others list 2 1 0 (default ist list 2 1 0)
     cons x cons y others
+  
 
 (wenn ich F so aufrufe:)
 F
