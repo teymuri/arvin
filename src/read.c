@@ -480,7 +480,7 @@ struct block {
   struct cell cells[MAX_BLOCK_SIZE];
   struct env *env;
   int size;			/* number of cells contained in this block*/
-  struct block_content *cont;		/* content cells & child blocks */
+  struct block_content *contents;		/* content cells & child blocks */
   /* the embedding block */
   struct block *enblock;
 };
@@ -740,21 +740,21 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	new_block->enblock = enblock;
 
 	/* set the new block's content */
-	new_block->cont = malloc(sizeof(struct block_content));
-	(*(new_block->cont)).type = CELL;
-	(*(new_block->cont)).c = c;
+	new_block->contents = malloc(sizeof(struct block_content));
+	(*(new_block->contents)).type = CELL;
+	(*(new_block->contents)).c = c;
 	
 	*(blocks + (*blocks_count)++) = new_block;
-	if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
-	  (*(enblock->cont + enblock->size)).type = BLOCK;
-	  (*(enblock->cont + enblock->size)).b = new_block;
+	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
+	  (*(enblock->contents + enblock->size)).type = BLOCK;
+	  (*(enblock->contents + enblock->size)).b = new_block;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
-	(*(enblock->cont + enblock->size)).type = CELL;
-	(*(enblock->cont + enblock->size)).c = c;
+      if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
+	(*(enblock->contents + enblock->size)).type = CELL;
+	(*(enblock->contents + enblock->size)).c = c;
 	enblock->size++;
       }
       c->enblock = enblock;
@@ -771,13 +771,13 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
      can't free *(blocks + 0), as tlblock is created on the
      stack in main(). that first pointer will be freed after the for loop. */
   for (int i = 1; i < blocks_count; i++) {
-    free((*(blocks + i))->cont);
+    free((*(blocks + i))->contents);
     free(*(blocks + i));
   }
   /* free the content of the toplevel block, since it surely
      containts something when the parsed string hasn't been an empty
      string! */
-  free((*blocks)->cont);
+  free((*blocks)->contents);
   free(blocks);
 }
 
@@ -814,31 +814,31 @@ void print_ast_code(struct block *rootblock, int depth)
 /* startpoint is the root block */
 {
   for (int i = 0; i < rootblock->size; i++) {
-    switch (rootblock->cont[i].type) {
+    switch (rootblock->contents[i].type) {
     case CELL:
       print_indent(depth);
       printf(AST_PRINTER_CELL_STR,
-	     rootblock->cont[i].c->car.str,
-	     stringize_type(rootblock->cont[i].c->car.type));
+	     rootblock->contents[i].c->car.str,
+	     stringize_type(rootblock->contents[i].c->car.type));
       break;
     case BLOCK:
       print_indent(depth);
       printf(AST_PRINTER_BLOCK_STR,
-	     rootblock->cont[i].b->cells[0].car.str,
-	     rootblock->cont[i].b->size,
+	     rootblock->contents[i].b->cells[0].car.str,
+	     rootblock->contents[i].b->size,
 	     rootblock->env ? rootblock->env->id : -1);
-      print_ast_code(rootblock->cont[i].b, depth+1);
+      print_ast_code(rootblock->contents[i].b, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("[Invalid Content %d] %s %s\n", i,rootblock[i].cells[0].car.str, rootblock[i].cont[0].c->car.str);
+      printf("[Invalid Content %d] %s %s\n", i,rootblock[i].cells[0].car.str, rootblock[i].contents[0].c->car.str);
     }
   }
 }
 void print_ast(struct block *rootblock)
 {
   printf(AST_PRINTER_BLOCK_STR,
- 	 rootblock->cont->c->car.str,
+ 	 rootblock->contents->c->car.str,
  	 rootblock->size,
 	 rootblock->env ? rootblock->env->id : -1);
   print_ast_code(rootblock, 1);
@@ -887,7 +887,7 @@ int main()
     .env = NULL,
     .size = 1,			/* this is the toplevel cell */
     .enblock = NULL,
-    .cont = tlcont
+    .contents = tlcont
   };
 
   
@@ -919,7 +919,7 @@ int main()
   /*   .env = NULL, */
   /*   .size = 1,			/\* this is the toplevel cell *\/ */
   /*   .enblock = NULL, */
-  /*   .cont = NULL */
+  /*   .contents = NULL */
   /* }; */
 
   char *lines[X] = {
@@ -942,16 +942,16 @@ int main()
   assign_envs(b, blocks_count, &tlenv);
   /* printf("%d %s\n", */
   /* 	 tlblock.size, */
-  /* 	 stringize_block_cont_type(tlblock.cont[1].type)); */
+  /* 	 stringize_block_cont_type(tlblock.contents[1].type)); */
   /* print_ast_code(&tlblock, 0); */
   print_ast(&tlblock);
   
   /* printf("%s %d contsize %d\n", tlblock.cells[0].car.str, tlblock.size, tlblock.content_size); */
-  /* printf("%s\n", ((struct block *)(tlblock.cont[1]))->cells[0].car.str); */
+  /* printf("%s\n", ((struct block *)(tlblock.contents[1]))->cells[0].car.str); */
   /* printf("%s\n", ((struct block *)b[1])->cells[0].car.str); */
-  /* printf("%s\n", ((struct cell *)(((struct block *)b[2])->cont[1]))->car.str); */
+  /* printf("%s\n", ((struct cell *)(((struct block *)b[2])->contents[1]))->car.str); */
   
-  /* printf("%s\n", ((tlcont[0])->cont[1])->cells[0].car.str); */
+  /* printf("%s\n", ((tlcont[0])->contents[1])->cells[0].car.str); */
   /* for (int i = 0; i < blocks_count; i++) { */
   /*   printf("block id %d, sz %d head: [%s] EmblockHead: [%s/id:%d] Env [id:%d,sz:%d,?:%p]\n", */
   /* 	   b[i]->id, b[i]->size, b[i]->cells[0].car.str, */
