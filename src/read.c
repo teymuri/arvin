@@ -837,6 +837,11 @@ void print_ast_code(struct block *rootblock, int depth)
 }
 void print_ast(struct block *rootblock)
 {
+  /* rootblock's (the toplevel block) contents is a block_content of
+     type CELL, so when iterating over rootblock's contents this CELL
+     will be printed but there will be no BLOCK printed on top of that
+     CELL, thats why we are cheating here and print a BLOCK-Like on
+     top of the whole ast. */
   printf(AST_PRINTER_BLOCK_STR,
  	 rootblock->contents->c->car.str,
  	 rootblock->size,
@@ -875,7 +880,7 @@ int main()
     .fval = 0.0			/* fval */
   };
   
-  struct block_content *tlcont = malloc(sizeof *tlcont);
+  struct block_content *tlcont = malloc(sizeof (struct block_content));
   (*tlcont).type = CELL;
   (*tlcont).c = &tlcell;
 
