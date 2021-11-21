@@ -33,3 +33,22 @@ ist jede funktion auch in irgend einem kontext aufgerufen)
 (assum we have a function abs which takes an arg)
 map abs list -1 2 -4 -1 4 (=>ist klar doc)
 
+................
+positional args
+  can have or have not default values (can be opt)
+named args
+  must come after posargs
+
+name f
+  lambda
+    parameters-list .arg1 .arg2 .arg3 .arg4
+    list arg1 arg2 arg3 arg4
+
+f 1 -> (1 nil nil nil)
+f 1 .arg3 4 5 -> (1 nil 4 5) , no implicite progn here: 4 bound to .arg3, 5 bound to .arg4
+
+name f2
+  lambda
+    parameters-list .arg1 .arg2
+                            + 3 4
+			      5 6 .arg3

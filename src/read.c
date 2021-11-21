@@ -346,8 +346,8 @@ enum __Type numtype(char *s)
 /*   } */
 /* } */
 
-enum __Block_cont_type { CELL, BLOCK };
-char *stringize_block_cont_type(enum __Block_cont_type t)
+enum __Block_item_type { CELL, BLOCK };
+char *stringize_block_cont_type(enum __Block_item_type t)
 {
   switch (t) {
   case CELL:
@@ -468,10 +468,10 @@ struct env *make_env__Hp(int id, struct env *parenv)
 /* int __Blockid = 0; */
 #define MAX_BLOCK_SIZE 1000
 
-struct bcont {
-  struct cell *c;		/* cell content */
-  struct block *b;		/* block content */
-  enum __Block_cont_type type;
+struct block_item {
+  struct cell *c;		/* for a cell */
+  struct block *b;		/* for a block */
+  enum __Block_item_type type;
 };
 
 struct block {
@@ -479,7 +479,7 @@ struct block {
   struct cell cells[MAX_BLOCK_SIZE];
   struct env *env;
   int size;			/* number of cells contained in this block*/
-  struct bcont *cont;		/* content cells & child blocks */
+  struct block_item *cont;		/* content cells & child blocks */
   /* the embedding block */
   struct block *enblock;
 };
@@ -737,20 +737,21 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	new_block->cells[0] = *c;
 	new_block->size = 1;
 	new_block->enblock = enblock;
-	/* new_block->cont = NULL; */
+
 	/* set the new block's content */
-	new_block->cont = malloc(sizeof(struct bcont));
+	new_block->cont = malloc(sizeof(struct block_item));
 	(*(new_block->cont)).type = CELL;
 	(*(new_block->cont)).c = c;
+	
 	*(blocks + (*blocks_count)++) = new_block;
-	if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct bcont))) != NULL) {
+	if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
 	  (*(enblock->cont + enblock->size)).type = BLOCK;
 	  (*(enblock->cont + enblock->size)).b = new_block;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct bcont))) != NULL) {
+      if ((enblock->cont = realloc(enblock->cont, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
 	(*(enblock->cont + enblock->size)).type = CELL;
 	(*(enblock->cont + enblock->size)).c = c;
 	enblock->size++;
@@ -781,7 +782,7 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
 
 void assign_envs(struct block **b, int blocks_count, struct env *tlenv)
 {
-  if (b[0]->id == 0)		/* assert? */
+  if (b[0]->id == 0)		/* assert toplevel? */
     b[0]->env = tlenv;
   for (int i = 1; i < blocks_count; i++) {
     if (
@@ -806,7 +807,6 @@ void print_indent(int i)
   }
   s[(i*n)] = '\0';
   printf("%s", s);
-
 }
 
 
@@ -869,7 +869,7 @@ int main()
     .fval = 0.0			/* fval */
   };
   
-  struct bcont *tlbcont = malloc(sizeof *tlbcont);
+  struct block_item *tlbcont = malloc(sizeof *tlbcont);
   (*tlbcont).type = CELL;
   (*tlbcont).c = &tlcell;
   struct block tlblock = {
