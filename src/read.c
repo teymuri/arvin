@@ -20,15 +20,15 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #define NAME_GIVER_KW "name"		/* use to define symbols */
 
 enum __Type {
-  NUMBER, INTEGER, FLOAT,
-  SYMBOL,
+  NUMBER = 0, INTEGER = 1, FLOAT = 2,
+  SYMBOL = 3,
   UNDEFINED
 };
 
 char *stringize_type(enum __Type t)
 {
   switch (t) {
-  case 0: return "UNKNOWN/NUMBER?";
+  case 0: return "Weiss net, waisch?!! number??????";
   case 1: return "Integer";
   case 2: return "Float";
   case 3: return "Symbol";
@@ -36,7 +36,7 @@ char *stringize_type(enum __Type t)
   }
 }
 
-char *stringize_type(enum __Type);
+/* char *stringize_type(enum __Type); */
 
 #define MAX_TOKLEN 50		/* max token length in bytes */
 #define TLTOKSTR "TLTOKSTR"
@@ -348,7 +348,7 @@ enum __Type numtype(char *s)
 /* } */
 
 enum __Block_content_type { CELL, BLOCK };
-char *stringize_block_cont_type(enum __Block_content_type t)
+char *stringize_block_content_type(enum __Block_content_type t)
 {
   switch (t) {
   case CELL:
@@ -375,6 +375,7 @@ struct cell {
   /* here will supported Let-types be stored as evaluating */
   int ival;
   float fval;
+  struct symbol *symval;
 };
 
 enum __Type celltype(struct cell *c)
@@ -382,8 +383,7 @@ enum __Type celltype(struct cell *c)
   switch (c->car.type) {
   case INTEGER: return INTEGER;
   case FLOAT: return FLOAT;
-    /* case SYMBOL: */
-    /*   c->symval = makesym */
+  case SYMBOL: return SYMBOL;
   default: return UNDEFINED;
   }
 }
@@ -871,17 +871,61 @@ void print_ast(struct block *root)
   printf("----------------------------------\n");
 }
 
-/* void eval(struct block *root) */
-/* { */
-/*   for (int i = 0; i < root->size; i++) { */
-/*     switch (root->contents[i].type) { */
-/*     case CELL: */
-/*       root->contents[i].c */
-/*     } */
-/*   } */
-/* } */
+struct letdata {
+  enum __Type type;
+  union {
+    int i;
+    float f;
+  } data;
+};
 
-#define X 2
+struct letdata *eval(struct block *root)
+/* return value of eval is a single data type */
+{
+  struct letdata *ld = malloc(sizeof *ld); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
+  for (int i = 0; i < root->size; i++) {
+    switch (root->contents[i].type) {
+    case CELL:
+      switch (celltype(root->contents[i].c)) {
+      case INTEGER:
+	ld->type = INTEGER;
+	ld->data.i = root->contents[i].c->ival;
+	return ld;
+	break;
+      case FLOAT:
+	ld->type = FLOAT;
+	ld->data.f = root->contents[i].c->fval;;
+	return ld;
+	break;
+      case SYMBOL:
+	ld->type = SYMBOL;
+	break;
+      default:
+	break;
+      }
+      break;
+    }
+  }
+}
+
+void print(struct letdata *d)
+{
+  printf("=> ");
+  switch (d->type) {
+  case INTEGER:
+    printf("%d", d->data.i);
+    break;
+  case FLOAT:
+    printf("%f", d->data.f);
+    break;
+  default:
+    printf("?");
+    break;
+  }
+  printf("\n");
+}
+
+#define X 1
 int main()
 {
   
@@ -960,8 +1004,7 @@ int main()
   /* }; */
 
   char *lines[X] = {
-    "name pi 3.14",
-    "name e 123453"
+    ".8",
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -979,41 +1022,15 @@ int main()
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   assign_envs(b, blocks_count, &tlenv);
   /* print_ast_code_part(&tlblock, 0); */
-  print_ast(&tlblock);
-  
-  /* printf("%s %d contsize %d\n", tlblock.cells[0].car.str, tlblock.size, tlblock.content_size); */
-  /* printf("%s\n", ((struct block *)(tlblock.contents[1]))->cells[0].car.str); */
-  /* printf("%s\n", ((struct block *)b[1])->cells[0].car.str); */
-  /* printf("%s\n", ((struct cell *)(((struct block *)b[2])->contents[1]))->car.str); */
-  
-  /* printf("%s\n", ((tlcont[0])->contents[1])->cells[0].car.str); */
-  /* for (int i = 0; i < blocks_count; i++) { */
-  /*   printf("block id %d, sz %d head: [%s] EmblockHead: [%s/id:%d] Env [id:%d,sz:%d,?:%p]\n", */
-  /* 	   b[i]->id, b[i]->size, b[i]->cells[0].car.str, */
-  /* 	   b[i]->enblock ? b[i]->enblock->cells[0].car.str : "", */
-  /* 	   /\* wo ist enblock NULL? enblock von tlblock!!! *\/ */
-  /* 	   b[i]->enblock ? b[i]->enblock->id : -1, */
-  /* 	   b[i]->env->id, */
-  /* 	   b[i]->env->symcount, */
-  /* 	   g_hash_table_lookup(b[i]->env->symht, "XXX") */
-  /* 	   ); */
-  /*   for (int j = 0; j<b[i]->size;j++) { */
-  /*     printf(" Cell: str %s | toktype %s at %p val:%d\n", */
-  /* 	     b[i]->cells[j].car.str, */
-  /* 	     stringize_type(b[i]->cells[j].car.type), */
-  /* 	     (void *)&(b[i]->cells[j]), */
-  /* 	     b[i]->cells[j].ival */
-  /* 	     ); */
-  /*   } */
-  /*   puts(""); */
-  /* } */
+  /* print_ast(&tlblock); */
+  print(eval(&tlblock));
 
+
+
+  
   free_parser_blocks(b, blocks_count);
-  
   free_linked_cells(base);
-  
   free(nct);
-    
   exit(EXIT_SUCCESS);
 
 
