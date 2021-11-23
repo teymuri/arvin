@@ -745,21 +745,26 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
     enblock = enclosing_block(*c, blocks, *blocks_count);
     if (need_new_block(c, enblock)) {
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
-	struct block *new_block = malloc(sizeof *new_block);
-	new_block->id = blockid++;
-	new_block->cells[0] = *c;
-	new_block->size = 1;
-	new_block->enblock = enblock;
+	struct block *newblock = malloc(sizeof *newblock);
+	newblock->id = blockid++;
+	newblock->cells[0] = *c;
+	newblock->size = 1;
+	newblock->enblock = enblock;
 
 	/* set the new block's content */
-	new_block->contents = malloc(sizeof(struct block_content));
-	(*(new_block->contents)).type = CELL;
-	(*(new_block->contents)).c = c;
+	newblock->contents = malloc(sizeof(struct block_content));
+	(*(newblock->contents)).type = CELL;
+	(*(newblock->contents)).c = c;
+	/* set the env for the new block */
+	if (!strcmp(newblock->enblock->cells[0].car.str, NAME_GIVER_KW)) {
+	  newblock->env = tlblock->env;
+	  newblock->env->symcount++;
+	}
 	
-	*(blocks + (*blocks_count)++) = new_block;
+	*(blocks + (*blocks_count)++) = newblock;
 	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
 	  (*(enblock->contents + enblock->size)).type = BLOCK;
-	  (*(enblock->contents + enblock->size)).b = new_block;
+	  (*(enblock->contents + enblock->size)).b = newblock;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
@@ -793,20 +798,20 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
   free(blocks);
 }
 
-void assign_envs(struct block **bs, int blocks_count, struct env *tlenv)
-/* only blocks have envs??? */
-{
-  if (bs[0]->id == 0)		/* assert toplevel? */
-    bs[0]->env = tlenv;  
-  for (int i = 1; i < blocks_count; i++) {
-    if (!strcmp(bs[i]->enblock->cells[0].car.str, NAME_GIVER_KW)
-	/* || !strcmp(bs[i]->cells[0].car.str, NAME_GIVER_KW) */) {    
-      bs[i]->env = tlenv;
-      bs[i]->env->symcount++;
-      g_hash_table_insert(bs[i]->env->symht, bs[i]->cells[0].car.str, &(bs[i]->cells[1]));
-    }
-  }
-}
+/* void assign_envs(struct block **bs, int blocks_count, struct env *tlenv) */
+/* /\* only blocks have envs??? *\/ */
+/* { */
+/*   if (bs[0]->id == 0)		/\* assert toplevel? *\/ */
+/*     bs[0]->env = tlenv;   */
+/*   for (int i = 1; i < blocks_count; i++) { */
+/*     if (!strcmp(bs[i]->enblock->cells[0].car.str, NAME_GIVER_KW) */
+/* 	/\* || !strcmp(bs[i]->cells[0].car.str, NAME_GIVER_KW) *\/) {     */
+/*       bs[i]->env = tlenv; */
+/*       bs[i]->env->symcount++; */
+/*       g_hash_table_insert(bs[i]->env->symht, bs[i]->cells[0].car.str, &(bs[i]->cells[1])); */
+/*     } */
+/*   } */
+/* } */
 
 void print_indent(int i)
 {
@@ -860,7 +865,6 @@ void print_ast(struct block *root)
      will be printed but there will be no BLOCK printed on top of that
      CELL, thats why we are cheating here and print a BLOCK-Like on
      top of the whole ast. */
-  printf("----------------------------------\n");
   printf(AST_PRINTER_BLOCK_STR,
  	 root->contents->c->car.str,
  	 root->size,
@@ -868,7 +872,6 @@ void print_ast(struct block *root)
 	 root->env ? root->env->id : -1,
 	 root->env ? (void *)root->env : NULL);
   print_ast_code_part(root, 1);
-  printf("----------------------------------\n");
 }
 
 struct letdata {
@@ -925,7 +928,7 @@ void print(struct letdata *d)
   printf("\n");
 }
 
-#define X 1
+#define X 2
 int main()
 {
   
@@ -1004,7 +1007,8 @@ int main()
   /* }; */
 
   char *lines[X] = {
-    ".8",
+    "name PI 3.14",
+    "name E 1.18"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -1020,10 +1024,10 @@ int main()
   struct cell *base = c;
   int blocks_count = 0;
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
-  assign_envs(b, blocks_count, &tlenv);
+  /* assign_envs(b, blocks_count, &tlenv); */
   /* print_ast_code_part(&tlblock, 0); */
-  /* print_ast(&tlblock); */
-  print(eval(&tlblock));
+  print_ast(&tlblock);
+  /* print(eval(&tlblock)); */
 
 
 
