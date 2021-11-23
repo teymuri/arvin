@@ -137,7 +137,7 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
 
   /* For type guessing */
   regex_t reint, refloat, resym;
-  if ((errcode = regcomp(&reint, "^[0-9]+$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+  if ((errcode = regcomp(&reint, "^[-]*[0-9]+$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
     size_t buff_size = regerror(errcode, &reint, NULL, 0); /* inspect the required buffer size */
     char buff[buff_size+1];	/* need +1 for the null terminator??? */
     (void)regerror(errcode, &reint, buff, buff_size);
@@ -145,7 +145,7 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
     fprintf(stderr, "regcomp failed with: %s\n", buff);
     exit(EXIT_FAILURE);
   }
-  if ((errcode = regcomp(&refloat, "^[0-9]*\\.([0-9]*)?$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+  if ((errcode = regcomp(&refloat, "^[-]*[0-9]*\\.([0-9]*)?$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
     size_t buff_size = regerror(errcode, &refloat, NULL, 0); /* inspect the required buffer size */
     char buff[buff_size+1];	/* need +1 for the null terminator??? */
     (void)regerror(errcode, &refloat, buff, buff_size);
@@ -1010,6 +1010,7 @@ int main()
     "define PI 3.14",
     "define GoldenRatio 1.61803398875",
     "define EulersIdentity -1"
+
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
