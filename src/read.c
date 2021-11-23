@@ -16,8 +16,8 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <assert.h>
 #include <glib.h>
 
-/* definer words */
-#define NAME_GIVER_KW "name"		/* use to define symbols */
+/* Reserved Keywords */
+#define DEFINE_KW "define"		/* use to define symbols */
 
 enum __Type {
   NUMBER = 0, INTEGER = 1, FLOAT = 2,
@@ -727,8 +727,8 @@ valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 bool need_new_block(struct cell *c, struct block *enblock)
 {
   return isbuiltin(c)
-    || !strcmp(c->car.str, NAME_GIVER_KW)
-    || !strcmp(block_head(enblock).car.str, NAME_GIVER_KW);
+    || !strcmp(c->car.str, DEFINE_KW)
+    || !strcmp(block_head(enblock).car.str, DEFINE_KW);
 }
 
 
@@ -756,7 +756,7 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	(*(newblock->contents)).type = CELL;
 	(*(newblock->contents)).c = c;
 	/* set the env for the new block */
-	if (!strcmp(newblock->enblock->cells[0].car.str, NAME_GIVER_KW)) {
+	if (!strcmp(newblock->enblock->cells[0].car.str, DEFINE_KW)) {
 	  newblock->env = tlblock->env;
 	  newblock->env->symcount++;
 	}
@@ -804,8 +804,8 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
 /*   if (bs[0]->id == 0)		/\* assert toplevel? *\/ */
 /*     bs[0]->env = tlenv;   */
 /*   for (int i = 1; i < blocks_count; i++) { */
-/*     if (!strcmp(bs[i]->enblock->cells[0].car.str, NAME_GIVER_KW) */
-/* 	/\* || !strcmp(bs[i]->cells[0].car.str, NAME_GIVER_KW) *\/) {     */
+/*     if (!strcmp(bs[i]->enblock->cells[0].car.str, DEFINE_KW) */
+/* 	/\* || !strcmp(bs[i]->cells[0].car.str, DEFINE_KW) *\/) {     */
 /*       bs[i]->env = tlenv; */
 /*       bs[i]->env->symcount++; */
 /*       g_hash_table_insert(bs[i]->env->symht, bs[i]->cells[0].car.str, &(bs[i]->cells[1])); */
@@ -826,8 +826,8 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-#define AST_PRINTER_BLOCK_STR "[Block <HD %s> <SZ %d> <ENV(SZ %d, ID %d) %p>]\n"
-#define AST_PRINTER_CELL_STR "[Cell %s <TYP %s>]\n"
+#define AST_PRINTER_BLOCK_STR "[Block HD:%s SZ:%d ENV(SZ:%d ID:%d)%p]\n"
+#define AST_PRINTER_CELL_STR "[Cell:%s TYP:%s]\n"
 void print_ast_code_part(struct block *root, int depth)
 /* startpoint is the root block */
 {
@@ -928,7 +928,7 @@ void print(struct letdata *d)
   printf("\n");
 }
 
-#define X 2
+#define X 3
 int main()
 {
   
@@ -1007,8 +1007,9 @@ int main()
   /* }; */
 
   char *lines[X] = {
-    "name PI 3.14",
-    "name E 1.18"
+    "define PI 3.14",
+    "define GoldenRatio 1.61803398875",
+    "define EulersIdentity -1"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
