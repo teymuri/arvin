@@ -719,15 +719,14 @@ void free_linked_cells(struct cell *c)
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
-bool looks_like_param(struct cell *c)
+bool looks_like_a_param(struct cell *c)
 {
   return celltype(c) == SYMBOL && *c->car.str == PARAM_PREFIX;
 }
-
 bool is_lambda_head(struct cell c) { return !strcmp(c.car.str, LAMBDA_KW); }
 bool is_lambda_param(struct cell *c, struct block *enblock)
 {
-  return looks_like_param(c) && is_lambda_head(block_head(enblock));
+  return looks_like_a_param(c) && is_lambda_head(block_head(enblock));
 }
 
 bool need_new_block(struct cell *c, struct block *enblock)
@@ -740,7 +739,6 @@ bool need_new_block(struct cell *c, struct block *enblock)
     /* is begin of a lambda expression? */
     || is_lambda_head(*c)
     /* is a lambda parameter? */
-    /* || (!strcmp(block_head(enblock).car.str, LAMBDA_KW) && looks_like_param(c)) */
     || is_lambda_param(c, enblock) /* hier muss enblock richtig entschieden sein!!! */
     ;
 }
@@ -758,8 +756,9 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
   while (c) {
     
     /* find out the DIRECT embedding block of the current cell */
-    if (looks_like_param(c) && is_enclosed_in(*c, *last_lambda_block)) {
+    if (looks_like_a_param(c) && is_enclosed_in(*c, *last_lambda_block)) { /* so its a lambda parameter */
       enblock = last_lambda_block;
+      last_lambda_block->lambda_arity++;
     } else {
       enblock = enclosing_block(*c, blocks, *blocks_count);
     }
@@ -782,10 +781,16 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	  newblock->env->symcount++;
 	}
 	*(blocks + (*blocks_count)++) = newblock;
-	/* keep an eye on this if its the beginning of a lambda */
+	
+	/* keep an eye on this if its THE BEGINNING of a lambda */
 	if (is_lambda_head(*c)) {
+	  newblock->islambda = true; /* is a lambda-block */
+	  newblock->lambda_arity = 0; /* default is no arity */
 	  last_lambda_block = newblock;
+	} else {
+	  newblock->islambda = false;
 	}
+	
 	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
 	  (*(enblock->contents + enblock->size)).type = BLOCK;
 	  (*(enblock->contents + enblock->size)).b = newblock;
@@ -835,7 +840,7 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-#define AST_PRINTER_BLOCK_STR "[Block HD:%s SZ:%d ENV(SZ:%d ID:%d)%p]\n"
+#define AST_PRINTER_BLOCK_STR "[Block HD:%s SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
 #define AST_PRINTER_CELL_STR "[Cell:%s TYP:%s]\n"
 void print_ast_code_part(struct block *root, int depth)
 /* startpoint is the root block */
@@ -846,7 +851,6 @@ void print_ast_code_part(struct block *root, int depth)
       print_indent(depth);
       printf(AST_PRINTER_CELL_STR,
 	     root->contents[i].c->car.str,
-	     /* stringize_type(root->contents[i].c->car.type) */
 	     stringize_type(celltype(root->contents[i].c))
 	     );
       break;
@@ -857,7 +861,8 @@ void print_ast_code_part(struct block *root, int depth)
 	     root->contents[i].b->size,
 	     root->contents[i].b->env ? root->contents[i].b->env->symcount : -1,
 	     root->contents[i].b->env ? root->contents[i].b->env->id : -1,
-	     root->contents[i].b->env ? (void *)root->contents[i].b->env : NULL
+	     root->contents[i].b->env ? (void *)root->contents[i].b->env : NULL,
+	     root->contents[i].b->islambda ? root->contents[i].b->lambda_arity : -1
 	     );
       print_ast_code_part(root->contents[i].b, depth+1);
       break;
@@ -1023,8 +1028,8 @@ int main()
   /* }; */
 
   char *lines[X] = {
-    "lambda .A + 2 34 .B * 2 3 + 4 5",
-    ".C + 2 3"
+    "lambda .A + 2 34 .B * 2 3 + 4 5 .G * 0 0",
+    "            .C + A B"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
