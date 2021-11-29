@@ -16,8 +16,11 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <assert.h>
 #include <glib.h>
 
-/* Reserved Keywords */
+/* ******* Reserved strings and characters ******** */
 #define DEFINE_KW "define"		/* use to define symbols */
+#define LAMBDA_KW "lambda"
+#define PARAM_PREFIX '.'
+/* ********************************** */
 
 enum __Type {
   NUMBER = 0, INTEGER = 1, FLOAT = 2,
@@ -495,6 +498,8 @@ struct block {
   struct block_content *contents;		/* content cells & child blocks */
   /* the embedding block */
   struct block *enblock;
+  bool islambda;
+  int lambda_arity;
 };
 
 struct cell block_head(struct block *b) { return b->cells[0]; }
@@ -531,8 +536,8 @@ void add(struct block *b)
 /* is b directly or indirectly embedding c? */
 bool is_enclosed_in(struct cell c, struct block b)
 {
-  return (c.car.col_start_idx > b.cells[0].car.col_start_idx) &&
-    (c.car.linum >= b.cells[0].car.linum);
+  return (c.car.col_start_idx > b.cells[0].car.col_start_idx)
+    && (c.car.linum >= b.cells[0].car.linum);
 }
 
 
@@ -714,21 +719,30 @@ void free_linked_cells(struct cell *c)
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
-/* bool endswith(const char *str, const char *suffix) */
-/* { */
-/*   if (!str || !suffix) return 0; */
-/*   size_t lenstr = strlen(str); */
-/*   size_t lensuffix = strlen(suffix); */
-/*   if (lensuffix > lenstr) return 0; */
-/*   return !strcmp(str + lenstr - lensuffix, suffix); */
-/* } */
+bool looks_like_param(struct cell *c)
+{
+  return celltype(c) == SYMBOL && *c->car.str == PARAM_PREFIX;
+}
 
+bool is_lambda_head(struct cell c) { return !strcmp(c.car.str, LAMBDA_KW); }
+bool is_lambda_param(struct cell *c, struct block *enblock)
+{
+  return looks_like_param(c) && is_lambda_head(block_head(enblock));
+}
 
 bool need_new_block(struct cell *c, struct block *enblock)
 {
   return isbuiltin(c)
+    /* is a definition? */
     || !strcmp(c->car.str, DEFINE_KW)
-    || !strcmp(block_head(enblock).car.str, DEFINE_KW);
+    /* is the symbol to be defined? */
+    || !strcmp(block_head(enblock).car.str, DEFINE_KW)
+    /* is begin of a lambda expression? */
+    || is_lambda_head(*c)
+    /* is a lambda parameter? */
+    /* || (!strcmp(block_head(enblock).car.str, LAMBDA_KW) && looks_like_param(c)) */
+    || is_lambda_param(c, enblock) /* hier muss enblock richtig entschieden sein!!! */
+    ;
 }
 
 
@@ -739,10 +753,17 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
   *(blocks + (*blocks_count)++) = tlblock;
   struct cell *c = linked_cells_root;
   struct block *enblock;
-  int blockid = 1;  
+  struct block *last_lambda_block;
+  int blockid = 1;
   while (c) {
+    
     /* find out the DIRECT embedding block of the current cell */
-    enblock = enclosing_block(*c, blocks, *blocks_count);
+    if (looks_like_param(c) && is_enclosed_in(*c, *last_lambda_block)) {
+      enblock = last_lambda_block;
+    } else {
+      enblock = enclosing_block(*c, blocks, *blocks_count);
+    }
+    
     if (need_new_block(c, enblock)) {
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
 	struct block *newblock = malloc(sizeof *newblock);
@@ -760,8 +781,11 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	  newblock->env = tlblock->env;
 	  newblock->env->symcount++;
 	}
-	
 	*(blocks + (*blocks_count)++) = newblock;
+	/* keep an eye on this if its the beginning of a lambda */
+	if (is_lambda_head(*c)) {
+	  last_lambda_block = newblock;
+	}
 	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
 	  (*(enblock->contents + enblock->size)).type = BLOCK;
 	  (*(enblock->contents + enblock->size)).b = newblock;
@@ -798,29 +822,14 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
   free(blocks);
 }
 
-/* void assign_envs(struct block **bs, int blocks_count, struct env *tlenv) */
-/* /\* only blocks have envs??? *\/ */
-/* { */
-/*   if (bs[0]->id == 0)		/\* assert toplevel? *\/ */
-/*     bs[0]->env = tlenv;   */
-/*   for (int i = 1; i < blocks_count; i++) { */
-/*     if (!strcmp(bs[i]->enblock->cells[0].car.str, DEFINE_KW) */
-/* 	/\* || !strcmp(bs[i]->cells[0].car.str, DEFINE_KW) *\/) {     */
-/*       bs[i]->env = tlenv; */
-/*       bs[i]->env->symcount++; */
-/*       g_hash_table_insert(bs[i]->env->symht, bs[i]->cells[0].car.str, &(bs[i]->cells[1])); */
-/*     } */
-/*   } */
-/* } */
-
 void print_indent(int i)
 {
-  int n = 2;
+  int n = 3;
   char s[(i*n)+1];
   for (int k =0; k<i;k++) {
     s[k*n] = '|';
     s[(k*n)+1]=' ';
-    /* s[(k*n)+2]=' '; */
+    s[(k*n)+2]=' ';
   }
   s[(i*n)] = '\0';
   printf("%s", s);
@@ -882,6 +891,13 @@ struct letdata {
   } data;
 };
 
+/* struct letdata *(*f0)(); */
+/* struct letdata *(*f1)(struct letdata *); */
+/* struct letdata *(*f2)(struct letdata *, struct letdata *); */
+/* struct lambda { */
+/*   int arity; */
+/* } */
+
 struct letdata *eval(struct block *root)
 /* return value of eval is a single data type */
 {
@@ -928,7 +944,7 @@ void print(struct letdata *d)
   printf("\n");
 }
 
-#define X 3
+#define X 2
 int main()
 {
   
@@ -1007,10 +1023,8 @@ int main()
   /* }; */
 
   char *lines[X] = {
-    "define PI 3.14",
-    "define GoldenRatio 1.61803398875",
-    "define EulersIdentity -1"
-
+    "lambda .A + 2 34 .B * 2 3 + 4 5",
+    ".C + 2 3"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
