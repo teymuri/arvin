@@ -16,7 +16,7 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <assert.h>
 #include <glib.h>
 
-/* ******* Reserved strings and characters ******** */
+/* ******* Named strings and characters ******** */
 #define DEFINE_KW "define"		/* use to define symbols */
 #define LAMBDA_KW "lambda"
 #define PARAM_PREFIX '.'
@@ -499,7 +499,12 @@ struct block {
   /* the embedding block */
   struct block *enblock;
   bool islambda;
-  int lambda_arity;
+  int arity;			/* arity is the number of arguments
+				   and exists only for lambda-blocks,
+				   dont confuse it with absoption
+				   capacity which exists in ANY block!!! */
+  int max_absorp_capa;		/* wieviel Zeug wird in diesem block
+				   max reingesteckt werden können?! */
 };
 
 struct cell block_head(struct block *b) { return b->cells[0]; }
@@ -719,14 +724,14 @@ void free_linked_cells(struct cell *c)
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
-bool looks_like_a_param(struct cell *c)
+bool looks_like_lambda_param(struct cell *c)
 {
   return celltype(c) == SYMBOL && *c->car.str == PARAM_PREFIX;
 }
 bool is_lambda_head(struct cell c) { return !strcmp(c.car.str, LAMBDA_KW); }
 bool is_lambda_param(struct cell *c, struct block *enblock)
 {
-  return looks_like_a_param(c) && is_lambda_head(block_head(enblock));
+  return looks_like_lambda_param(c) && is_lambda_head(block_head(enblock));
 }
 
 bool need_new_block(struct cell *c, struct block *enblock)
@@ -743,7 +748,6 @@ bool need_new_block(struct cell *c, struct block *enblock)
     ;
 }
 
-
 struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, int *blocks_count)
 {
   /* this is the blocktracker in the python prototype */
@@ -756,11 +760,27 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
   while (c) {
     
     /* find out the DIRECT embedding block of the current cell */
-    if (looks_like_a_param(c) && is_enclosed_in(*c, *last_lambda_block)) { /* so its a lambda parameter */
+    if (looks_like_lambda_param(c) && is_enclosed_in(*c, *last_lambda_block)) { /* so its a lambda parameter */
       enblock = last_lambda_block;
-      last_lambda_block->lambda_arity++;
-    } else {
+      last_lambda_block->arity++;
+    }  else {
       enblock = enclosing_block(*c, blocks, *blocks_count);
+    }
+
+    /* If the computed enclosing block is a lambda-parameter and it
+       has no more absorption capacity then reset the enclosing block
+       to be the enclosing block of the lambda-parameter block
+       i.e. the lambda block itself (imply that the current item is
+       the return-expression of the lambda-block). If the parameter
+       block can absorb (i.e. it's single default-argument) the
+       computed enclosing block is correct, only decrement it's
+       absorption capacity. */
+    if (is_lambda_param(&(enblock->cells[0]), enblock->enblock)) {
+      if (enblock->max_absorp_capa) {
+	enblock->max_absorp_capa--;
+      } else {			/* bounce the enclosing block back to the lambda block itslef */
+	enblock = enblock->enblock;
+      }
     }
     
     if (need_new_block(c, enblock)) {
@@ -785,10 +805,14 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	/* keep an eye on this if its THE BEGINNING of a lambda */
 	if (is_lambda_head(*c)) {
 	  newblock->islambda = true; /* is a lambda-block */
-	  newblock->lambda_arity = 0; /* default is no arity */
+	  newblock->arity = 0; /* default is no arity */
 	  last_lambda_block = newblock;
 	} else {
 	  newblock->islambda = false;
+	}
+
+	if (is_lambda_param(c, enblock)) {
+	  newblock->max_absorp_capa = 1;	/* maximum das default argument */
 	}
 	
 	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
@@ -862,7 +886,7 @@ void print_ast_code_part(struct block *root, int depth)
 	     root->contents[i].b->env ? root->contents[i].b->env->symcount : -1,
 	     root->contents[i].b->env ? root->contents[i].b->env->id : -1,
 	     root->contents[i].b->env ? (void *)root->contents[i].b->env : NULL,
-	     root->contents[i].b->islambda ? root->contents[i].b->lambda_arity : -1
+	     root->contents[i].b->islambda ? root->contents[i].b->arity : -1
 	     );
       print_ast_code_part(root->contents[i].b, depth+1);
       break;
@@ -884,7 +908,8 @@ void print_ast(struct block *root)
  	 root->size,
 	 root->env ? root->env->symcount : -1,
 	 root->env ? root->env->id : -1,
-	 root->env ? (void *)root->env : NULL);
+	 root->env ? (void *)root->env : NULL,
+	 root->islambda ? root->arity : -1);
   print_ast_code_part(root, 1);
 }
 
@@ -992,44 +1017,14 @@ int main()
     /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
     .enblock = NULL,
-    .contents = tlcont
+    .contents = tlcont,
+    .islambda = false,
+    .arity = -1			/* invalid arity, this is not a lambda block! */
   };
 
-  
-  /* struct block tlblock = { */
-  /*   .id = 0, */
-  /*   .cells = { */
-  /*     {				/\* cells[0] toplevel cell *\/ */
-  /* 	/\* car token *\/ */
-  /* 	.car = { */
-  /* 	  .str = TLTOKSTR, */
-  /* 	  .col_start_idx = -1, */
-  /* 	  .col_end_idx = 100,		/\* ???????????????????????????????????????? set auf maximum*\/ */
-  /* 	  .linum = -1, */
-  /* 	  .id = 0 */
-  /* 	}, */
-  /* 	/\* cdr cell pointer *\/ */
-  /* 	.cdr = NULL, */
-  /* 	/\* in block cdr *\/ */
-  /* 	.in_block_cdr = NULL, */
-  /* 	/\* type ??? *\/ */
-  /* 	.type = UNDEFINED, */
-  /* 	.linker = NULL,			/\* linker *\/ */
-  /* 	.ival = 0,			/\* ival *\/ */
-  /* 	.fval = 0.0			/\* fval *\/ */
-  /*     } */
-  /*   }, */
-  /*   /\* env (Toplevel Environment) *\/ */
-  /*   /\* .env=&tlenv, *\/ */
-  /*   .env = NULL, */
-  /*   .size = 1,			/\* this is the toplevel cell *\/ */
-  /*   .enblock = NULL, */
-  /*   .contents = NULL */
-  /* }; */
-
   char *lines[X] = {
-    "lambda .A + 2 34 .B * 2 3 + 4 5 .G * 0 0",
-    "            .C + A B"
+		    "lambda .a + 2 8 9 .b 3",
+		    " .C + 2 3 .D 0 * a b C D"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
