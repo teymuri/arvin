@@ -5,11 +5,23 @@
   - Lambda Parameter Namen
   - Cond Teile `IF` THEN ELSE
 - Jeder Block-builder saugt NUR soviel Items (Cells oder Blocks) wie für ihn definiert. Es ist für Funktionen z.B. Anzahln der Argumente, für Lambda Parameter mit Defaultargumenten nur ein einziges Item etc. So wird eine unnötige block-artige Schreibweise vermieden, wenn es z.B. natürlicher und intuitiver aussieht wenn man etwas kurz auf eine Zeile zusammenfassen könnte. Ein Beispiel:
+folgender Block:
+```
+define
+  meine-funktion
+    lambda
+      .arg1 (mandatory argument)
+      .arg2 + 1 1
+      .arg3 5
+      + arg1 arg2 arg3
+```
+
+könnte als einer Einzeiler geschrieben werden:
 
 ```
 define meine-funktion lambda .arg1 .arg2 + 1 1 .arg3 5 + arg1 arg2 arg3
 ```
-Obwohl auf einer Zeile zusammengefasst, ist es eindeutig dass ab `.arg2` nicht im Block `.arg1` reingehört. Auch `.arg3` liegt nach obiger Definition eindeitig außerhalb der `+`-Block, da Lambda-Parameter Block-builder sind die jeweils *das nächste* Item (das selbst kein Parameter ist) einsaugen, heisst `.arg2` hat schon bekommen was es gebraucht hat (ein einziges Item, hier `+ 1 1`) und ist damit absolut zufrieden und glücklich (eigentlich wird es ein Error sein einem Parameter mehr als ein Expression als Defaultargument zu vergeben!) 
+Obwohl auf einer Zeile zusammengefasst, ist es eindeutig dass ab `.arg2` nicht im Block `.arg1` reingehört. Auch `.arg3` liegt nach obiger Definition eindeitig außerhalb der `+`-Block, da Lambda-Parameter Block-builder sind die jeweils *das nächste* Item (das selbst kein Parameter ist) einsaugen, heisst `.arg2` hat schon bekommen was es gebraucht hat (ein einziges Item, hier `+ 1 1`) und ist damit absolut zufrieden und glücklich (eigentlich wird es ein Error sein einem Parameter mehr als ein Expression als Defaultargument zu vergeben!) Ähnliches gilt auch für das Return-Expression vom Lambda oben... 
 
 ## Comments
 Comments in Let are written using `(` and `)` tokens. Let will ignore
