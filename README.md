@@ -16,7 +16,7 @@ define
       + arg1 arg2 arg3
 ```
 
-könnte als einer Einzeiler geschrieben werden:
+könnte dann als einer Einzeiler so geschrieben werden:
 
 ```
 define meine-funktion lambda .arg1 .arg2 + 1 1 .arg3 5 + arg1 arg2 arg3
