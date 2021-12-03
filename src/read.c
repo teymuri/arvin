@@ -772,13 +772,16 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
        to be the enclosing block of the lambda-parameter block
        i.e. the lambda block itself (imply that the current item is
        the return-expression of the lambda-block). If the parameter
-       block can absorb (i.e. it's single default-argument) the
-       computed enclosing block is correct, only decrement it's
-       absorption capacity. */
+       block still has absorption capacity (i.e. it's single
+       default-argument) the computed enclosing block is correct, only
+       decrement it's absorption capacity. */
     if (is_lambda_param(&(enblock->cells[0]), enblock->enblock)) {
       if (enblock->max_absorp_capa) {
-	enblock->max_absorp_capa--;
-      } else {			/* bounce the enclosing block back to the lambda block itslef */
+	enblock->max_absorp_capa--; /* sets it to 0 */
+      } else {			/* bounce the enclosing block back to
+				   the lambda block itslef, if
+				   parameter has already got some
+				   default argument */
 	enblock = enblock->enblock;
       }
     }
@@ -805,14 +808,14 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	/* keep an eye on this if its THE BEGINNING of a lambda */
 	if (is_lambda_head(*c)) {
 	  newblock->islambda = true; /* is a lambda-block */
-	  newblock->arity = 0; /* default is no arity */
+	  newblock->arity = 0; /* default is null-arity */
 	  last_lambda_block = newblock;
 	} else {
 	  newblock->islambda = false;
 	}
 
 	if (is_lambda_param(c, enblock)) {
-	  newblock->max_absorp_capa = 1;	/* maximum das default argument */
+	  newblock->max_absorp_capa = 1;	/* ist maximal das default argument wenn vorhanden */
 	}
 	
 	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
@@ -1024,7 +1027,7 @@ int main()
 
   char *lines[X] = {
 		    "lambda .a + 2 8 9 .b 3",
-		    " .C + 2 3 .D 0 * a b C D"
+		    " .C .D 0 X"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
