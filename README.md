@@ -26,7 +26,7 @@ Obwohl auf einer Zeile zusammengefasst, ist es eindeutig dass ab `.arg2` nicht i
 
 3. Lambda Parameter werden niemals als normales Item angesehen. Die haben immer _nur_ die Funktion eines Parameter Block-builders, d.h. ein Parametername kann nicht als Defaultargument vom vorigen Parameter fehlinterpretiert werden, auch wenn diese beide auf der gleichen Zeile und unmittelbar nacheinander notiert werden.
 
-4. Einige Block Generatoren haben eine fest-definierte `max_absorp_capa` (maximale Aufnahmekapazität), e.g.:
+4. Einige Block Generatoren haben eine fest-definierte `max_absorp_capa` (maximale Aufnahmekapazität), e.g.
 
 | Block Generator | maximale Aufnahmekapazität |
 | ------ | ------ |
