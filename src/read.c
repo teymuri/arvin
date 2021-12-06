@@ -24,22 +24,23 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 
 enum __Type {
   NUMBER = 0, INTEGER = 1, FLOAT = 2,
-  SYMBOL = 3,
+  SYMBOL = 3, LAMBDA = 4,
   UNDEFINED
 };
 
-char *stringize_type(enum __Type t)
+char *stringify_cell_type(enum __Type t)
 {
   switch (t) {
-  case 0: return "Weiss net, waisch?!! number??????";
-  case 1: return "Integer";
-  case 2: return "Float";
-  case 3: return "Symbol";
-  default: return "Undefined";
+  case 0: return "Weiss net, waisch?!! vielleicht number??????";
+  case 1: return "INTEGER";
+  case 2: return "FLOAT";
+  case 3: return "SYMBOL";
+  case 4: return "LAMBDA";
+  default: return "UNDEFINED";
   }
 }
 
-/* char *stringize_type(enum __Type); */
+/* char *stringify_cell_type(enum __Type); */
 
 #define MAX_TOKLEN 50		/* max token length in bytes */
 #define TLTOKSTR "TLTOKSTR"
@@ -351,7 +352,7 @@ enum __Type numtype(char *s)
 /* } */
 
 enum __Block_content_type { CELL, BLOCK };
-char *stringize_block_content_type(enum __Block_content_type t)
+char *stringify_block_content_type(enum __Block_content_type t)
 {
   switch (t) {
   case CELL:
@@ -499,6 +500,7 @@ struct block {
   /* the embedding block */
   struct block *enblock;
   bool islambda;
+  void *(*lambda)(void *);
   int arity;			/* arity is the number of arguments
 				   and exists only for lambda-blocks,
 				   dont confuse it with absoption
@@ -745,6 +747,7 @@ bool need_new_block(struct cell *c, struct block *enblock)
     || is_lambda_head(*c)
     /* is a lambda parameter? */
     || is_lambda_param(c, enblock) /* hier muss enblock richtig entschieden sein!!! */
+    || !strcmp(c->car.str, "call")
     ;
 }
 
@@ -856,20 +859,21 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
 
 void print_indent(int i)
 {
-  int n = 3;
+  int n = 2;
   char s[(i*n)+1];
   for (int k =0; k<i;k++) {
     s[k*n] = '|';
     s[(k*n)+1]=' ';
-    s[(k*n)+2]=' ';
+    /* s[(k*n)+2]=' '; */
   }
   s[(i*n)] = '\0';
   printf("%s", s);
 }
 
-#define AST_PRINTER_BLOCK_STR "[Block HD:%s SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
-#define AST_PRINTER_CELL_STR "[Cell:%s TYP:%s]\n"
-void print_ast_code_part(struct block *root, int depth)
+#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p AR:%d]\n"
+#define AST_PRINTER_BLOCK_STR "[BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p AR:%d]\n"
+#define AST_PRINTER_CELL_STR "[CELL:%s TP:%s]\n"
+void print_code_ast(struct block *root, int depth) /* This is the written code part */
 /* startpoint is the root block */
 {
   for (int i = 0; i < root->size; i++) {
@@ -878,7 +882,7 @@ void print_ast_code_part(struct block *root, int depth)
       print_indent(depth);
       printf(AST_PRINTER_CELL_STR,
 	     root->contents[i].c->car.str,
-	     stringize_type(celltype(root->contents[i].c))
+	     stringify_cell_type(celltype(root->contents[i].c))
 	     );
       break;
     case BLOCK:
@@ -891,7 +895,7 @@ void print_ast_code_part(struct block *root, int depth)
 	     root->contents[i].b->env ? (void *)root->contents[i].b->env : NULL,
 	     root->contents[i].b->islambda ? root->contents[i].b->arity : -1
 	     );
-      print_ast_code_part(root->contents[i].b, depth+1);
+      print_code_ast(root->contents[i].b, depth+1);
       break;
     default:
       print_indent(depth);
@@ -899,38 +903,95 @@ void print_ast_code_part(struct block *root, int depth)
     }
   }
 }
-void print_ast(struct block *root)
+void printast(struct block *root)
 {
   /* root's (the toplevel block) contents is a block_content of
      type CELL, so when iterating over root's contents this CELL
      will be printed but there will be no BLOCK printed on top of that
      CELL, thats why we are cheating here and print a BLOCK-Like on
      top of the whole ast. */
-  printf(AST_PRINTER_BLOCK_STR,
+  printf(AST_PRINTER_BLOCK_STR_TL,
  	 root->contents->c->car.str,
  	 root->size,
 	 root->env ? root->env->symcount : -1,
 	 root->env ? root->env->id : -1,
 	 root->env ? (void *)root->env : NULL,
 	 root->islambda ? root->arity : -1);
-  print_ast_code_part(root, 1);
+  print_code_ast(root, 1);
 }
+
+
 
 struct letdata {
   enum __Type type;
   union {
     int i;
     float f;
+    struct letdata *(*lambda_0)();
   } data;
 };
 
-/* struct letdata *(*f0)(); */
+struct letdata *GJ() {
+  struct letdata *ld = malloc(sizeof *ld);
+  ld->type = INTEGER;
+  ld->data.i = 1363;
+  return ld;
+}
+/* struct letdata *(*lambda_0)(); */
 /* struct letdata *(*f1)(struct letdata *); */
 /* struct letdata *(*f2)(struct letdata *, struct letdata *); */
 /* struct lambda { */
 /*   int arity; */
 /* } */
 
+void *(*foo)(void *);
+struct letdata *evalx(struct block_content *cont)
+{
+  struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
+  switch (cont->type) {
+  case CELL:
+    switch (celltype(cont->c)) {
+    case INTEGER:
+      data->type = INTEGER;
+      data->data.i = cont->c->ival;
+      break;
+    case FLOAT:
+      data->type = FLOAT;
+      data->data.f = cont->c->fval;;
+      break;
+    case SYMBOL:
+      data->type = SYMBOL;
+      break;
+    default: break;
+    } break;
+  case BLOCK:
+    if (!strcmp(block_head(cont->b).car.str, LAMBDA_KW)) {
+      printf("--------\n");
+      data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
+      switch (cont->b->arity) {
+      case 0:
+	data->data.lambda_0 = (struct letdata *(*)())foo;
+	break;
+      }
+    } else if (!strcmp(block_head(cont->b).car.str, "call")) {
+      /* printf("%d %s", i, stringify_block_content_type(root->contents[i].b->contents[1].type)); */
+      /* printf("%s---",root->contents[i].b->contents[1].b->cells[0].car.str); */
+      /* printf("%s", root->contents[i].b->contents[0].c->car.str); */
+      /* eval(root->contents[i].b->contents[1].b)(); */
+      data->type=INTEGER;
+      (evalx(&(cont->b->contents[1]))->data.lambda_0)();
+    } break;
+  default: break;
+  }
+  return data;
+}
+struct letdata *evaltl(struct block *root)
+{
+  for (int i = 0; i < (root->size - 1); i++) {
+    evalx(&(root->contents[i]));
+  }
+  return evalx(&(root->contents[root->size - 1]));
+}
 struct letdata *eval(struct block *root)
 /* return value of eval is a single data type */
 {
@@ -942,12 +1003,10 @@ struct letdata *eval(struct block *root)
       case INTEGER:
 	ld->type = INTEGER;
 	ld->data.i = root->contents[i].c->ival;
-	return ld;
 	break;
       case FLOAT:
 	ld->type = FLOAT;
 	ld->data.f = root->contents[i].c->fval;;
-	return ld;
 	break;
       case SYMBOL:
 	ld->type = SYMBOL;
@@ -955,20 +1014,47 @@ struct letdata *eval(struct block *root)
       default:
 	break;
       }
-      break;
+      break;			/* break CELL branch */
+    case BLOCK:
+      if (!strcmp(block_head(root->contents[i].b).car.str, LAMBDA_KW)) {
+	ld->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
+	printf("A: %d\n", root->contents[i].b->arity);
+	switch (root->contents[i].b->arity) {
+	case 0:
+	  ld->data.lambda_0 = (struct letdata *(*)())foo;
+	  break;
+	  /* ld->data.lambda_0 = (struct letdata *(*)())root->contents[i].b->lambda; */
+	  /* return ld; */
+	}
+      } else if (!strcmp(block_head(root->contents[i].b).car.str, "call")) {
+	printf("%d %s", i, stringify_block_content_type(root->contents[i].b->contents[1].type));
+	printf("%s---",root->contents[i].b->contents[1].b->cells[0].car.str);
+	/* printf("%s", root->contents[i].b->contents[0].c->car.str); */
+	/* eval(root->contents[i].b->contents[1].b)(); */
+	ld->type=INTEGER;
+	/* ld->data.i=(eval(root->contents[i].b->contents[1].b)->data.lambda_0)(); */
+	break;
+      }
+      break;			/* break BLOCK branch */
+    default: break;
     }
   }
+  return ld;
 }
 
-void print(struct letdata *d)
+void print(struct letdata *ld)
 {
   printf("=> ");
-  switch (d->type) {
+  switch (ld->type) {
   case INTEGER:
-    printf("%d", d->data.i);
+    printf("%d", ld->data.i);
     break;
   case FLOAT:
-    printf("%f", d->data.f);
+    printf("%f", ld->data.f);
+    break;
+  case LAMBDA:
+    /* printf("%d", ld->data.lambda_0()->data.i); */
+    printf("Lambda");
     break;
   default:
     printf("?");
@@ -977,7 +1063,7 @@ void print(struct letdata *d)
   printf("\n");
 }
 
-#define X 2
+#define X 3
 int main()
 {
   
@@ -1026,8 +1112,10 @@ int main()
   };
 
   char *lines[X] = {
-		    "lambda .a + 2 8 9 .b 3",
-		    " .C .D 0 X"
+    "lambda",
+    "lambda",
+    "lambda",
+    
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -1044,9 +1132,11 @@ int main()
   int blocks_count = 0;
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   /* assign_envs(b, blocks_count, &tlenv); */
-  /* print_ast_code_part(&tlblock, 0); */
-  print_ast(&tlblock);
+  /* print_code_ast(&tlblock, 0); */
+  /* printast(&tlblock); */
+  /* eval(&tlblock); */
   /* print(eval(&tlblock)); */
+  evaltl(&tlblock);
 
 
 
