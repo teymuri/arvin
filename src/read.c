@@ -937,6 +937,7 @@ struct letdata {
   } data;
 };
 
+/* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
 struct letdata *pret(struct letdata *thing)
 {
   switch(thing->type) {
