@@ -22,13 +22,16 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #define PARAM_PREFIX '.'
 /* ********************************** */
 
-enum __Type {
+/* Constructs beginning with an underscore and a capital are internal
+   and may be modified or removed any time without notice... */
+
+enum _Type {
   NUMBER = 0, INTEGER = 1, FLOAT = 2,
   SYMBOL = 3, LAMBDA = 4,
   UNDEFINED
 };
 
-char *stringify_cell_type(enum __Type t)
+char *stringify_cell_type(enum _Type t)
 {
   switch (t) {
   case 0: return "Weiss net, waisch?!! vielleicht number??????";
@@ -40,7 +43,7 @@ char *stringify_cell_type(enum __Type t)
   }
 }
 
-/* char *stringify_cell_type(enum __Type); */
+/* char *stringify_cell_type(enum _Type); */
 
 #define MAX_TOKLEN 50		/* max token length in bytes */
 #define TLTOKSTR "TLTOKSTR"
@@ -52,7 +55,7 @@ struct token {
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comidx;			/* comment indices: 0 = (, 1 = ) */
-  enum __Type type;		/* guessed types at token-generation time */
+  enum _Type type;		/* guessed types at token-generation time */
   /* int ival; */
   /* double fval; */
 };
@@ -318,7 +321,7 @@ int isdig(char c)
   return ('0' <= c) && (c <= '9');
 }
 
-enum __Type numtype(char *s)
+enum _Type numtype(char *s)
 {
   bool dot = false;
   while (*s) {
@@ -337,7 +340,7 @@ enum __Type numtype(char *s)
 /* /\* passing a token pointer to set it's fields *\/ */
 /* void guess_token_type(struct token *t) */
 /* { */
-/*   enum __Type tp; */
+/*   enum _Type tp; */
 /*   if ((tp = (numtype(t->str)))) { */
 /*     if (tp == INTEGER) { */
 /*       t->ival = atoi(t->str); */
@@ -373,7 +376,7 @@ struct cell {
   struct token car;
   struct cell *cdr;
   struct cell *in_block_cdr;
-  enum __Type type;
+  enum _Type type;
   struct block *enblock;	/* embedding block of this cell */
   struct cell *linker;		/* the cell linking into this cell */
   /* here will supported Let-types be stored as evaluating */
@@ -382,7 +385,7 @@ struct cell {
   struct symbol *symval;
 };
 
-enum __Type celltype(struct cell *c)
+enum _Type celltype(struct cell *c)
 {
   switch (c->car.type) {
   case INTEGER: return INTEGER;
@@ -748,6 +751,7 @@ bool need_new_block(struct cell *c, struct block *enblock)
     /* is a lambda parameter? */
     || is_lambda_param(c, enblock) /* hier muss enblock richtig entschieden sein!!! */
     || !strcmp(c->car.str, "call")
+    || !strcmp(c->car.str, "pret")
     ;
 }
 
@@ -820,7 +824,7 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	if (is_lambda_param(c, enblock)) {
 	  newblock->max_absorp_capa = 1;	/* ist maximal das default argument wenn vorhanden */
 	}
-	
+	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
 	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
 	  (*(enblock->contents + enblock->size)).type = BLOCK;
 	  (*(enblock->contents + enblock->size)).b = newblock;
@@ -920,21 +924,33 @@ void printast(struct block *root)
   print_code_ast(root, 1);
 }
 
-
+struct lambda {
+  struct block_content expr;
+};
 
 struct letdata {
-  enum __Type type;
+  enum _Type type;
   union {
     int i;
     float f;
-    struct letdata *(*lambda_0)();
+    struct lambda l;
   } data;
 };
+
+struct letdata *pret(struct letdata *thing)
+{
+  switch(thing->type) {
+  case INTEGER: printf("pret=> %d\n", thing->data.i); break;
+  case FLOAT: printf("pret=> %f\n", thing->data.f); break;
+  }
+  return thing;
+}
 
 struct letdata *GJ() {
   struct letdata *ld = malloc(sizeof *ld);
   ld->type = INTEGER;
   ld->data.i = 1363;
+  printf("mein geburtsjahr %d", ld->data.i);
   return ld;
 }
 /* struct letdata *(*lambda_0)(); */
@@ -963,14 +979,17 @@ struct letdata *evalx(struct block_content *cont)
       data->type = SYMBOL;
       break;
     default: break;
-    } break;
+    }
+    break;			/* break CELL */
   case BLOCK:
     if (!strcmp(block_head(cont->b).car.str, LAMBDA_KW)) {
       printf("--------\n");
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       switch (cont->b->arity) {
       case 0:
-	data->data.lambda_0 = (struct letdata *(*)())foo;
+	/* data->data.lambda_0 = (struct letdata *(*)())foo; */
+	/* data->data.lambda_0=&GJ; */
+	/* data->data.l =  */
 	break;
       }
     } else if (!strcmp(block_head(cont->b).car.str, "call")) {
@@ -979,8 +998,12 @@ struct letdata *evalx(struct block_content *cont)
       /* printf("%s", root->contents[i].b->contents[0].c->car.str); */
       /* eval(root->contents[i].b->contents[1].b)(); */
       data->type=INTEGER;
-      (evalx(&(cont->b->contents[1]))->data.lambda_0)();
-    } break;
+      /* (evalx(&(cont->b->contents[1]))->data.lambda_0); */
+      /* (evalx(&(cont->b->contents[1]))->data.lambda_0)(); */
+    } else if (!strcmp(block_head(cont->b).car.str, "pret")) {
+      data = pret(evalx(&((cont->b)->contents[1])));
+    }
+    break;			/* break BLOCK */
   default: break;
   }
   return data;
@@ -1021,7 +1044,7 @@ struct letdata *eval(struct block *root)
 	printf("A: %d\n", root->contents[i].b->arity);
 	switch (root->contents[i].b->arity) {
 	case 0:
-	  ld->data.lambda_0 = (struct letdata *(*)())foo;
+	  /* ld->data.lambda_0 = (struct letdata *(*)())foo; */
 	  break;
 	  /* ld->data.lambda_0 = (struct letdata *(*)())root->contents[i].b->lambda; */
 	  /* return ld; */
@@ -1063,7 +1086,7 @@ void print(struct letdata *ld)
   printf("\n");
 }
 
-#define X 3
+#define X 1
 int main()
 {
   
@@ -1112,9 +1135,7 @@ int main()
   };
 
   char *lines[X] = {
-    "lambda",
-    "lambda",
-    "lambda",
+    "pret 3.14"
     
   };
   size_t all_tokens_count = 0;
