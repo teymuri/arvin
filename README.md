@@ -25,7 +25,24 @@ define meine-funktion lambda .arg1 .arg2 + 1 1 .arg3 5 * arg1 arg2 arg3
 Obwohl auf einer Zeile zusammengefasst, ist es eindeutig dass ab `.arg2` nicht im Block `.arg1` reingehört. Auch `.arg3` liegt nach obiger Definition eindeitig außerhalb der `+`-Block, da Lambda-Parameter Block-builder sind die jeweils _nur das nächste nicht-parametrige_ (s. hierzu auch den 3. Punkt unten) Item einsaugen, heisst `.arg2` hat schon bekommen was es gebraucht hat (ein einziges Item, hier `+ 1 1`) und ist damit absolut zufrieden und glücklich (eigentlich wird es ein Error sein einem Parameter mehr als ein Expression als Defaultargument zu vergeben!) Ähnliches gilt auch für das Return-Expression vom Lambda oben.
 
 3. Lambda Parameter werden niemals als normales Item angesehen. Die haben immer _nur_ die Funktion eines Parameter Block-builders, d.h. ein Parametername kann nicht als Defaultargument vom vorigen Parameter fehlinterpretiert werden, auch wenn diese beide auf der gleichen Zeile und unmittelbar nacheinander notiert werden.
-  1. Bzl. dessen, wie der letzte Lambda Parameter geparsed und in einen Block gepackst wird, da beim letzten Parameter uneindeutig erscheinen mag, ob es sich beim letzten Expression um dessen default Argument oder das Return-Statement der Funktion handelt: die Lambdas werden so gepased dass als erstes das letzte Statement abgeschnitten wird und dann die Parameter mit deren evtl. default Argumenten assoziert werden. Dies bedeutet....????????
+
+- Eine Lambda Expression hat mindestens ihr Return Statement. Das heisst die lambd awird so gelesen (von LET):
+  - nach dem alle Blocks schon da sind wird das letzte nicht Parameter-ähnlicher Block/Atom als Returnstatement weg geschnitten
+  - alles andere wird versucht als PArameter und deren etwaigen default argumente runterzukriegen.
+Dies ist besonders dann wichtig/auffälig wenn wir lambdas auf eine Zeile schreiben wollen:
+
+```
+(oneliner:)
+lambda .x 4 (=> Hier wird 4 als Return Statement gelesen!)
+(blocky:)
+lambda
+  .x 4 (=> das hier wird ein Parse Error, weil das Lambda kein Return hat)
+(oder)
+lambda
+  .x
+  4
+```
+Oben sind die letzten 2 Bsplie eindeutig, in dem man weisst was Parameter/default Argument ist und was Return Statement.
 
 4. Einige Block Generatoren haben eine fest-definierte `max_absorp_capa` (maximale Aufnahmekapazität), e.g.
 
