@@ -1,7 +1,7 @@
 # Let Anatomie
 - Lambda
   - Return Statement
-    - every lambda needs (at least) a return expression. _LET does **not** try to guess your return expressions_. Try to avoid evoking ambiguous contexts and keep your code clean! There might be errors if we try to write sloppy one-liners. Care must be taken to specify the return-expression clearly (i.e. coming into the lambda's block itself). Here is an example: the one-liner `lambda .x .y .z + x y` will lead to an error, because the last expression `+ x y` is interpreted as the default-argument for the `z` parameter. If you intended it as the final expression, then put it under the block of `lambda`:
+    - every lambda needs (at least) a return expression. _LET does **not** try to guess your return expressions_. There might be errors if we try to write sloppy one-liners. Care must be taken to specify the _final expression_ clearly (i.e. coming into the lambda's block itself). Here is an example: the one-liner `lambda .x .y .z + x y` will lead to an error, because the last expression `+ x y` is interpreted as the default-argument for the `z` parameter. If you intended it as the final expression, then put it under the block of `lambda`:
       ```
       lambda .x .y .z
         + x y
