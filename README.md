@@ -5,11 +5,13 @@
       ```
       (a 3-arity function called fn is defined with params .x, .y and .z)
       fn 1 2 3 4 (since non of parameters are named, arguments are passed in order,
-      so x=1, y=2, z=3 and 4 is evaled but not used, this is exactly the same as if naming only the first parameter:)
+      so x=1, y=2, z=3 and 4 is evaled but not used, this is exactly the same as if naming 
+      only the first parameter:)
       fn .x 1 2 3 4
 
       (this same behavior is true for naming any of the params)
-      fn 1 .y 2 3 4 (here the order is maintained from the first named parameter .y, so .z = 3 and 4 is not used)
+      fn 1 .y 2 3 4 (here the order is maintained from the first named parameter .y, so .z = 3 and 
+      4 is not used)
 
       (named params can appear , switching the parameter-definition-order on and off, for example
        with the 6-arity function:)
