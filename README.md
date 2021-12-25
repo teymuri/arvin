@@ -6,7 +6,7 @@
       lambda .x .y .z
         + x y
       ```
-      Note that the same problem will exist with the following formats:
+      Note that the same problem (lack of the final expression) will exist with the following formats:
       ```
       (+ x y still resides in the .z parameter block)
       lambda .x .y .z
@@ -14,11 +14,11 @@
       
       (+ x y resides in other parameters (.y) blocks)
       lambda .x .y .z
-                  + x y (=> error: lambda missing it's evaluation expression)
+                  + x y (=> runtime env-error: lookup failed for y)
 
       (+ x y resides in other parameters (.x) blocks)
       lambda .x .y .z
-               + x y (=> error: lambda missing it's evaluation expression)
+               + x y (=> runtime env-error: lookup failed for x, y)
       ```
 
 1. Es ist wichtig zu beachten dass NUR Block-builders einen Block generieren. Diese sind u.a.
