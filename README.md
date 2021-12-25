@@ -6,7 +6,7 @@
       lambda .x .y .z
         + x y
       ```
-      Note that the same problem (lack of the final expression) will exist with the following formats:
+      Note that the same problem (lack of the final expression) will exist in the following contexts:
       ```
       (+ x y still resides in the .z parameter block)
       lambda .x .y .z
