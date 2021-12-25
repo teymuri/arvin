@@ -1,5 +1,7 @@
 # Let Anatomie
-
+- Lambda
+  - Return Statement
+    - every lambda needs (at least) a return expression. This might lead to errors if we write one-liners. Care must be taken to specify the return-expression clearly (i.e. belonging to the lambda's block itself). Here is an example: the one-liner `lambda .x .y .z + x y`
 
 1. Es ist wichtig zu beachten dass NUR Block-builders einen Block generieren. Diese sind u.a.
   - Lambdas
