@@ -1,7 +1,25 @@
 # Let Anatomie
 - Lambda
   - Return Statement
-    - every lambda needs (at least) a return expression. This might lead to errors if we write one-liners. Care must be taken to specify the return-expression clearly (i.e. belonging to the lambda's block itself). Here is an example: the one-liner `lambda .x .y .z + x y`
+    - every lambda needs (at least) a return expression. _LET does **not** try to guess your return expressions_. Try to avoid evoking ambiguous contexts and keep your code clean! There might be errors if we try to write sloppy one-liners. Care must be taken to specify the return-expression clearly (i.e. coming into the lambda's block itself). Here is an example: the one-liner `lambda .x .y .z + x y` will lead to an error, because the last expression `+ x y` is interpreted as the default-argument for the `z` parameter. If you intended it as the final expression, then put it under the block of `lambda`:
+      ```
+      lambda .x .y .z
+        + x y
+      ```
+      Note that the same problem will exist with the following formats:
+      ```
+      (+ x y still resides in the .z parameter block)
+      lambda .x .y .z
+                     + x y (=> error: lambda missing it's evaluation expression)
+      
+      (+ x y resides in other parameters (.y) blocks)
+      lambda .x .y .z
+                  + x y (=> error: lambda missing it's evaluation expression)
+
+      (+ x y resides in other parameters (.x) blocks)
+      lambda .x .y .z
+               + x y (=> error: lambda missing it's evaluation expression)
+      ```
 
 1. Es ist wichtig zu beachten dass NUR Block-builders einen Block generieren. Diese sind u.a.
   - Lambdas
