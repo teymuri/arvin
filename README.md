@@ -18,7 +18,7 @@
 
       (+ x y resides in other parameters (.x) blocks)
       lambda .x .y .z
-               + x y (=> runtime env-error: lookup failed for x, y)
+               + x y (=> runtime env-error: lookup failed for x (arg eval right to left???))
       ```
 
 1. Es ist wichtig zu beachten dass NUR Block-builders einen Block generieren. Diese sind u.a.
