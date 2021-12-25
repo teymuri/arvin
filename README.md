@@ -1,6 +1,38 @@
-# Let Anatomie
-- Lambda
-  - Return Statement
+# LET Anatomie
+- ## Lambda
+  - ### Parameterreihenfolge beim Aufrufen
+    - generally when no param is named when calling, the definition order of params is applied to the passed arguments. If any of the params is named, the **parameter definition order** is applied to args from there until the _last needed argument_ or up to the next named parameter. 
+      ```
+      (a 3-arity function called fn is defined with params .x, .y and .z)
+      fn 1 2 3 4 (since non of parameters are named, arguments are passed in order,
+      so x=1, y=2, z=3 and 4 is evaled but not used, this is exactly the same as if naming only the first parameter:)
+      fn .x 1 2 3 4
+
+      (this same behavior is true for naming any of the params)
+      fn 1 .y 2 3 4 (here the order is maintained from the first named parameter .y, so .z = 3 and 4 is not used)
+
+      (named params can appear , switching the parameter-definition-order on and off, for example
+       with the 6-arity function:)
+      define fn
+        lambda .a .b 2 .c .d 4 .e .f
+          list a b c d e f
+      fn 1 .c 3 .e 5 6 (=> LIST 1 2 3 4 5 6)
+      ```
+    - Es könnte auch den Fall geben, dass ich nur einem Parameter ein Argument übergeben möchte und für die restlichen Parameter auf deren Default-Argumente zurückgreifen will. Dafür müss ich wieder auf die Blocke und die Formatierungen Acht geben:
+      ```
+      (Bspl. Eine 3-arity fn)
+      define fn
+        lambda .x 1 .y 2 .z 3
+          list x y z
+      (möchte nur y ein Argument geben)
+      fn .y 3 4 5 6 7 8 ... (=> es darf einfach nach dem .y nix auf der selben 
+      Zeile kommen, sonst wird .z auch 4 zugewiesen! (So eine Konstellation wäre z.B. beim .& Parameter
+      sinnvoll, da wären die restlichen Werte auf der Zeile in den .&-Parameter gepackt))
+      (Mit sauber schreiben ist das Problem gelöst:)
+      fn .y 3
+      4 5 6 7 8 etc...
+      ``` 
+  - Return Statement (final expression)
     - every lambda needs (at least) a return expression. _LET does **not** try to guess your return expressions_. There might be errors if we try to write sloppy one-liners. Care must be taken to specify the _final expression_ clearly (i.e. coming into the lambda's block itself). Here is an example: the one-liner `lambda .x .y .z + x y` will lead to an error, because the last expression `+ x y` is interpreted as the default-argument for the `z` parameter. If you intended it as the final expression, then put it under the block of `lambda`:
       ```
       lambda .x .y .z
