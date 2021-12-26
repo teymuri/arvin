@@ -933,16 +933,17 @@ struct letdata {
   union {
     int i;
     float f;
-    struct lambda l;
+    struct lambda l0;
+    struct lambda l1;
   } value;
 };
 
 /* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
-struct letdata *pret(struct letdata *thing)
+struct letdata *print_return(struct letdata *thing)
 {
   switch(thing->type) {
-  case INTEGER: printf("pret=> %d\n", thing->value.i); break;
-  case FLOAT: printf("pret=> %f\n", thing->value.f); break;
+  case INTEGER: printf("print_return=> %d\n", thing->value.i); break;
+  case FLOAT: printf("print_return=> %f\n", thing->value.f); break;
   }
   return thing;
 }
@@ -1002,7 +1003,8 @@ struct letdata *evalx(struct block_content *cont)
       /* (evalx(&(cont->b->contents[1]))->data.lambda_0); */
       /* (evalx(&(cont->b->contents[1]))->data.lambda_0)(); */
     } else if (!strcmp(block_head(cont->b).car.str, "pret")) {
-      data = pret(evalx(&((cont->b)->contents[1])));
+      printf("--------\n");
+      data = print_return(evalx(&((cont->b)->contents[1])));
     }
     break;			/* break BLOCK */
   default: break;
@@ -1139,7 +1141,7 @@ int main()
   };
 
   char *lines[X] = {
-    "pret 3.14"
+    "pret 2.3"
     
   };
   size_t all_tokens_count = 0;
@@ -1158,7 +1160,7 @@ int main()
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   /* assign_envs(b, blocks_count, &tlenv); */
   /* print_code_ast(&tlblock, 0); */
-  print_ast(&tlblock);
+  /* print_ast(&tlblock); */
   /* eval(&tlblock); */
   /* print(eval(&tlblock)); */
   evaltl(&tlblock);
