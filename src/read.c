@@ -907,7 +907,7 @@ void print_code_ast(struct block *root, int depth) /* This is the written code p
     }
   }
 }
-void printast(struct block *root)
+void print_ast(struct block *root)
 {
   /* root's (the toplevel block) contents is a block_content of
      type CELL, so when iterating over root's contents this CELL
@@ -934,15 +934,15 @@ struct letdata {
     int i;
     float f;
     struct lambda l;
-  } data;
+  } value;
 };
 
 /* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
 struct letdata *pret(struct letdata *thing)
 {
   switch(thing->type) {
-  case INTEGER: printf("pret=> %d\n", thing->data.i); break;
-  case FLOAT: printf("pret=> %f\n", thing->data.f); break;
+  case INTEGER: printf("pret=> %d\n", thing->value.i); break;
+  case FLOAT: printf("pret=> %f\n", thing->value.f); break;
   }
   return thing;
 }
@@ -950,8 +950,8 @@ struct letdata *pret(struct letdata *thing)
 struct letdata *GJ() {
   struct letdata *ld = malloc(sizeof *ld);
   ld->type = INTEGER;
-  ld->data.i = 1363;
-  printf("mein geburtsjahr %d", ld->data.i);
+  ld->value.i = 1363;
+  printf("mein geburtsjahr %d", ld->value.i);
   return ld;
 }
 /* struct letdata *(*lambda_0)(); */
@@ -970,11 +970,11 @@ struct letdata *evalx(struct block_content *cont)
     switch (celltype(cont->c)) {
     case INTEGER:
       data->type = INTEGER;
-      data->data.i = cont->c->ival;
+      data->value.i = cont->c->ival;
       break;
     case FLOAT:
       data->type = FLOAT;
-      data->data.f = cont->c->fval;;
+      data->value.f = cont->c->fval;;
       break;
     case SYMBOL:
       data->type = SYMBOL;
@@ -988,9 +988,9 @@ struct letdata *evalx(struct block_content *cont)
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       switch (cont->b->arity) {
       case 0:
-	/* data->data.lambda_0 = (struct letdata *(*)())foo; */
-	/* data->data.lambda_0=&GJ; */
-	/* data->data.l =  */
+	/* data->value.lambda_0 = (struct letdata *(*)())foo; */
+	/* data->value.lambda_0=&GJ; */
+	/* data->value.l =  */
 	break;
       }
     } else if (!strcmp(block_head(cont->b).car.str, "call")) {
@@ -1009,6 +1009,7 @@ struct letdata *evalx(struct block_content *cont)
   }
   return data;
 }
+
 struct letdata *evaltl(struct block *root)
 {
   for (int i = 0; i < (root->size - 1); i++) {
@@ -1016,68 +1017,70 @@ struct letdata *evaltl(struct block *root)
   }
   return evalx(&(root->contents[root->size - 1]));
 }
-struct letdata *eval(struct block *root)
-/* return value of eval is a single data type */
-{
-  struct letdata *ld = malloc(sizeof *ld); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
-  for (int i = 0; i < root->size; i++) {
-    switch (root->contents[i].type) {
-    case CELL:
-      switch (celltype(root->contents[i].c)) {
-      case INTEGER:
-	ld->type = INTEGER;
-	ld->data.i = root->contents[i].c->ival;
-	break;
-      case FLOAT:
-	ld->type = FLOAT;
-	ld->data.f = root->contents[i].c->fval;;
-	break;
-      case SYMBOL:
-	ld->type = SYMBOL;
-	break;
-      default:
-	break;
-      }
-      break;			/* break CELL branch */
-    case BLOCK:
-      if (!strcmp(block_head(root->contents[i].b).car.str, LAMBDA_KW)) {
-	ld->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
-	printf("A: %d\n", root->contents[i].b->arity);
-	switch (root->contents[i].b->arity) {
-	case 0:
-	  /* ld->data.lambda_0 = (struct letdata *(*)())foo; */
-	  break;
-	  /* ld->data.lambda_0 = (struct letdata *(*)())root->contents[i].b->lambda; */
-	  /* return ld; */
-	}
-      } else if (!strcmp(block_head(root->contents[i].b).car.str, "call")) {
-	printf("%d %s", i, stringify_block_content_type(root->contents[i].b->contents[1].type));
-	printf("%s---",root->contents[i].b->contents[1].b->cells[0].car.str);
-	/* printf("%s", root->contents[i].b->contents[0].c->car.str); */
-	/* eval(root->contents[i].b->contents[1].b)(); */
-	ld->type=INTEGER;
-	/* ld->data.i=(eval(root->contents[i].b->contents[1].b)->data.lambda_0)(); */
-	break;
-      }
-      break;			/* break BLOCK branch */
-    default: break;
-    }
-  }
-  return ld;
-}
 
-void print(struct letdata *ld)
+/************** DEPRECATED ****************/
+/* struct letdata *eval(struct block *root) */
+/* /\* return value of eval is a single data type *\/ */
+/* { */
+/*   struct letdata *ld = malloc(sizeof *ld); /\* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp *\/ */
+/*   for (int i = 0; i < root->size; i++) { */
+/*     switch (root->contents[i].type) { */
+/*     case CELL: */
+/*       switch (celltype(root->contents[i].c)) { */
+/*       case INTEGER: */
+/* 	ld->type = INTEGER; */
+/* 	ld->data.i = root->contents[i].c->ival; */
+/* 	break; */
+/*       case FLOAT: */
+/* 	ld->type = FLOAT; */
+/* 	ld->data.f = root->contents[i].c->fval;; */
+/* 	break; */
+/*       case SYMBOL: */
+/* 	ld->type = SYMBOL; */
+/* 	break; */
+/*       default: */
+/* 	break; */
+/*       } */
+/*       break;			/\* break CELL branch *\/ */
+/*     case BLOCK: */
+/*       if (!strcmp(block_head(root->contents[i].b).car.str, LAMBDA_KW)) { */
+/* 	ld->type = LAMBDA; /\* lambda objekte werden nicht in parse time generiert *\/ */
+/* 	printf("A: %d\n", root->contents[i].b->arity); */
+/* 	switch (root->contents[i].b->arity) { */
+/* 	case 0: */
+/* 	  /\* ld->data.lambda_0 = (struct letdata *(*)())foo; *\/ */
+/* 	  break; */
+/* 	  /\* ld->data.lambda_0 = (struct letdata *(*)())root->contents[i].b->lambda; *\/ */
+/* 	  /\* return ld; *\/ */
+/* 	} */
+/*       } else if (!strcmp(block_head(root->contents[i].b).car.str, "call")) { */
+/* 	printf("%d %s", i, stringify_block_content_type(root->contents[i].b->contents[1].type)); */
+/* 	printf("%s---",root->contents[i].b->contents[1].b->cells[0].car.str); */
+/* 	/\* printf("%s", root->contents[i].b->contents[0].c->car.str); *\/ */
+/* 	/\* eval(root->contents[i].b->contents[1].b)(); *\/ */
+/* 	ld->type=INTEGER; */
+/* 	/\* ld->data.i=(eval(root->contents[i].b->contents[1].b)->data.lambda_0)(); *\/ */
+/* 	break; */
+/*       } */
+/*       break;			/\* break BLOCK branch *\/ */
+/*     default: break; */
+/*     } */
+/*   } */
+/*   return ld; */
+/* } */
+
+void print_data(struct letdata *data)
 {
   printf("=> ");
-  switch (ld->type) {
+  switch (data->type) {
   case INTEGER:
-    printf("%d", ld->data.i);
+    printf("%d", data->value.i);
     break;
   case FLOAT:
-    printf("%f", ld->data.f);
+    printf("%f", data->value.f);
     break;
   case LAMBDA:
-    /* printf("%d", ld->data.lambda_0()->data.i); */
+    /* printf("%d", data->value.lambda_0()->value.i); */
     printf("Lambda");
     break;
   default:
@@ -1155,7 +1158,7 @@ int main()
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   /* assign_envs(b, blocks_count, &tlenv); */
   /* print_code_ast(&tlblock, 0); */
-  /* printast(&tlblock); */
+  print_ast(&tlblock);
   /* eval(&tlblock); */
   /* print(eval(&tlblock)); */
   evaltl(&tlblock);
