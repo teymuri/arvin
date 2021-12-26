@@ -925,7 +925,7 @@ void print_ast(struct block *root)
 }
 
 struct lambda {
-  struct block_content expr;
+  struct block_content stat;	/* statement */
 };
 
 struct letdata {
@@ -985,13 +985,13 @@ struct letdata *evalx(struct block_content *cont)
     break;			/* break CELL */
   case BLOCK:
     if (!strcmp(block_head(cont->b).car.str, LAMBDA_KW)) {
-      printf("--------\n");
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       switch (cont->b->arity) {
       case 0:
+	printf("-------->\n");
 	/* data->value.lambda_0 = (struct letdata *(*)())foo; */
 	/* data->value.lambda_0=&GJ; */
-	/* data->value.l =  */
+	/* data->value.l0 = */
 	break;
       }
     } else if (!strcmp(block_head(cont->b).car.str, "call")) {
@@ -1003,7 +1003,7 @@ struct letdata *evalx(struct block_content *cont)
       /* (evalx(&(cont->b->contents[1]))->data.lambda_0); */
       /* (evalx(&(cont->b->contents[1]))->data.lambda_0)(); */
     } else if (!strcmp(block_head(cont->b).car.str, "pret")) {
-      printf("--------\n");
+      printf("----****\n");
       data = print_return(evalx(&((cont->b)->contents[1])));
     }
     break;			/* break BLOCK */
@@ -1141,7 +1141,7 @@ int main()
   };
 
   char *lines[X] = {
-    "pret 2.3"
+    "lambda pret 3.14"
     
   };
   size_t all_tokens_count = 0;
@@ -1160,8 +1160,7 @@ int main()
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   /* assign_envs(b, blocks_count, &tlenv); */
   /* print_code_ast(&tlblock, 0); */
-  /* print_ast(&tlblock); */
-  /* eval(&tlblock); */
+  print_ast(&tlblock);
   /* print(eval(&tlblock)); */
   evaltl(&tlblock);
 
