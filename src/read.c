@@ -925,25 +925,47 @@ void print_ast(struct block *root)
 }
 
 struct lambda {
-  struct block_content stat;	/* statement */
+  struct block_content *retstat;	/* the return statement */
 };
+
+
 
 struct letdata {
   enum _Type type;
   union {
     int i;
     float f;
-    struct lambda l0;
-    struct lambda l1;
+    struct lambda l;
+    struct letdata *(*fn)();
   } value;
 };
 
+/* string representation of data, this is what print will show */
+void print(struct letdata *data)
+{
+  switch (data->type) {
+  case INTEGER:
+    printf("%d", data->value.i);
+    break;
+  case FLOAT:
+    printf("%f", data->value.f);
+    break;
+  case LAMBDA:
+    printf("lambda...");
+    break;
+  default:
+    break;
+  }
+  puts("");
+}
+
+
 /* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
-struct letdata *print_return(struct letdata *thing)
+struct letdata *let_pret(struct letdata *thing)
 {
   switch(thing->type) {
-  case INTEGER: printf("print_return=> %d\n", thing->value.i); break;
-  case FLOAT: printf("print_return=> %f\n", thing->value.f); break;
+  case INTEGER: printf("let_pret=> %d\n", thing->value.i); break;
+  case FLOAT: printf("let_pret=> %f\n", thing->value.f); break;
   }
   return thing;
 }
@@ -960,9 +982,9 @@ struct letdata *GJ() {
 /* struct letdata *(*f2)(struct letdata *, struct letdata *); */
 /* struct lambda { */
 /*   int arity; */
-/* } */
-
+/* blkcont} */
 void *(*foo)(void *);
+
 struct letdata *evalx(struct block_content *cont)
 {
   struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
@@ -975,7 +997,7 @@ struct letdata *evalx(struct block_content *cont)
       break;
     case FLOAT:
       data->type = FLOAT;
-      data->value.f = cont->c->fval;;
+      data->value.f = cont->c->fval;
       break;
     case SYMBOL:
       data->type = SYMBOL;
@@ -986,25 +1008,26 @@ struct letdata *evalx(struct block_content *cont)
   case BLOCK:
     if (!strcmp(block_head(cont->b).car.str, LAMBDA_KW)) {
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
+      struct lambda L;
       switch (cont->b->arity) {
       case 0:
-	printf("-------->\n");
-	/* data->value.lambda_0 = (struct letdata *(*)())foo; */
-	/* data->value.lambda_0=&GJ; */
-	/* data->value.l0 = */
+	printf("--LAMBDA wird verpackt\n");
+	L.retstat = &(cont->b->contents[1]);
+	data->value.l=L;
+	/* data->value.fn = &GJ; */
+	/* data->value.fn = struct letdata *(*)(void); */
 	break;
       }
+      
     } else if (!strcmp(block_head(cont->b).car.str, "call")) {
-      /* printf("%d %s", i, stringify_block_content_type(root->contents[i].b->contents[1].type)); */
-      /* printf("%s---",root->contents[i].b->contents[1].b->cells[0].car.str); */
-      /* printf("%s", root->contents[i].b->contents[0].c->car.str); */
-      /* eval(root->contents[i].b->contents[1].b)(); */
-      data->type=INTEGER;
-      /* (evalx(&(cont->b->contents[1]))->data.lambda_0); */
-      /* (evalx(&(cont->b->contents[1]))->data.lambda_0)(); */
+      printf("CALL\n");
+      data->type=FLOAT;
+      data = evalx((evalx(&(cont->b->contents[1])))->value.l.retstat);
+      /* evalx(&(cont->b->contents[1]))->value.fn(); */
+      
     } else if (!strcmp(block_head(cont->b).car.str, "pret")) {
-      printf("----****\n");
-      data = print_return(evalx(&((cont->b)->contents[1])));
+      printf("----**PRET**\n");
+      data = let_pret(evalx(&((cont->b)->contents[1])));
     }
     break;			/* break BLOCK */
   default: break;
@@ -1071,26 +1094,6 @@ struct letdata *evaltl(struct block *root)
 /*   return ld; */
 /* } */
 
-void print_data(struct letdata *data)
-{
-  printf("=> ");
-  switch (data->type) {
-  case INTEGER:
-    printf("%d", data->value.i);
-    break;
-  case FLOAT:
-    printf("%f", data->value.f);
-    break;
-  case LAMBDA:
-    /* printf("%d", data->value.lambda_0()->value.i); */
-    printf("Lambda");
-    break;
-  default:
-    printf("?");
-    break;
-  }
-  printf("\n");
-}
 
 #define X 1
 int main()
@@ -1141,7 +1144,7 @@ int main()
   };
 
   char *lines[X] = {
-    "lambda pret 3.14"
+    "call call lambda lambda  4.3"
     
   };
   size_t all_tokens_count = 0;
@@ -1160,9 +1163,9 @@ int main()
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   /* assign_envs(b, blocks_count, &tlenv); */
   /* print_code_ast(&tlblock, 0); */
-  print_ast(&tlblock);
-  /* print(eval(&tlblock)); */
-  evaltl(&tlblock);
+  /* print_ast(&tlblock); */
+  print(evaltl(&tlblock));
+  /* evaltl(&tlblock); */
 
 
 
