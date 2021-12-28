@@ -354,8 +354,8 @@ enum _Type numtype(char *s)
 /*   } */
 /* } */
 
-enum __Blkitem_type { CELL, BLOCK };
-char *stringify_block_content_type(enum __Blkitem_type t)
+enum __Blockitem_type { CELL, BLOCK };
+char *stringify_block_item_type(enum __Blockitem_type t)
 {
   switch (t) {
   case CELL:
@@ -490,10 +490,10 @@ struct env *make_env__Hp(int id, struct env *parenv)
 
 /* ein block item kann ein Cell oder selbst ein Block sein (bestehend
    aus anderen block items)*/
-struct blkitem {
+struct blockitem {
   struct cell *c;		/* for a cell */
   struct block *b;		/* for a block */
-  enum __Blkitem_type type;
+  enum __Blockitem_type type;
 };
 
 struct block {
@@ -501,7 +501,7 @@ struct block {
   struct cell cells[MAX_BLOCK_SIZE];
   struct env *env;
   int size;			/* number of cells contained in this block*/
-  struct blkitem *contents;		/* content cells & child blocks */
+  struct blockitem *items;		/* content cells & child blocks */
   /* the embedding block */
   struct block *enblock;
   bool islambda;
@@ -516,32 +516,6 @@ struct block {
 
 struct cell block_head(struct block *b) { return b->cells[0]; }
 
-
-/* /\* Only blocks have evaluation types *\/ */
-/* void set_eval_type(struct block *b) */
-/* { */
-/*   for (int i = 1; i < b.size; i++) {     */
-/*   } */
-/* } */
-
-void add(struct block *b)
-{
-  float sum;
-  for (int i = 1; i<b->size;i++) {
-    switch (b->cells[i].car.type)
-      {
-      case INTEGER:
-	sum += b->cells[i].ival;
-	break;
-      case FLOAT:
-	sum += b->cells[i].fval;
-	break;
-      }
-  }
-  /* hardcoded */
-  b->cells[0].type = FLOAT;
-  b->cells[0].fval = sum;
-}
 
 
 
@@ -804,9 +778,9 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	newblock->enblock = enblock;
 
 	/* set the new block's content */
-	newblock->contents = malloc(sizeof(struct blkitem));
-	(*(newblock->contents)).type = CELL;
-	(*(newblock->contents)).c = c;
+	newblock->items = malloc(sizeof(struct blockitem));
+	(*(newblock->items)).type = CELL;
+	(*(newblock->items)).c = c;
 	/* set the env for the new block */
 	if (!strcmp(newblock->enblock->cells[0].car.str, DEFINE_KW)) {
 	  newblock->env = tlblock->env;
@@ -827,16 +801,16 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	  newblock->max_absorp_capa = 1;	/* ist maximal das default argument wenn vorhanden */
 	}
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
-	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct blkitem))) != NULL) {
-	  (*(enblock->contents + enblock->size)).type = BLOCK;
-	  (*(enblock->contents + enblock->size)).b = newblock;
+	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct blockitem))) != NULL) {
+	  (*(enblock->items + enblock->size)).type = BLOCK;
+	  (*(enblock->items + enblock->size)).b = newblock;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct blkitem))) != NULL) {
-	(*(enblock->contents + enblock->size)).type = CELL;
-	(*(enblock->contents + enblock->size)).c = c;
+      if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct blockitem))) != NULL) {
+	(*(enblock->items + enblock->size)).type = CELL;
+	(*(enblock->items + enblock->size)).c = c;
       }
       c->enblock = enblock;
       enblock->cells[enblock->size] = *c;
@@ -853,13 +827,13 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
      can't free *(blocks + 0), as tlblock is created on the
      stack in main(). that first pointer will be freed after the for loop. */
   for (int i = 1; i < blocks_count; i++) {
-    free((*(blocks + i))->contents);
+    free((*(blocks + i))->items);
     free(*(blocks + i));
   }
   /* free the content of the toplevel block, since it surely
      containts something when the parsed string hasn't been an empty
      string! */
-  free((*blocks)->contents);
+  free((*blocks)->items);
   free(blocks);
 }
 
@@ -883,41 +857,41 @@ void print_code_ast(struct block *root, int depth) /* This is the written code p
 /* startpoint is the root block */
 {
   for (int i = 0; i < root->size; i++) {
-    switch (root->contents[i].type) {
+    switch (root->items[i].type) {
     case CELL:
       print_indent(depth);
       printf(AST_PRINTER_CELL_STR,
-	     root->contents[i].c->car.str,
-	     stringify_cell_type(celltype(root->contents[i].c))
+	     root->items[i].c->car.str,
+	     stringify_cell_type(celltype(root->items[i].c))
 	     );
       break;
     case BLOCK:
       print_indent(depth);
       printf(AST_PRINTER_BLOCK_STR,
-	     root->contents[i].b->cells[0].car.str,
-	     root->contents[i].b->size,
-	     root->contents[i].b->env ? root->contents[i].b->env->symcount : -1,
-	     root->contents[i].b->env ? root->contents[i].b->env->id : -1,
-	     root->contents[i].b->env ? (void *)root->contents[i].b->env : NULL,
-	     root->contents[i].b->islambda ? root->contents[i].b->arity : -1
+	     root->items[i].b->cells[0].car.str,
+	     root->items[i].b->size,
+	     root->items[i].b->env ? root->items[i].b->env->symcount : -1,
+	     root->items[i].b->env ? root->items[i].b->env->id : -1,
+	     root->items[i].b->env ? (void *)root->items[i].b->env : NULL,
+	     root->items[i].b->islambda ? root->items[i].b->arity : -1
 	     );
-      print_code_ast(root->contents[i].b, depth+1);
+      print_code_ast(root->items[i].b, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0].car.str, root[i].contents[0].c->car.str);
+      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0].car.str, root[i].items[0].c->car.str);
     }
   }
 }
 void print_ast(struct block *root)
 {
-  /* root's (the toplevel block) contents is a blkitem of
-     type CELL, so when iterating over root's contents this CELL
+  /* root's (the toplevel block) items is a blockitem of
+     type CELL, so when iterating over root's items this CELL
      will be printed but there will be no BLOCK printed on top of that
      CELL, thats why we are cheating here and print a BLOCK-Like on
      top of the whole ast. */
   printf(AST_PRINTER_BLOCK_STR_TL,
- 	 root->contents->c->car.str,
+ 	 root->items->c->car.str,
  	 root->size,
 	 root->env ? root->env->symcount : -1,
 	 root->env ? root->env->id : -1,
@@ -927,7 +901,7 @@ void print_ast(struct block *root)
 }
 
 struct lambda {
-  struct blkitem *retstat;	/* the return statement */
+  struct blockitem *retstat;	/* the return statement */
 };
 
 
@@ -937,20 +911,21 @@ struct letdata {
   union {
     int i;
     float f;
-    struct lambda l;
+    struct lambda lambda;
     struct letdata *(*fn)();
   } value;
 };
 
-/* string representation of data, this is what print will show */
+/* string representation of data, this is the P in REPL */
+/* data arg is the evaluated expression (is gone through eval already) */
 void print(struct letdata *data)
 {
   switch (data->type) {
   case INTEGER:
-    printf("%d", data->value.i);
+    printf("[INTEGER %d]", data->value.i);
     break;
   case FLOAT:
-    printf("%f", data->value.f);
+    printf("[FLOAT %f]", data->value.f);
     break;
   case LAMBDA:
     printf("lambda...");
@@ -987,19 +962,19 @@ struct letdata *GJ() {
 /* blkcont} */
 void *(*foo)(void *);
 
-struct letdata *evalx(struct blkitem *cont)
+struct letdata *evalx(struct blockitem *item)
 {
   struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
-  switch (cont->type) {
+  switch (item->type) {
   case CELL:
-    switch (celltype(cont->c)) {
+    switch (celltype(item->c)) {
     case INTEGER:
       data->type = INTEGER;
-      data->value.i = cont->c->ival;
+      data->value.i = item->c->ival;
       break;
     case FLOAT:
       data->type = FLOAT;
-      data->value.f = cont->c->fval;
+      data->value.f = item->c->fval;
       break;
     case SYMBOL:
       data->type = SYMBOL;
@@ -1008,28 +983,28 @@ struct letdata *evalx(struct blkitem *cont)
     }
     break;			/* break CELL */
   case BLOCK:
-    if (!strcmp(block_head(cont->b).car.str, LAMBDA_KW)) {
+    if (!strcmp(block_head(item->b).car.str, LAMBDA_KW)) {
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       struct lambda L;
-      switch (cont->b->arity) {
+      switch (item->b->arity) {
       case 0:
 	printf("--LAMBDA wird verpackt\n");
-	L.retstat = &(cont->b->contents[1]);
-	data->value.l=L;
+	L.retstat = &(item->b->items[1]);
+	data->value.lambda=L;
 	/* data->value.fn = &GJ; */
 	/* data->value.fn = struct letdata *(*)(void); */
 	break;
       }
       
-    } else if (!strcmp(block_head(cont->b).car.str, "call")) {
-      printf("CALL\n");
-      data->type=FLOAT;
-      data = evalx((evalx(&(cont->b->contents[1])))->value.l.retstat);
-      /* evalx(&(cont->b->contents[1]))->value.fn(); */
+    } else if (!strcmp(block_head(item->b).car.str, "call")) {
+      /* printf("CALL %s\n", stringify_block_item_type((evalx(&(item->b->items[1])))->value.lambda.retstat)); */
+      /* data->type=FLOAT; */
+      data = evalx((evalx(&(item->b->items[1])))->value.lambda.retstat);
+      /* evalx(&(item->b->items[1]))->value.fn(); */
       
-    } else if (!strcmp(block_head(cont->b).car.str, "pret")) {
+    } else if (!strcmp(block_head(item->b).car.str, "pret")) {
       printf("----**PRET**\n");
-      data = let_pret(evalx(&((cont->b)->contents[1])));
+      data = let_pret(evalx(&((item->b)->items[1])));
     }
     break;			/* break BLOCK */
   default: break;
@@ -1040,9 +1015,9 @@ struct letdata *evalx(struct blkitem *cont)
 struct letdata *evaltl(struct block *root)
 {
   for (int i = 0; i < (root->size - 1); i++) {
-    evalx(&(root->contents[i]));
+    evalx(&(root->items[i]));
   }
-  return evalx(&(root->contents[root->size - 1]));
+  return evalx(&(root->items[root->size - 1]));
 }
 
 
@@ -1077,9 +1052,9 @@ int main()
     .fval = 0.0			/* fval */
   };
   
-  struct blkitem *tlcont = malloc(sizeof (struct blkitem));
-  (*tlcont).type = CELL;
-  (*tlcont).c = &tlcell;
+  struct blockitem *tlitems = malloc(sizeof (struct blockitem));
+  (*tlitems).type = CELL;
+  (*tlitems).c = &tlcell;
 
   struct block tlblock = {
     .id = 0,
@@ -1089,13 +1064,13 @@ int main()
     /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
     .enblock = NULL,
-    .contents = tlcont,
+    .items = tlitems,
     .islambda = false,
     .arity = -1			/* invalid arity, this is not a lambda block! */
   };
 
   char *lines[X] = {
-    "call call lambda lambda  4.3"
+    "call call lambda lambda 43"
     
   };
   size_t all_tokens_count = 0;
