@@ -941,8 +941,8 @@ void print(struct letdata *data)
 struct letdata *let_pret(struct letdata *thing)
 {
   switch(thing->type) {
-  case INTEGER: printf("let_pret=> %d\n", thing->value.i); break;
-  case FLOAT: printf("let_pret=> %f\n", thing->value.f); break;
+  case INTEGER: printf("=> %d\n", thing->value.i); break;
+  case FLOAT: printf("=> %f\n", thing->value.f); break;
   }
   return thing;
 }
@@ -1070,7 +1070,7 @@ int main()
   };
 
   char *lines[X] = {
-    "call call lambda lambda 43"
+    "call call lambda lambda pret 43"
     
   };
   size_t all_tokens_count = 0;
