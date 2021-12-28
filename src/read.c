@@ -354,8 +354,8 @@ enum _Type numtype(char *s)
 /*   } */
 /* } */
 
-enum __Block_content_type { CELL, BLOCK };
-char *stringify_block_content_type(enum __Block_content_type t)
+enum __Blkitem_type { CELL, BLOCK };
+char *stringify_block_content_type(enum __Blkitem_type t)
 {
   switch (t) {
   case CELL:
@@ -488,10 +488,12 @@ struct env *make_env__Hp(int id, struct env *parenv)
 /* int __Blockid = 0; */
 #define MAX_BLOCK_SIZE 1000
 
-struct block_content {
+/* ein block item kann ein Cell oder selbst ein Block sein (bestehend
+   aus anderen block items)*/
+struct blkitem {
   struct cell *c;		/* for a cell */
   struct block *b;		/* for a block */
-  enum __Block_content_type type;
+  enum __Blkitem_type type;
 };
 
 struct block {
@@ -499,7 +501,7 @@ struct block {
   struct cell cells[MAX_BLOCK_SIZE];
   struct env *env;
   int size;			/* number of cells contained in this block*/
-  struct block_content *contents;		/* content cells & child blocks */
+  struct blkitem *contents;		/* content cells & child blocks */
   /* the embedding block */
   struct block *enblock;
   bool islambda;
@@ -802,7 +804,7 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	newblock->enblock = enblock;
 
 	/* set the new block's content */
-	newblock->contents = malloc(sizeof(struct block_content));
+	newblock->contents = malloc(sizeof(struct blkitem));
 	(*(newblock->contents)).type = CELL;
 	(*(newblock->contents)).c = c;
 	/* set the env for the new block */
@@ -825,14 +827,14 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	  newblock->max_absorp_capa = 1;	/* ist maximal das default argument wenn vorhanden */
 	}
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
-	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
+	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct blkitem))) != NULL) {
 	  (*(enblock->contents + enblock->size)).type = BLOCK;
 	  (*(enblock->contents + enblock->size)).b = newblock;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
+      if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct blkitem))) != NULL) {
 	(*(enblock->contents + enblock->size)).type = CELL;
 	(*(enblock->contents + enblock->size)).c = c;
       }
@@ -909,7 +911,7 @@ void print_code_ast(struct block *root, int depth) /* This is the written code p
 }
 void print_ast(struct block *root)
 {
-  /* root's (the toplevel block) contents is a block_content of
+  /* root's (the toplevel block) contents is a blkitem of
      type CELL, so when iterating over root's contents this CELL
      will be printed but there will be no BLOCK printed on top of that
      CELL, thats why we are cheating here and print a BLOCK-Like on
@@ -925,7 +927,7 @@ void print_ast(struct block *root)
 }
 
 struct lambda {
-  struct block_content *retstat;	/* the return statement */
+  struct blkitem *retstat;	/* the return statement */
 };
 
 
@@ -985,7 +987,7 @@ struct letdata *GJ() {
 /* blkcont} */
 void *(*foo)(void *);
 
-struct letdata *evalx(struct block_content *cont)
+struct letdata *evalx(struct blkitem *cont)
 {
   struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
   switch (cont->type) {
@@ -1043,57 +1045,6 @@ struct letdata *evaltl(struct block *root)
   return evalx(&(root->contents[root->size - 1]));
 }
 
-/************** DEPRECATED ****************/
-/* struct letdata *eval(struct block *root) */
-/* /\* return value of eval is a single data type *\/ */
-/* { */
-/*   struct letdata *ld = malloc(sizeof *ld); /\* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp *\/ */
-/*   for (int i = 0; i < root->size; i++) { */
-/*     switch (root->contents[i].type) { */
-/*     case CELL: */
-/*       switch (celltype(root->contents[i].c)) { */
-/*       case INTEGER: */
-/* 	ld->type = INTEGER; */
-/* 	ld->data.i = root->contents[i].c->ival; */
-/* 	break; */
-/*       case FLOAT: */
-/* 	ld->type = FLOAT; */
-/* 	ld->data.f = root->contents[i].c->fval;; */
-/* 	break; */
-/*       case SYMBOL: */
-/* 	ld->type = SYMBOL; */
-/* 	break; */
-/*       default: */
-/* 	break; */
-/*       } */
-/*       break;			/\* break CELL branch *\/ */
-/*     case BLOCK: */
-/*       if (!strcmp(block_head(root->contents[i].b).car.str, LAMBDA_KW)) { */
-/* 	ld->type = LAMBDA; /\* lambda objekte werden nicht in parse time generiert *\/ */
-/* 	printf("A: %d\n", root->contents[i].b->arity); */
-/* 	switch (root->contents[i].b->arity) { */
-/* 	case 0: */
-/* 	  /\* ld->data.lambda_0 = (struct letdata *(*)())foo; *\/ */
-/* 	  break; */
-/* 	  /\* ld->data.lambda_0 = (struct letdata *(*)())root->contents[i].b->lambda; *\/ */
-/* 	  /\* return ld; *\/ */
-/* 	} */
-/*       } else if (!strcmp(block_head(root->contents[i].b).car.str, "call")) { */
-/* 	printf("%d %s", i, stringify_block_content_type(root->contents[i].b->contents[1].type)); */
-/* 	printf("%s---",root->contents[i].b->contents[1].b->cells[0].car.str); */
-/* 	/\* printf("%s", root->contents[i].b->contents[0].c->car.str); *\/ */
-/* 	/\* eval(root->contents[i].b->contents[1].b)(); *\/ */
-/* 	ld->type=INTEGER; */
-/* 	/\* ld->data.i=(eval(root->contents[i].b->contents[1].b)->data.lambda_0)(); *\/ */
-/* 	break; */
-/*       } */
-/*       break;			/\* break BLOCK branch *\/ */
-/*     default: break; */
-/*     } */
-/*   } */
-/*   return ld; */
-/* } */
-
 
 #define X 1
 int main()
@@ -1126,7 +1077,7 @@ int main()
     .fval = 0.0			/* fval */
   };
   
-  struct block_content *tlcont = malloc(sizeof (struct block_content));
+  struct blkitem *tlcont = malloc(sizeof (struct blkitem));
   (*tlcont).type = CELL;
   (*tlcont).c = &tlcell;
 
