@@ -922,10 +922,10 @@ void print(struct letdata *data)
 {
   switch (data->type) {
   case INTEGER:
-    printf("[INTEGER %d]", data->value.i);
+    printf("%d", data->value.i);
     break;
   case FLOAT:
-    printf("[FLOAT %f]", data->value.f);
+    printf("%f", data->value.f);
     break;
   case LAMBDA:
     printf("lambda...");
@@ -938,12 +938,15 @@ void print(struct letdata *data)
 
 
 /* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
-struct letdata *let_pret(struct letdata *thing)
+struct letdata *__Let_pret(struct letdata *thing)
 {
+  puts(">>>");
   switch(thing->type) {
-  case INTEGER: printf("=> %d\n", thing->value.i); break;
-  case FLOAT: printf("=> %f\n", thing->value.f); break;
+  case INTEGER: printf("%d", thing->value.i); break;
+  case FLOAT: printf("%f", thing->value.f); break;
+  case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
   }
+  puts("\n<<<");
   return thing;
 }
 
@@ -1004,7 +1007,7 @@ struct letdata *evalx(struct blockitem *item)
       
     } else if (!strcmp(block_head(item->b).car.str, "pret")) {
       printf("----**PRET**\n");
-      data = let_pret(evalx(&((item->b)->items[1])));
+      data = __Let_pret(evalx(&((item->b)->items[1])));
     }
     break;			/* break BLOCK */
   default: break;
@@ -1070,7 +1073,7 @@ int main()
   };
 
   char *lines[X] = {
-    "call call lambda lambda pret 43"
+    "call call lambda pret lambda pret 43"
     
   };
   size_t all_tokens_count = 0;
