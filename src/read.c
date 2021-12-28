@@ -728,6 +728,7 @@ bool need_new_block(struct cell *c, struct block *enblock)
     || is_lambda_param(c, enblock) /* hier muss enblock richtig entschieden sein!!! */
     || !strcmp(c->car.str, "call")
     || !strcmp(c->car.str, "pret")
+    || !strcmp(c->car.str, "gj") /* geburtsjahr!!! */
     ;
 }
 
@@ -938,23 +939,26 @@ void print(struct letdata *data)
 
 
 /* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
+/* das hier ist ein (interner Sprachkonstrukt) console.log ähnliches
+   ding */
 struct letdata *__Let_pret(struct letdata *thing)
 {
-  puts(">>>");
+  puts("=>");
   switch(thing->type) {
   case INTEGER: printf("%d", thing->value.i); break;
   case FLOAT: printf("%f", thing->value.f); break;
   case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
+  default: break;
   }
-  puts("\n<<<");
+  puts("");
   return thing;
 }
 
-struct letdata *GJ() {
+struct letdata *GJ(void) {
   struct letdata *ld = malloc(sizeof *ld);
   ld->type = INTEGER;
   ld->value.i = 1363;
-  printf("mein geburtsjahr %d", ld->value.i);
+  /* printf("mein geburtsjahr %d", ld->value.i); */
   return ld;
 }
 /* struct letdata *(*lambda_0)(); */
@@ -991,7 +995,6 @@ struct letdata *evalx(struct blockitem *item)
       struct lambda L;
       switch (item->b->arity) {
       case 0:
-	printf("--LAMBDA wird verpackt\n");
 	L.retstat = &(item->b->items[1]);
 	data->value.lambda=L;
 	/* data->value.fn = &GJ; */
@@ -1000,14 +1003,14 @@ struct letdata *evalx(struct blockitem *item)
       }
       
     } else if (!strcmp(block_head(item->b).car.str, "call")) {
-      /* printf("CALL %s\n", stringify_block_item_type((evalx(&(item->b->items[1])))->value.lambda.retstat)); */
-      /* data->type=FLOAT; */
       data = evalx((evalx(&(item->b->items[1])))->value.lambda.retstat);
-      /* evalx(&(item->b->items[1]))->value.fn(); */
       
     } else if (!strcmp(block_head(item->b).car.str, "pret")) {
-      printf("----**PRET**\n");
       data = __Let_pret(evalx(&((item->b)->items[1])));
+    }
+
+    else if (!strcmp(block_head(item->b).car.str, "gj")) {
+      data = GJ();
     }
     break;			/* break BLOCK */
   default: break;
@@ -1073,7 +1076,7 @@ int main()
   };
 
   char *lines[X] = {
-    "call call lambda pret lambda pret 43"
+    "call call lambda pret lambda pret gj"
     
   };
   size_t all_tokens_count = 0;
