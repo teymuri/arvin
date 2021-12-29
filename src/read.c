@@ -354,8 +354,8 @@ enum _Type numtype(char *s)
 /*   } */
 /* } */
 
-enum __Block_content_type { CELL, BLOCK };
-char *stringify_block_content_type(enum __Block_content_type t)
+enum __Blockitem_type { CELL, BLOCK };
+char *stringify_block_item_type(enum __Blockitem_type t)
 {
   switch (t) {
   case CELL:
@@ -488,10 +488,12 @@ struct env *make_env__Hp(int id, struct env *parenv)
 /* int __Blockid = 0; */
 #define MAX_BLOCK_SIZE 1000
 
-struct block_content {
+/* ein block item kann ein Cell oder selbst ein Block sein (bestehend
+   aus anderen block items)*/
+struct blockitem {
   struct cell *c;		/* for a cell */
   struct block *b;		/* for a block */
-  enum __Block_content_type type;
+  enum __Blockitem_type type;
 };
 
 struct block {
@@ -499,7 +501,7 @@ struct block {
   struct cell cells[MAX_BLOCK_SIZE];
   struct env *env;
   int size;			/* number of cells contained in this block*/
-  struct block_content *contents;		/* content cells & child blocks */
+  struct blockitem *items;		/* content cells & child blocks */
   /* the embedding block */
   struct block *enblock;
   bool islambda;
@@ -514,32 +516,6 @@ struct block {
 
 struct cell block_head(struct block *b) { return b->cells[0]; }
 
-
-/* /\* Only blocks have evaluation types *\/ */
-/* void set_eval_type(struct block *b) */
-/* { */
-/*   for (int i = 1; i < b.size; i++) {     */
-/*   } */
-/* } */
-
-void add(struct block *b)
-{
-  float sum;
-  for (int i = 1; i<b->size;i++) {
-    switch (b->cells[i].car.type)
-      {
-      case INTEGER:
-	sum += b->cells[i].ival;
-	break;
-      case FLOAT:
-	sum += b->cells[i].fval;
-	break;
-      }
-  }
-  /* hardcoded */
-  b->cells[0].type = FLOAT;
-  b->cells[0].fval = sum;
-}
 
 
 
@@ -752,6 +728,7 @@ bool need_new_block(struct cell *c, struct block *enblock)
     || is_lambda_param(c, enblock) /* hier muss enblock richtig entschieden sein!!! */
     || !strcmp(c->car.str, "call")
     || !strcmp(c->car.str, "pret")
+    || !strcmp(c->car.str, "gj") /* geburtsjahr!!! */
     ;
 }
 
@@ -802,9 +779,9 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	newblock->enblock = enblock;
 
 	/* set the new block's content */
-	newblock->contents = malloc(sizeof(struct block_content));
-	(*(newblock->contents)).type = CELL;
-	(*(newblock->contents)).c = c;
+	newblock->items = malloc(sizeof(struct blockitem));
+	(*(newblock->items)).type = CELL;
+	(*(newblock->items)).c = c;
 	/* set the env for the new block */
 	if (!strcmp(newblock->enblock->cells[0].car.str, DEFINE_KW)) {
 	  newblock->env = tlblock->env;
@@ -825,16 +802,16 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	  newblock->max_absorp_capa = 1;	/* ist maximal das default argument wenn vorhanden */
 	}
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
-	if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
-	  (*(enblock->contents + enblock->size)).type = BLOCK;
-	  (*(enblock->contents + enblock->size)).b = newblock;
+	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct blockitem))) != NULL) {
+	  (*(enblock->items + enblock->size)).type = BLOCK;
+	  (*(enblock->items + enblock->size)).b = newblock;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->contents = realloc(enblock->contents, (enblock->size+1) * sizeof(struct block_content))) != NULL) {
-	(*(enblock->contents + enblock->size)).type = CELL;
-	(*(enblock->contents + enblock->size)).c = c;
+      if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct blockitem))) != NULL) {
+	(*(enblock->items + enblock->size)).type = CELL;
+	(*(enblock->items + enblock->size)).c = c;
       }
       c->enblock = enblock;
       enblock->cells[enblock->size] = *c;
@@ -851,13 +828,13 @@ void free_parser_blocks(struct block **blocks, int blocks_count)
      can't free *(blocks + 0), as tlblock is created on the
      stack in main(). that first pointer will be freed after the for loop. */
   for (int i = 1; i < blocks_count; i++) {
-    free((*(blocks + i))->contents);
+    free((*(blocks + i))->items);
     free(*(blocks + i));
   }
   /* free the content of the toplevel block, since it surely
      containts something when the parsed string hasn't been an empty
      string! */
-  free((*blocks)->contents);
+  free((*blocks)->items);
   free(blocks);
 }
 
@@ -881,41 +858,41 @@ void print_code_ast(struct block *root, int depth) /* This is the written code p
 /* startpoint is the root block */
 {
   for (int i = 0; i < root->size; i++) {
-    switch (root->contents[i].type) {
+    switch (root->items[i].type) {
     case CELL:
       print_indent(depth);
       printf(AST_PRINTER_CELL_STR,
-	     root->contents[i].c->car.str,
-	     stringify_cell_type(celltype(root->contents[i].c))
+	     root->items[i].c->car.str,
+	     stringify_cell_type(celltype(root->items[i].c))
 	     );
       break;
     case BLOCK:
       print_indent(depth);
       printf(AST_PRINTER_BLOCK_STR,
-	     root->contents[i].b->cells[0].car.str,
-	     root->contents[i].b->size,
-	     root->contents[i].b->env ? root->contents[i].b->env->symcount : -1,
-	     root->contents[i].b->env ? root->contents[i].b->env->id : -1,
-	     root->contents[i].b->env ? (void *)root->contents[i].b->env : NULL,
-	     root->contents[i].b->islambda ? root->contents[i].b->arity : -1
+	     root->items[i].b->cells[0].car.str,
+	     root->items[i].b->size,
+	     root->items[i].b->env ? root->items[i].b->env->symcount : -1,
+	     root->items[i].b->env ? root->items[i].b->env->id : -1,
+	     root->items[i].b->env ? (void *)root->items[i].b->env : NULL,
+	     root->items[i].b->islambda ? root->items[i].b->arity : -1
 	     );
-      print_code_ast(root->contents[i].b, depth+1);
+      print_code_ast(root->items[i].b, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0].car.str, root[i].contents[0].c->car.str);
+      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0].car.str, root[i].items[0].c->car.str);
     }
   }
 }
-void printast(struct block *root)
+void print_ast(struct block *root)
 {
-  /* root's (the toplevel block) contents is a block_content of
-     type CELL, so when iterating over root's contents this CELL
+  /* root's (the toplevel block) items is a blockitem of
+     type CELL, so when iterating over root's items this CELL
      will be printed but there will be no BLOCK printed on top of that
      CELL, thats why we are cheating here and print a BLOCK-Like on
      top of the whole ast. */
   printf(AST_PRINTER_BLOCK_STR_TL,
- 	 root->contents->c->car.str,
+ 	 root->items->c->car.str,
  	 root->size,
 	 root->env ? root->env->symcount : -1,
 	 root->env ? root->env->id : -1,
@@ -925,33 +902,63 @@ void printast(struct block *root)
 }
 
 struct lambda {
-  struct block_content expr;
+  struct blockitem *retstat;	/* the return statement */
 };
+
+
 
 struct letdata {
   enum _Type type;
   union {
     int i;
     float f;
-    struct lambda l;
-  } data;
+    struct lambda lambda;
+    struct letdata *(*fn)();
+  } value;
 };
 
-/* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
-struct letdata *pret(struct letdata *thing)
+/* string representation of data, this is the P in REPL */
+/* data arg is the evaluated expression (is gone through eval already) */
+void print(struct letdata *data)
 {
-  switch(thing->type) {
-  case INTEGER: printf("pret=> %d\n", thing->data.i); break;
-  case FLOAT: printf("pret=> %f\n", thing->data.f); break;
+  switch (data->type) {
+  case INTEGER:
+    printf("%d", data->value.i);
+    break;
+  case FLOAT:
+    printf("%f", data->value.f);
+    break;
+  case LAMBDA:
+    printf("lambda...");
+    break;
+  default:
+    break;
   }
+  puts("");
+}
+
+
+/* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
+/* das hier ist ein (interner Sprachkonstrukt) console.log ähnliches
+   ding */
+struct letdata *__Let_pret(struct letdata *thing)
+{
+  puts("=>");
+  switch(thing->type) {
+  case INTEGER: printf("%d", thing->value.i); break;
+  case FLOAT: printf("%f", thing->value.f); break;
+  case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
+  default: break;
+  }
+  puts("");
   return thing;
 }
 
-struct letdata *GJ() {
+struct letdata *GJ(void) {
   struct letdata *ld = malloc(sizeof *ld);
   ld->type = INTEGER;
-  ld->data.i = 1363;
-  printf("mein geburtsjahr %d", ld->data.i);
+  ld->value.i = 1363;
+  /* printf("mein geburtsjahr %d", ld->value.i); */
   return ld;
 }
 /* struct letdata *(*lambda_0)(); */
@@ -959,22 +966,22 @@ struct letdata *GJ() {
 /* struct letdata *(*f2)(struct letdata *, struct letdata *); */
 /* struct lambda { */
 /*   int arity; */
-/* } */
-
+/* blkcont} */
 void *(*foo)(void *);
-struct letdata *evalx(struct block_content *cont)
+
+struct letdata *evalx(struct blockitem *item)
 {
   struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
-  switch (cont->type) {
+  switch (item->type) {
   case CELL:
-    switch (celltype(cont->c)) {
+    switch (celltype(item->c)) {
     case INTEGER:
       data->type = INTEGER;
-      data->data.i = cont->c->ival;
+      data->value.i = item->c->ival;
       break;
     case FLOAT:
       data->type = FLOAT;
-      data->data.f = cont->c->fval;;
+      data->value.f = item->c->fval;
       break;
     case SYMBOL:
       data->type = SYMBOL;
@@ -983,109 +990,42 @@ struct letdata *evalx(struct block_content *cont)
     }
     break;			/* break CELL */
   case BLOCK:
-    if (!strcmp(block_head(cont->b).car.str, LAMBDA_KW)) {
-      printf("--------\n");
+    if (!strcmp(block_head(item->b).car.str, LAMBDA_KW)) {
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
-      switch (cont->b->arity) {
+      struct lambda L;
+      switch (item->b->arity) {
       case 0:
-	/* data->data.lambda_0 = (struct letdata *(*)())foo; */
-	/* data->data.lambda_0=&GJ; */
-	/* data->data.l =  */
+	L.retstat = &(item->b->items[1]);
+	data->value.lambda=L;
+	/* data->value.fn = &GJ; */
+	/* data->value.fn = struct letdata *(*)(void); */
 	break;
       }
-    } else if (!strcmp(block_head(cont->b).car.str, "call")) {
-      /* printf("%d %s", i, stringify_block_content_type(root->contents[i].b->contents[1].type)); */
-      /* printf("%s---",root->contents[i].b->contents[1].b->cells[0].car.str); */
-      /* printf("%s", root->contents[i].b->contents[0].c->car.str); */
-      /* eval(root->contents[i].b->contents[1].b)(); */
-      data->type=INTEGER;
-      /* (evalx(&(cont->b->contents[1]))->data.lambda_0); */
-      /* (evalx(&(cont->b->contents[1]))->data.lambda_0)(); */
-    } else if (!strcmp(block_head(cont->b).car.str, "pret")) {
-      data = pret(evalx(&((cont->b)->contents[1])));
+      
+    } else if (!strcmp(block_head(item->b).car.str, "call")) {
+      data = evalx((evalx(&(item->b->items[1])))->value.lambda.retstat);
+      
+    } else if (!strcmp(block_head(item->b).car.str, "pret")) {
+      data = __Let_pret(evalx(&((item->b)->items[1])));
+    }
+
+    else if (!strcmp(block_head(item->b).car.str, "gj")) {
+      data = GJ();
     }
     break;			/* break BLOCK */
   default: break;
   }
   return data;
 }
+
 struct letdata *evaltl(struct block *root)
 {
   for (int i = 0; i < (root->size - 1); i++) {
-    evalx(&(root->contents[i]));
+    evalx(&(root->items[i]));
   }
-  return evalx(&(root->contents[root->size - 1]));
-}
-struct letdata *eval(struct block *root)
-/* return value of eval is a single data type */
-{
-  struct letdata *ld = malloc(sizeof *ld); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
-  for (int i = 0; i < root->size; i++) {
-    switch (root->contents[i].type) {
-    case CELL:
-      switch (celltype(root->contents[i].c)) {
-      case INTEGER:
-	ld->type = INTEGER;
-	ld->data.i = root->contents[i].c->ival;
-	break;
-      case FLOAT:
-	ld->type = FLOAT;
-	ld->data.f = root->contents[i].c->fval;;
-	break;
-      case SYMBOL:
-	ld->type = SYMBOL;
-	break;
-      default:
-	break;
-      }
-      break;			/* break CELL branch */
-    case BLOCK:
-      if (!strcmp(block_head(root->contents[i].b).car.str, LAMBDA_KW)) {
-	ld->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
-	printf("A: %d\n", root->contents[i].b->arity);
-	switch (root->contents[i].b->arity) {
-	case 0:
-	  /* ld->data.lambda_0 = (struct letdata *(*)())foo; */
-	  break;
-	  /* ld->data.lambda_0 = (struct letdata *(*)())root->contents[i].b->lambda; */
-	  /* return ld; */
-	}
-      } else if (!strcmp(block_head(root->contents[i].b).car.str, "call")) {
-	printf("%d %s", i, stringify_block_content_type(root->contents[i].b->contents[1].type));
-	printf("%s---",root->contents[i].b->contents[1].b->cells[0].car.str);
-	/* printf("%s", root->contents[i].b->contents[0].c->car.str); */
-	/* eval(root->contents[i].b->contents[1].b)(); */
-	ld->type=INTEGER;
-	/* ld->data.i=(eval(root->contents[i].b->contents[1].b)->data.lambda_0)(); */
-	break;
-      }
-      break;			/* break BLOCK branch */
-    default: break;
-    }
-  }
-  return ld;
+  return evalx(&(root->items[root->size - 1]));
 }
 
-void print(struct letdata *ld)
-{
-  printf("=> ");
-  switch (ld->type) {
-  case INTEGER:
-    printf("%d", ld->data.i);
-    break;
-  case FLOAT:
-    printf("%f", ld->data.f);
-    break;
-  case LAMBDA:
-    /* printf("%d", ld->data.lambda_0()->data.i); */
-    printf("Lambda");
-    break;
-  default:
-    printf("?");
-    break;
-  }
-  printf("\n");
-}
 
 #define X 1
 int main()
@@ -1118,9 +1058,9 @@ int main()
     .fval = 0.0			/* fval */
   };
   
-  struct block_content *tlcont = malloc(sizeof (struct block_content));
-  (*tlcont).type = CELL;
-  (*tlcont).c = &tlcell;
+  struct blockitem *tlitems = malloc(sizeof (struct blockitem));
+  (*tlitems).type = CELL;
+  (*tlitems).c = &tlcell;
 
   struct block tlblock = {
     .id = 0,
@@ -1130,13 +1070,13 @@ int main()
     /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
     .enblock = NULL,
-    .contents = tlcont,
+    .items = tlitems,
     .islambda = false,
     .arity = -1			/* invalid arity, this is not a lambda block! */
   };
 
   char *lines[X] = {
-    "pret 3.14"
+    "call call lambda pret lambda pret gj"
     
   };
   size_t all_tokens_count = 0;
@@ -1155,10 +1095,9 @@ int main()
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   /* assign_envs(b, blocks_count, &tlenv); */
   /* print_code_ast(&tlblock, 0); */
-  /* printast(&tlblock); */
-  /* eval(&tlblock); */
-  /* print(eval(&tlblock)); */
-  evaltl(&tlblock);
+  /* print_ast(&tlblock); */
+  print(evaltl(&tlblock));
+  /* evaltl(&tlblock); */
 
 
 
