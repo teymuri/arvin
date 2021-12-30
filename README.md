@@ -65,7 +65,7 @@
     if expr-k then action-k
     else default-action
   ```
-  Im Kontext von `case` sind die Wörter `if then else` reserviert und generieren bzw. schließen Blocks von Expressions und Actions. Diese reservierten Wörter ermöglichen auch einen eindeutigen one-liner: `case if expr1 then action1 if expr2 then action2 else default-action`.
+  Im Kontext von `case` sind die Wörter `if then else` reserviert und generieren bzw. schließen Blocks von Expressions und Actions. Diese reservierten Wörter ermöglichen auch einen eindeutigen one-liner: `case if expr1 then action1 if expr2 then action2 else default-action`. Die `else` Verzweigung ist dabei optional.
 
 
 1. Es ist wichtig zu beachten dass NUR Block-builders einen Block generieren. Diese sind u.a.
