@@ -54,6 +54,19 @@
       lambda .x .y .z
                + x y (=> runtime env-error: lookup failed for x (arg eval right to left???))
       ```
+- ## Conditional Evaluation
+  Bedingte Anweisungen werden in LET mit `case` und seinen `if then else` Konstrukten gemacht. Die allgemeine Syntax ist
+  ```
+  case
+    if expr1 then action1
+    .
+    .
+    .
+    if expr-k then action-k
+    else default-action
+  ```
+  Im Kontext von `case` sind die Wörter `if then else` reserviert und generieren bzw. schließen Blocks von Expressions und Actions. Diese reservierten Wörter ermöglichen auch einen eindeutigen one-liner: `case if expr1 then action1 if expr2 then action2 else default-action`.
+
 
 1. Es ist wichtig zu beachten dass NUR Block-builders einen Block generieren. Diese sind u.a.
   - Lambdas
