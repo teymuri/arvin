@@ -17,7 +17,7 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <glib.h>
 
 /* ******* Named strings and characters ******** */
-#define DEFINE_KW "define"		/* use to define symbols */
+#define BIND_KW "bind"		/* use to define symbols */
 #define LAMBDA_KW "lambda"
 #define PARAM_PREFIX '.'
 /* ********************************** */
@@ -719,9 +719,9 @@ bool need_new_block(struct cell *c, struct block *enblock)
 {
   return isbuiltin(c)
     /* is a definition? */
-    || !strcmp(c->car.str, DEFINE_KW)
+    || !strcmp(c->car.str, BIND_KW)
     /* is the symbol to be defined? */
-    || !strcmp(block_head(enblock).car.str, DEFINE_KW)
+    || !strcmp(block_head(enblock).car.str, BIND_KW)
     /* is begin of a lambda expression? */
     || is_lambda_head(*c)
     /* is a lambda parameter? */
@@ -783,7 +783,7 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	(*(newblock->items)).type = CELL;
 	(*(newblock->items)).c = c;
 	/* set the env for the new block */
-	if (!strcmp(newblock->enblock->cells[0].car.str, DEFINE_KW)) {
+	if (!strcmp(newblock->enblock->cells[0].car.str, BIND_KW)) {
 	  newblock->env = tlblock->env;
 	  newblock->env->symcount++;
 	}
@@ -1076,7 +1076,8 @@ int main()
   };
 
   char *lines[X] = {
-    "call call lambda pret lambda pret gj"
+    /* "call call lambda pret lambda pret gj" */
+    "bind x 23"
     
   };
   size_t all_tokens_count = 0;
@@ -1095,8 +1096,8 @@ int main()
   struct block **b = parse__Hp(&tlblock, c, &blocks_count);
   /* assign_envs(b, blocks_count, &tlenv); */
   /* print_code_ast(&tlblock, 0); */
-  /* print_ast(&tlblock); */
-  print(evaltl(&tlblock));
+  print_ast(&tlblock);
+  /* print(evaltl(&tlblock)); */
   /* evaltl(&tlblock); */
 
 
