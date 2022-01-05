@@ -735,7 +735,7 @@ bool need_new_block(struct cell *c, struct block *enblock)
   return isbuiltin(c)
     || !strcmp(c->car.str, BIND_KW)
     /* is the symbol to be defined? */
-    || !strcmp(block_head(enblock).car.str, BIND_KW)
+    /* || !strcmp(block_head(enblock).car.str, BIND_KW) */
     /* is begin of a lambda expression? */
     || is_lambda_head(*c)
     /* is a lambda parameter? */
@@ -985,7 +985,7 @@ struct letdata *GJ(void) {
 /* blkcont} */
 void *(*foo)(void *);
 
-
+struct env global_env;
 /* eval evaluiert einen Baum */
 struct letdata *evalx__Heap(struct block_item *item)
 {
@@ -1029,9 +1029,10 @@ struct letdata *evalx__Heap(struct block_item *item)
     } else if (!strcmp(block_head(item->b).car.str, "gj")) {
       data = GJ();
     } else if (is_a_binding(item->b)) {
-      printf("%s\n", item->b->cells[0].car.str);
-      /* printf("%s\n",item->b->items[1].b->items[1].b->cells[0].car.str); */
-      /* g_hash_table_insert(&global_env, item->b->items) */
+      char *key = item->b->cells[1].car.str;
+      struct letdata *value = evalx__Heap(&(item->b->items[2]));
+      /* printf("%s %d\n", item->b->items[1].c->car.str, d->value.i+1); */
+      g_hash_table_insert(global_env.hashtable, key, value);
     }
     break;			/* break BLOCK */
   default: break;
@@ -1055,6 +1056,7 @@ int main()
   /* The global environment */
   struct env global_env = {
     .id = 0,
+    /* g_hash_table_new returns a GHashTable* */
     .hashtable = g_hash_table_new(g_str_hash, g_str_equal),
     .enclosing_env = NULL,
     /* .symcount = 0 */
