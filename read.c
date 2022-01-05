@@ -16,8 +16,8 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <assert.h>
 #include <glib.h>
 
-/* ******* Named strings and characters ******** */
-#define BIND_KW "bind"		/* use to define symbols */
+/* ******* reserved keywords, Named strings and characters ******** */
+#define BIND_KW "bind"		/* used to define symbols in the global environment */
 #define LAMBDA_KW "lambda"
 #define PARAM_PREFIX '.'
 /* ********************************** */
@@ -417,10 +417,9 @@ typedef void (*lambda_t)(struct cell *);
 
 struct env {
   int id;
-  GHashTable *symht;		/* hashtable keeping known symbols */
-  int symcount;			/* number of symbols */
-  struct env *parenv;		/* parent environment */
-
+  GHashTable *hashtable;		/* hashtable keeping known symbols */
+  /* int symcount;			/\* number of symbols *\/ */
+  struct env *enclosing_env;		/* parent environment */
 };
 
 /* only symbols will have envs!!! */
@@ -431,14 +430,14 @@ struct symbol {
   struct cell *cell;
 };
 
-struct symbol *make_symbol__Hp(struct cell *c, struct env *e)
-{
-  struct symbol *s = malloc(sizeof(struct symbol));
-  s->name = c->car.str;
-  g_hash_table_insert(e->symht, s->name, s);
-  s->id = e->symcount++;
-  return s;
-}
+/* struct symbol *make_symbol__Hp(struct cell *c, struct env *e) */
+/* { */
+/*   struct symbol *s = malloc(sizeof(struct symbol)); */
+/*   s->name = c->car.str; */
+/*   g_hash_table_insert(e->hashtable, s->name, s); */
+/*   s->id = e->symcount++; */
+/*   return s; */
+/* } */
 
 
 /* 
@@ -474,15 +473,15 @@ name foo
        34
  */
 
-struct env *make_env__Hp(int id, struct env *parenv)
-{
-  struct env *e = malloc(sizeof(struct env));
-  e->id = id;
-  e->symht = g_hash_table_new(g_str_hash, g_str_equal); /* empty hashtable */
-  e->symcount = 0;
-  e->parenv = parenv;
-  return e;
-}
+/* struct env *make_env__Hp(int id, struct env *parenv) */
+/* { */
+/*   struct env *e = malloc(sizeof(struct env)); */
+/*   e->id = id; */
+/*   e->hashtable = g_hash_table_new(g_str_hash, g_str_equal); /\* empty hashtable *\/ */
+/*   e->symcount = 0; */
+/*   e->parenv = parenv; */
+/*   return e; */
+/* } */
 
 
 /* int __Blockid = 0; */
@@ -490,7 +489,7 @@ struct env *make_env__Hp(int id, struct env *parenv)
 
 /* ein block item kann ein Cell oder selbst ein Block sein (bestehend
    aus anderen block items)*/
-struct blockitem {
+struct block_item {
   struct cell *c;		/* for a cell */
   struct block *b;		/* for a block */
   enum __Blockitem_type type;
@@ -499,9 +498,11 @@ struct blockitem {
 struct block {
   int id;
   struct cell cells[MAX_BLOCK_SIZE];
+  /* nicht alle Blocks brauchen eingenes env, z.B. +  */
+  /* bool needs_env; */
   struct env *env;
   int size;			/* number of cells contained in this block*/
-  struct blockitem *items;		/* content cells & child blocks */
+  struct block_item *items;		/* content cells & child blocks */
   /* the embedding block */
   struct block *enblock;
   bool islambda;
@@ -513,6 +514,8 @@ struct block {
   int max_absorp_capa;		/* wieviel Zeug wird in diesem block
 				   max reingesteckt werden können?! */
 };
+
+
 
 struct cell block_head(struct block *b) { return b->cells[0]; }
 
@@ -681,7 +684,7 @@ void free_linked_cells(struct cell *c)
 /*   { */
 /*     /\* id *\/ */
 /*     0, */
-/*     /\* symht (GHashtable *), to be populated yet *\/ */
+/*     /\* hashtable (GHashtable *), to be populated yet *\/ */
 /*     NULL, */
 /*     /\* parenv *\/ */
 /*     NULL, */
@@ -715,10 +718,21 @@ bool is_lambda_param(struct cell *c, struct block *enblock)
   return looks_like_lambda_param(c) && is_lambda_head(block_head(enblock));
 }
 
+bool is_a_binding(struct block *b)
+{
+  return !strcmp(b->cells[0].car.str, BIND_KW);
+}
+
+/* is the direct enclosing block the bind keyword, ie we are about to
+   define a new name? */
+bool is_a_binding_name(struct block *b)
+{
+  return !strcmp(block_head(b->enblock).car.str, BIND_KW);
+}
+
 bool need_new_block(struct cell *c, struct block *enblock)
 {
   return isbuiltin(c)
-    /* is a definition? */
     || !strcmp(c->car.str, BIND_KW)
     /* is the symbol to be defined? */
     || !strcmp(block_head(enblock).car.str, BIND_KW)
@@ -732,11 +746,11 @@ bool need_new_block(struct cell *c, struct block *enblock)
     ;
 }
 
-struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, int *blocks_count)
+struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_root, int *blocks_count)
 {
   /* this is the blocktracker in the python prototype */
   struct block **blocks = malloc(sizeof(struct block *)); /* make room for the toplevel block */
-  *(blocks + (*blocks_count)++) = tlblock;
+  *(blocks + (*blocks_count)++) = global_block;
   struct cell *c = linked_cells_root;
   struct block *enblock;
   struct block *last_lambda_block;
@@ -779,13 +793,13 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	newblock->enblock = enblock;
 
 	/* set the new block's content */
-	newblock->items = malloc(sizeof(struct blockitem));
+	newblock->items = malloc(sizeof(struct block_item));
 	(*(newblock->items)).type = CELL;
 	(*(newblock->items)).c = c;
 	/* set the env for the new block */
 	if (!strcmp(newblock->enblock->cells[0].car.str, BIND_KW)) {
-	  newblock->env = tlblock->env;
-	  newblock->env->symcount++;
+	  /* newblock->env = global_block->env; */
+	  /* newblock->env->symcount++; */
 	}
 	*(blocks + (*blocks_count)++) = newblock;
 	
@@ -802,14 +816,14 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 	  newblock->max_absorp_capa = 1;	/* ist maximal das default argument wenn vorhanden */
 	}
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
-	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct blockitem))) != NULL) {
+	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
 	  (*(enblock->items + enblock->size)).type = BLOCK;
 	  (*(enblock->items + enblock->size)).b = newblock;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct blockitem))) != NULL) {
+      if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
 	(*(enblock->items + enblock->size)).type = CELL;
 	(*(enblock->items + enblock->size)).c = c;
       }
@@ -824,8 +838,8 @@ struct block **parse__Hp(struct block *tlblock, struct cell *linked_cells_root, 
 
 void free_parser_blocks(struct block **blocks, int blocks_count)
 {
-  /* the first pointer in **blocks points to the tlblock, thats why we
-     can't free *(blocks + 0), as tlblock is created on the
+  /* the first pointer in **blocks points to the global_block, thats why we
+     can't free *(blocks + 0), as global_block is created on the
      stack in main(). that first pointer will be freed after the for loop. */
   for (int i = 1; i < blocks_count; i++) {
     free((*(blocks + i))->items);
@@ -851,8 +865,8 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p AR:%d]\n"
-#define AST_PRINTER_BLOCK_STR "[BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p AR:%d]\n"
+#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
+#define AST_PRINTER_BLOCK_STR "[BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
 #define AST_PRINTER_CELL_STR "[CELL:%s TP:%s]\n"
 void print_code_ast(struct block *root, int depth) /* This is the written code part */
 /* startpoint is the root block */
@@ -871,7 +885,8 @@ void print_code_ast(struct block *root, int depth) /* This is the written code p
       printf(AST_PRINTER_BLOCK_STR,
 	     root->items[i].b->cells[0].car.str,
 	     root->items[i].b->size,
-	     root->items[i].b->env ? root->items[i].b->env->symcount : -1,
+	     /* root->items[i].b->env ? root->items[i].b->env->symcount : -1, */
+	     root->items[i].b->env ? -1 : -1,
 	     root->items[i].b->env ? root->items[i].b->env->id : -1,
 	     root->items[i].b->env ? (void *)root->items[i].b->env : NULL,
 	     root->items[i].b->islambda ? root->items[i].b->arity : -1
@@ -886,7 +901,7 @@ void print_code_ast(struct block *root, int depth) /* This is the written code p
 }
 void print_ast(struct block *root)
 {
-  /* root's (the toplevel block) items is a blockitem of
+  /* root's (the toplevel block) items is a block_item of
      type CELL, so when iterating over root's items this CELL
      will be printed but there will be no BLOCK printed on top of that
      CELL, thats why we are cheating here and print a BLOCK-Like on
@@ -894,7 +909,8 @@ void print_ast(struct block *root)
   printf(AST_PRINTER_BLOCK_STR_TL,
  	 root->items->c->car.str,
  	 root->size,
-	 root->env ? root->env->symcount : -1,
+	 /* root->env ? root->env->symcount : -1, */
+	 root->env ? -1 : -1,
 	 root->env ? root->env->id : -1,
 	 root->env ? (void *)root->env : NULL,
 	 root->islambda ? root->arity : -1);
@@ -902,7 +918,7 @@ void print_ast(struct block *root)
 }
 
 struct lambda {
-  struct blockitem *retstat;	/* the return statement */
+  struct block_item *retstat;	/* the return statement */
 };
 
 
@@ -969,7 +985,9 @@ struct letdata *GJ(void) {
 /* blkcont} */
 void *(*foo)(void *);
 
-struct letdata *evalx(struct blockitem *item)
+
+/* eval evaluiert einen Baum */
+struct letdata *evalx__Heap(struct block_item *item)
 {
   struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
   switch (item->type) {
@@ -990,6 +1008,8 @@ struct letdata *evalx(struct blockitem *item)
     }
     break;			/* break CELL */
   case BLOCK:
+
+    printf("==%s===\n", is_a_binding(item->b) ? "j" :"n");
     if (!strcmp(block_head(item->b).car.str, LAMBDA_KW)) {
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       struct lambda L;
@@ -1000,17 +1020,18 @@ struct letdata *evalx(struct blockitem *item)
 	/* data->value.fn = &GJ; */
 	/* data->value.fn = struct letdata *(*)(void); */
 	break;
-      }
-      
+      }  
     } else if (!strcmp(block_head(item->b).car.str, "call")) {
-      data = evalx((evalx(&(item->b->items[1])))->value.lambda.retstat);
+      data = evalx__Heap((evalx__Heap(&(item->b->items[1])))->value.lambda.retstat);
       
     } else if (!strcmp(block_head(item->b).car.str, "pret")) {
-      data = __Let_pret(evalx(&((item->b)->items[1])));
-    }
-
-    else if (!strcmp(block_head(item->b).car.str, "gj")) {
+      data = __Let_pret(evalx__Heap(&((item->b)->items[1])));
+    } else if (!strcmp(block_head(item->b).car.str, "gj")) {
       data = GJ();
+    } else if (is_a_binding(item->b)) {
+      printf("%s\n", item->b->cells[0].car.str);
+      /* printf("%s\n",item->b->items[1].b->items[1].b->cells[0].car.str); */
+      /* g_hash_table_insert(&global_env, item->b->items) */
     }
     break;			/* break BLOCK */
   default: break;
@@ -1021,22 +1042,24 @@ struct letdata *evalx(struct blockitem *item)
 struct letdata *evaltl(struct block *root)
 {
   for (int i = 0; i < (root->size - 1); i++) {
-    evalx(&(root->items[i]));
+    evalx__Heap(&(root->items[i]));
   }
-  return evalx(&(root->items[root->size - 1]));
+  return evalx__Heap(&(root->items[root->size - 1]));
 }
 
 
 #define X 1
 int main()
 {
-  
-  struct env tlenv = {
+
+  /* The global environment */
+  struct env global_env = {
     .id = 0,
-    .symht = g_hash_table_new(g_str_hash, g_str_equal),
-    .parenv = NULL,
-    .symcount = 0
+    .hashtable = g_hash_table_new(g_str_hash, g_str_equal),
+    .enclosing_env = NULL,
+    /* .symcount = 0 */
   };
+
   struct token tltok = {
     .str = TLTOKSTR,
     .col_start_idx = -1,
@@ -1058,15 +1081,15 @@ int main()
     .fval = 0.0			/* fval */
   };
   
-  struct blockitem *tlitems = malloc(sizeof (struct blockitem));
+  struct block_item *tlitems = malloc(sizeof (struct block_item));
   (*tlitems).type = CELL;
   (*tlitems).c = &tlcell;
 
-  struct block tlblock = {
+  struct block global_block = {
     .id = 0,
     .cells = { tlcell },
     /* env (Toplevel Environment) */
-    .env = &tlenv,
+    .env = &global_env,
     /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
     .enblock = NULL,
@@ -1093,12 +1116,12 @@ int main()
   struct cell *c = linked_cells__Hp(nct, nctok_count);
   struct cell *base = c;
   int blocks_count = 0;
-  struct block **b = parse__Hp(&tlblock, c, &blocks_count);
-  /* assign_envs(b, blocks_count, &tlenv); */
-  /* print_code_ast(&tlblock, 0); */
-  print_ast(&tlblock);
-  /* print(evaltl(&tlblock)); */
-  /* evaltl(&tlblock); */
+  struct block **b = parse__Hp(&global_block, c, &blocks_count);
+  /* assign_envs(b, blocks_count, &global_env); */
+  /* print_code_ast(&global_block, 0); */
+  print_ast(&global_block);
+  /* print(evaltl(&global_block)); */
+  evaltl(&global_block);
 
 
 
