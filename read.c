@@ -695,7 +695,7 @@ bool is_lambda_param(struct cell *c, struct block *enblock)
   return looks_like_lambda_param(c) && is_lambda_head(block_head(enblock));
 }
 
-bool is_a_binding(struct block *b)
+bool isbind(struct block *b)
 {
   return !strcmp(b->cells[0].car.str, BIND_KW);
 }
@@ -895,8 +895,9 @@ void print_ast(struct block *root)
 }
 
 struct lambda {
-  struct block_item *retstat;	/* the return statement */
+  struct block_item *return_expr;	/* the return statement */
 };
+
 struct letdata;
 /* only symbols will have envs!!! */
 struct symbol {
@@ -907,11 +908,11 @@ struct symbol {
 struct letdata {
   enum _Type type;
   union {
-    int let_integer;
-    float let_float;
-    struct symbol *let_symbol;
-    struct lambda lambda;
-    struct letdata *(*fn)();
+    int data_slot_int;
+    float data_slot_float;
+    struct symbol *data_slot_symbol;
+    struct lambda data_slot_lambda;
+    /* struct letdata *(*fn)(); */
   } value;
 };
 
@@ -934,10 +935,10 @@ void print(struct letdata *data)
 {
   switch (data->type) {
   case INTEGER:
-    printf("%d", data->value.let_integer);
+    printf("%d", data->value.data_slot_int);
     break;
   case FLOAT:
-    printf("%f", data->value.let_float);
+    printf("%f", data->value.data_slot_float);
     break;
   case LAMBDA:
     printf("lambda...");
@@ -952,12 +953,13 @@ void print(struct letdata *data)
 /* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
 /* das hier ist ein (interner Sprachkonstrukt) console.log ähnliches
    ding */
-struct letdata *__Let_pret(struct letdata *thing)
+/* hoffentlich ist thing already evaled!!! */
+struct letdata *__let_pret(struct letdata *thing)
 {
   puts(">");
   switch(thing->type) {
-  case INTEGER: printf("%d", thing->value.let_integer); break;
-  case FLOAT: printf("%f", thing->value.let_float); break;
+  case INTEGER: printf("%d", thing->value.data_slot_int); break;
+  case FLOAT: printf("%f", thing->value.data_slot_float); break;
   case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
   default: break;
   }
@@ -968,7 +970,7 @@ struct letdata *__Let_pret(struct letdata *thing)
 struct letdata *GJ(void) {
   struct letdata *ld = malloc(sizeof *ld);
   ld->type = INTEGER;
-  ld->value.let_integer = 1363;
+  ld->value.data_slot_int = 1363;
   /* printf("mein geburtsjahr %d", ld->value.i); */
   return ld;
 }
@@ -992,11 +994,11 @@ struct letdata *eval__DM(struct block_item *item,
     switch (celltype(item->c)) {
     case INTEGER:
       data->type = INTEGER;
-      data->value.let_integer = item->c->ival;
+      data->value.data_slot_int = item->c->ival;
       break;
     case FLOAT:
       data->type = FLOAT;
-      data->value.let_float = item->c->fval;
+      data->value.data_slot_float = item->c->fval;
       break;
     case SYMBOL:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
@@ -1010,9 +1012,11 @@ struct letdata *eval__DM(struct block_item *item,
 	    data->type = sym->symbol_data->type;
 	    switch (data->type) {
 	    case INTEGER:
-	      data->value.let_integer = sym->symbol_data->value.let_integer; break;
+	      data->value.data_slot_int = sym->symbol_data->value.data_slot_int; break;
 	    case FLOAT:
-	      data->value.let_float = sym->symbol_data->value.let_float; break;
+	      data->value.data_slot_float = sym->symbol_data->value.data_slot_float; break;
+	    case LAMBDA:
+	      data->value.data_slot_lambda = sym->symbol_data->value.data_slot_lambda; break;
 	    default: break;
 	    }
 	    break;
@@ -1032,22 +1036,23 @@ struct letdata *eval__DM(struct block_item *item,
   case BLOCK:
     if (!strcmp(block_head(item->b).car.str, LAMBDA_KW)) {
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
-      struct lambda L;
+      struct lambda lambda;
       switch (item->b->arity) {
       case 0:
-	L.retstat = &(item->b->items[1]);
-	data->value.lambda=L;
+	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
+	lambda.return_expr = &(item->b->items[1]);
+	data->value.data_slot_lambda = lambda;
 	/* data->value.fn = &GJ; */
 	/* data->value.fn = struct letdata *(*)(void); */
 	break;
       }  
     } else if (!strcmp(block_head(item->b).car.str, "call")) {
-      data = eval__DM((eval__DM(&(item->b->items[1]), local_env, global_env))->value.lambda.retstat, local_env, global_env);      
+      data = eval__DM((eval__DM(&(item->b->items[1]), local_env, global_env))->value.data_slot_lambda.return_expr, local_env, global_env);      
     } else if (!strcmp(block_head(item->b).car.str, "pret")) {
-      data = __Let_pret(eval__DM(&((item->b)->items[1]), local_env, global_env));
+      data = __let_pret(eval__DM(&((item->b)->items[1]), local_env, global_env));
     } else if (!strcmp(block_head(item->b).car.str, "gj")) {
       data = GJ();
-    } else if (is_a_binding(item->b)) {
+    } else if (isbind(item->b)) {
       /* don't let the name of the binding to go through eval! */
       char *symname = item->b->cells[1].car.str;
       struct letdata *symdata = eval__DM(&(item->b->items[2]), local_env, global_env);
@@ -1058,7 +1063,7 @@ struct letdata *eval__DM(struct block_item *item,
 	 matter in which environment we are currently */
       g_hash_table_insert(global_env->hash_table, symname, sym);
       data->type = SYMBOL;
-      data->value.let_symbol = sym;
+      data->value.data_slot_symbol = sym;
 
     }
     break;			/* break BLOCK */
@@ -1133,9 +1138,9 @@ int main()
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
     "bind Pi 1.081",
-    "bind x Pi",
-    "bind y x",
-    "bind z y",
+    "bind x lambda 2022",
+    "pret call x",
+    "bind z x",
     "pret z"
     
   };
