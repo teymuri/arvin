@@ -1137,10 +1137,10 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "bind Pi 1.081",
-    "bind x lambda 2022",
-    "pret call x",
-    "bind z x",
+    "bind PI 3.14",
+    "bind 0pii lambda PI",
+    "pret call 0pii",
+    "bind z 0pii",
     "pret z"
     
   };
