@@ -28,6 +28,7 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 enum _Type {
   NUMBER = 0, INTEGER = 1, FLOAT = 2,
   SYMBOL = 3, LAMBDA = 4,
+  DOUBLE = 5,
   UNDEFINED
 };
 
@@ -39,6 +40,7 @@ char *stringify_cell_type(enum _Type t)
   case 2: return "FLOAT";
   case 3: return "SYMBOL";
   case 4: return "LAMBDA";
+  case 5: return "DOUBLE";
   default: return "UNDEFINED";
   }
 }
@@ -50,20 +52,18 @@ char *stringify_cell_type(enum _Type t)
 
 struct token {
   char str[MAX_TOKLEN];	/* token's string */
-  int col_start_idx;			/* start index in line (column start index) */
-  int col_end_idx;			/* end index in line (column end index) */
+  int column_start_idx;			/* start index in line (column start index) */
+  int column_end_idx;			/* end index in line (column end index) */
   int linum;			/* line number */
   int id;			/* id of this token (tracked globally) */
-  int comidx;			/* comment indices: 0 = (, 1 = ) */
+  int comment_index;			/* comment indices: 0 = (, 1 = ) */
   enum _Type type;		/* guessed types at token-generation time */
-  /* int ival; */
-  /* double fval; */
 };
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 
-#define COMMOP "("		/* comment opening token */
-#define COMMCL ")"		/* comment closing token */
+#define COMMENT_OPENING "("		/* comment opening token */
+#define COMMENT_CLOSING ")"		/* comment closing token */
 
 
 
@@ -198,10 +198,10 @@ struct token *tokenize_line__Hp(char *line, size_t *line_toks_count, size_t *all
       /* t.numtype = numtype(t.str); */
       /* t.isprim = isprim(t.str); */
       t.id = __Tokid++;
-      t.col_start_idx = offset + match[0].rm_so;
-      t.col_end_idx = t.col_start_idx + tokstrlen;
+      t.column_start_idx = offset + match[0].rm_so;
+      t.column_end_idx = t.column_start_idx + tokstrlen;
       t.linum = linum;
-      t.comidx = 0;
+      t.comment_index = 0;
       *(tokptr + *line_toks_count) = t;
       (*all_tokens_count)++;
       (*line_toks_count)++;
@@ -274,8 +274,8 @@ struct token *tokenize_lines__Hp(char **srclns, size_t lines_count,
 }
 
 
-int iscom_open(struct token tok) {return !strcmp(tok.str, COMMOP);}
-int iscom_close(struct token tok) {return !strcmp(tok.str, COMMCL);}
+int iscom_open(struct token tok) {return !strcmp(tok.str, COMMENT_OPENING);}
+int iscom_close(struct token tok) {return !strcmp(tok.str, COMMENT_CLOSING);}
 
 /* comment index 1 is the start of an outer-most comment block. this
    function is the equivalent of set_commidx_ip(toks) in the let.py
@@ -285,9 +285,9 @@ void index_comments(struct token *tokens, size_t all_tokens_count)
   int idx = 1;
   for (size_t i = 0; i < all_tokens_count; i++) {
     if (iscom_open(tokens[i]))
-      tokens[i].comidx = idx++;
+      tokens[i].comment_index = idx++;
     else if (iscom_close(tokens[i]))
-      tokens[i].comidx = --idx;
+      tokens[i].comment_index = --idx;
   }
 }
 
@@ -298,7 +298,7 @@ struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count,
   struct token *nctoks = NULL;	/* non-comment tokens */
   int isincom = false;		/* are we inside of a comment block? */
   for (size_t i = 0; i < all_tokens_count; i++) {
-    if (toks[i].comidx == 1) {
+    if (toks[i].comment_index == 1) {
       if (isincom) isincom = false;
       else isincom = true;
     } else if (!isincom) {
@@ -315,46 +315,8 @@ struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count,
   return nctoks;
 }
 
-
-int isdig(char c)
-{
-  return ('0' <= c) && (c <= '9');
-}
-
-enum _Type numtype(char *s)
-{
-  bool dot = false;
-  while (*s) {
-    if (!isdig(*s)) {
-      /* if a dot: set the type to float, but go on looking the rest
-	 (which must be digit only to give a float!) */
-      if (*s == '.') {
-	dot = true;
-	s++;		
-      } else return UNDEFINED;	/* if not a digit and not a dot: Not A Number */
-    } else s++;			/* if a digit: go on looking the rest */
-  }
-  return dot ? FLOAT : INTEGER;
-}
-
-/* /\* passing a token pointer to set it's fields *\/ */
-/* void guess_token_type(struct token *t) */
-/* { */
-/*   enum _Type tp; */
-/*   if ((tp = (numtype(t->str)))) { */
-/*     if (tp == INTEGER) { */
-/*       t->ival = atoi(t->str); */
-/*       t->type = INTEGER; */
-/*     } else if (tp == FLOAT) { */
-/*       t->fval = atof(t->str); */
-/*       t->type = FLOAT; */
-/*     } */
-/*   } else { */
-/*     t->type = UNDEFINED; */
-/*   } */
-/* } */
-
 enum __Blockitem_type { CELL, BLOCK };
+
 char *stringify_block_item_type(enum __Blockitem_type t)
 {
   switch (t) {
@@ -502,7 +464,7 @@ struct cell block_head(struct block *b) { return b->cells[0]; }
 /* is b directly or indirectly embedding c? */
 bool is_enclosed_in(struct cell c, struct block b)
 {
-  return (c.car.col_start_idx > b.cells[0].car.col_start_idx)
+  return (c.car.column_start_idx > b.cells[0].car.column_start_idx)
     && (c.car.linum >= b.cells[0].car.linum);
 }
 
@@ -562,12 +524,12 @@ cell.
 /* here we test column start index of block heads to decide */
 static struct block *rightmost_block(struct block **botmost_blocks, int botmost_blocks_count)
 {
-  int col_start_idx = LEAST_COL_START_IDX;			/* start index */
+  int column_start_idx = LEAST_COL_START_IDX;			/* start index */
   struct block *rmost_block = NULL;
   for (int i = 0; i < botmost_blocks_count; i++) {    
-    if ((*(botmost_blocks + i))->cells[0].car.col_start_idx > col_start_idx) {
+    if ((*(botmost_blocks + i))->cells[0].car.column_start_idx > column_start_idx) {
       rmost_block = *(botmost_blocks + i);
-      col_start_idx = rmost_block->cells[0].car.col_start_idx;
+      column_start_idx = rmost_block->cells[0].car.column_start_idx;
     }
   }
   free(botmost_blocks);
@@ -640,8 +602,8 @@ void free_linked_cells(struct cell *c)
 /*     {				/\* cells[0] *\/ */
 /*       /\* car token *\/ */
 /*       {.str = TLTOKSTR, */
-/*        .col_start_idx = -1, */
-/*        .col_end_idx = 100,		/\* ???????????????????????????????????????? *\/ */
+/*        .column_start_idx = -1, */
+/*        .column_end_idx = 100,		/\* ???????????????????????????????????????? *\/ */
 /*        .linum = -1, */
 /*        .id = 0 */
 /*       }, */
@@ -980,7 +942,7 @@ struct letdata *GJ(void) {
 /* struct lambda { */
 /*   int arity; */
 /* blkcont} */
-void *(*foo)(void *);
+
 
 
 /* eval evaluiert einen Baum */
@@ -1099,8 +1061,8 @@ int main()
 
   struct token tltok = {
     .str = TLTOKSTR,
-    .col_start_idx = -1,
-    .col_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
+    .column_start_idx = -1,
+    .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
     .linum = -1,
     .id = 0
   };
@@ -1118,7 +1080,7 @@ int main()
     .fval = 0.0			/* fval */
   };
   
-  struct block_item *tlitems = malloc(sizeof (struct block_item));
+  struct block_item *tlitems = malloc(sizeof(struct block_item));
   (*tlitems).type = CELL;
   (*tlitems).c = &tlcell;
 
@@ -1132,17 +1094,16 @@ int main()
     .enblock = NULL,
     .items = tlitems,
     .islambda = false,
-    .arity = -1			/* invalid arity, this is not a lambda block! */
+    .arity = -1			/* invalid arity, because this is not a lambda block! */
   };
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "bind PI 3.14",
-    "bind 0pii lambda PI",
-    "pret call 0pii",
-    "bind z 0pii",
-    "pret z"
-    
+    "bind pi lambda 3.14159265359",
+    "bind euler pret lambda pret pret 2.7182",
+    "bind golden-ratio 1.6180",
+    "pret call euler",
+    "pret golden-ratio"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
