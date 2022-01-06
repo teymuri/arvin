@@ -967,9 +967,11 @@ struct letdata *GJ(void) {
 /* blkcont} */
 void *(*foo)(void *);
 
-/* struct env global_env; */
+
 /* eval evaluiert einen Baum */
-struct letdata *evalx__dm(struct block_item *item, struct env *env)
+struct letdata *eval__DM(struct block_item *item,
+			 struct env *local_env,
+			 struct env *global_env)
 {
   struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
   switch (item->type) {
@@ -986,13 +988,26 @@ struct letdata *evalx__dm(struct block_item *item, struct env *env)
     case SYMBOL:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
       {
-	struct symbol *sym = g_hash_table_lookup(env->hash_table, item->c->car.str);
-	data->type = sym->symbol_data->type;
-	data->value.let_integer = sym->symbol_data->value.let_integer;
+	struct symbol *sym;
+	char *symname = item->c->car.str;
+	/* struct symbol *sym = g_hash_table_lookup(local_env->hash_table, item->c->car.str); */
+	struct env *e = local_env;
+	while (e) {
+	  if ((sym = g_hash_table_lookup(e->hash_table, symname))) {
+	    data->type = sym->symbol_data->type;
+	    data->value.let_integer = sym->symbol_data->value.let_integer;
+	    break;
+	  } else {
+	    e = e->enclosing_env;
+	  }
+	}
+	if (!e) {
+	  fprintf(stderr, "unbound '%s'\n", symname);
+	  exit(EXIT_FAILURE);
+	}
       }
       break;
-    default:      
-      break;
+    default: break;
     }
     break;			/* break CELL */
   case BLOCK:
@@ -1008,19 +1023,21 @@ struct letdata *evalx__dm(struct block_item *item, struct env *env)
 	break;
       }  
     } else if (!strcmp(block_head(item->b).car.str, "call")) {
-      data = evalx__dm((evalx__dm(&(item->b->items[1]), env))->value.lambda.retstat, env);      
+      data = eval__DM((eval__DM(&(item->b->items[1]), local_env, global_env))->value.lambda.retstat, local_env, global_env);      
     } else if (!strcmp(block_head(item->b).car.str, "pret")) {
-      data = __Let_pret(evalx__dm(&((item->b)->items[1]), env));
+      data = __Let_pret(eval__DM(&((item->b)->items[1]), local_env, global_env));
     } else if (!strcmp(block_head(item->b).car.str, "gj")) {
       data = GJ();
     } else if (is_a_binding(item->b)) {
       /* don't let the name of the binding to go through eval! */
       char *symname = item->b->cells[1].car.str;
-      struct letdata *symdata = evalx__dm(&(item->b->items[2]), env);
+      struct letdata *symdata = eval__DM(&(item->b->items[2]), local_env, global_env);
       struct symbol *sym= malloc(sizeof(struct symbol));
       sym->symbol_name = symname;
       sym->symbol_data = symdata;
-      g_hash_table_insert(env->hash_table, symname, sym);
+      /* bindings are always saved in the global environment, no
+	 matter in which environment we are currently */
+      g_hash_table_insert(global_env->hash_table, symname, sym);
       data->type = SYMBOL;
       data->value.let_symbol = sym;
 
@@ -1031,12 +1048,14 @@ struct letdata *evalx__dm(struct block_item *item, struct env *env)
   return data;
 }
 
-struct letdata *global_eval(struct block *root, struct env *global_env)
+struct letdata *global_eval(struct block *root,
+			    struct env *local_env,
+			    struct env *global_env)
 {
   for (int i = 0; i < (root->size - 1); i++) {
-    evalx__dm(&(root->items[i]), global_env);
+    eval__DM(&(root->items[i]), local_env, global_env);
   }
-  return evalx__dm(&(root->items[root->size - 1]), global_env);
+  return eval__DM(&(root->items[root->size - 1]), local_env, global_env);
 }
 
 
@@ -1094,7 +1113,7 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "bind Pi 1.1",
+    "bind Pi 11",
     "bind x Pi",
     "bind y x",
     "bind z y",
@@ -1118,7 +1137,7 @@ int main()
   /* assign_envs(b, blocks_count, &global_env); */
   /* print_code_ast(&global_block, 0); */
   /* print_ast(&global_block); */
-  print(global_eval(&global_block, &global_env));
+  print(global_eval(&global_block, &global_env, &global_env));
   /* global_eval(&global_block, &global_env); */
   /* guint u = g_hash_table_size(global_env.hash_table); */
   /* gpointer* k=g_hash_table_get_keys_as_array(global_env.hash_table, &u); */
