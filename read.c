@@ -915,6 +915,19 @@ struct letdata {
   } value;
 };
 
+char *stringify_type(enum _Type t)
+{
+  switch (t) {
+  case 0: return "Weiss net, waisch?!! vielleicht number??????";
+  case 1: return "INTEGER";
+  case 2: return "FLOAT";
+  case 3: return "SYMBOL";
+  case 4: return "LAMBDA";
+  default: return "UNDEFINED";
+  }
+}
+
+
 /* string representation of data, this is the P in REPL */
 /* data arg is the evaluated expression (is gone through eval already) */
 void print(struct letdata *data)
@@ -995,13 +1008,19 @@ struct letdata *eval__DM(struct block_item *item,
 	while (e) {
 	  if ((sym = g_hash_table_lookup(e->hash_table, symname))) {
 	    data->type = sym->symbol_data->type;
-	    data->value.let_integer = sym->symbol_data->value.let_integer;
+	    switch (data->type) {
+	    case INTEGER:
+	      data->value.let_integer = sym->symbol_data->value.let_integer; break;
+	    case FLOAT:
+	      data->value.let_float = sym->symbol_data->value.let_float; break;
+	    default: break;
+	    }
 	    break;
 	  } else {
 	    e = e->enclosing_env;
 	  }
 	}
-	if (!e) {
+	if (!e) {		/* wir sind schon beim parent von global env angekommen */
 	  fprintf(stderr, "unbound '%s'\n", symname);
 	  exit(EXIT_FAILURE);
 	}
@@ -1113,7 +1132,7 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "bind Pi 11",
+    "bind Pi 1.081",
     "bind x Pi",
     "bind y x",
     "bind z y",
@@ -1137,8 +1156,8 @@ int main()
   /* assign_envs(b, blocks_count, &global_env); */
   /* print_code_ast(&global_block, 0); */
   /* print_ast(&global_block); */
-  print(global_eval(&global_block, &global_env, &global_env));
-  /* global_eval(&global_block, &global_env); */
+  /* print(global_eval(&global_block, &global_env, &global_env)); */
+  global_eval(&global_block, &global_env, &global_env);
   /* guint u = g_hash_table_size(global_env.hash_table); */
   /* gpointer* k=g_hash_table_get_keys_as_array(global_env.hash_table, &u); */
   /* for (guint i = 0; i < u;i++) { */
