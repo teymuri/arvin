@@ -382,7 +382,6 @@ struct cell {
   /* here will supported Let-types be stored as evaluating */
   int ival;
   float fval;
-  struct symbol *symval;
 };
 
 enum _Type celltype(struct cell *c)
@@ -417,33 +416,11 @@ typedef void (*lambda_t)(struct cell *);
 
 struct env {
   int id;
-  GHashTable *hashtable;		/* hashtable keeping known symbols */
+  GHashTable *hash_table;		/* hashtable keeping known symbols */
   /* int symcount;			/\* number of symbols *\/ */
   struct env *enclosing_env;		/* parent environment */
 };
 
-/* only symbols will have envs!!! */
-struct symbol {
-  int id;
-  char *name;
-  lambda_t lambda;		/* has a function value? */
-  struct cell *cell;
-};
-
-/* struct symbol *make_symbol__Hp(struct cell *c, struct env *e) */
-/* { */
-/*   struct symbol *s = malloc(sizeof(struct symbol)); */
-/*   s->name = c->car.str; */
-/*   g_hash_table_insert(e->hashtable, s->name, s); */
-/*   s->id = e->symcount++; */
-/*   return s; */
-/* } */
-
-
-/* 
-name thing 2
-
-*/
 
 /* builtin functions */
 char *__Builtins[] = {
@@ -865,9 +842,9 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
-#define AST_PRINTER_BLOCK_STR "[BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
-#define AST_PRINTER_CELL_STR "[CELL:%s TP:%s]\n"
+#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p Arity:%d]\n"
+#define AST_PRINTER_BLOCK_STR "[BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p Arity:%d]\n"
+#define AST_PRINTER_CELL_STR "[CELL:%s Type:%s]\n"
 void print_code_ast(struct block *root, int depth) /* This is the written code part */
 /* startpoint is the root block */
 {
@@ -920,14 +897,19 @@ void print_ast(struct block *root)
 struct lambda {
   struct block_item *retstat;	/* the return statement */
 };
-
-
+struct letdata;
+/* only symbols will have envs!!! */
+struct symbol {
+  char *symbol_name;
+  struct letdata *symbol_data;
+};
 
 struct letdata {
   enum _Type type;
   union {
-    int i;
-    float f;
+    int let_integer;
+    float let_float;
+    struct symbol *let_symbol;
     struct lambda lambda;
     struct letdata *(*fn)();
   } value;
@@ -939,10 +921,10 @@ void print(struct letdata *data)
 {
   switch (data->type) {
   case INTEGER:
-    printf("%d", data->value.i);
+    printf("%d", data->value.let_integer);
     break;
   case FLOAT:
-    printf("%f", data->value.f);
+    printf("%f", data->value.let_float);
     break;
   case LAMBDA:
     printf("lambda...");
@@ -959,21 +941,21 @@ void print(struct letdata *data)
    ding */
 struct letdata *__Let_pret(struct letdata *thing)
 {
-  puts("=>");
+  puts(">");
   switch(thing->type) {
-  case INTEGER: printf("%d", thing->value.i); break;
-  case FLOAT: printf("%f", thing->value.f); break;
+  case INTEGER: printf("%d", thing->value.let_integer); break;
+  case FLOAT: printf("%f", thing->value.let_float); break;
   case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
   default: break;
   }
-  puts("");
+  puts("\n<");
   return thing;
 }
 
 struct letdata *GJ(void) {
   struct letdata *ld = malloc(sizeof *ld);
   ld->type = INTEGER;
-  ld->value.i = 1363;
+  ld->value.let_integer = 1363;
   /* printf("mein geburtsjahr %d", ld->value.i); */
   return ld;
 }
@@ -985,9 +967,9 @@ struct letdata *GJ(void) {
 /* blkcont} */
 void *(*foo)(void *);
 
-struct env global_env;
+/* struct env global_env; */
 /* eval evaluiert einen Baum */
-struct letdata *evalx__Heap(struct block_item *item)
+struct letdata *evalx__dm(struct block_item *item, struct env *env)
 {
   struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
   switch (item->type) {
@@ -995,21 +977,25 @@ struct letdata *evalx__Heap(struct block_item *item)
     switch (celltype(item->c)) {
     case INTEGER:
       data->type = INTEGER;
-      data->value.i = item->c->ival;
+      data->value.let_integer = item->c->ival;
       break;
     case FLOAT:
       data->type = FLOAT;
-      data->value.f = item->c->fval;
+      data->value.let_float = item->c->fval;
       break;
     case SYMBOL:
-      data->type = SYMBOL;
+      /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
+      {
+	struct symbol *sym = g_hash_table_lookup(env->hash_table, item->c->car.str);
+	data->type = sym->symbol_data->type;
+	data->value.let_integer = sym->symbol_data->value.let_integer;
+      }
       break;
-    default: break;
+    default:      
+      break;
     }
     break;			/* break CELL */
   case BLOCK:
-
-    printf("==%s===\n", is_a_binding(item->b) ? "j" :"n");
     if (!strcmp(block_head(item->b).car.str, LAMBDA_KW)) {
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       struct lambda L;
@@ -1022,17 +1008,22 @@ struct letdata *evalx__Heap(struct block_item *item)
 	break;
       }  
     } else if (!strcmp(block_head(item->b).car.str, "call")) {
-      data = evalx__Heap((evalx__Heap(&(item->b->items[1])))->value.lambda.retstat);
-      
+      data = evalx__dm((evalx__dm(&(item->b->items[1]), env))->value.lambda.retstat, env);      
     } else if (!strcmp(block_head(item->b).car.str, "pret")) {
-      data = __Let_pret(evalx__Heap(&((item->b)->items[1])));
+      data = __Let_pret(evalx__dm(&((item->b)->items[1]), env));
     } else if (!strcmp(block_head(item->b).car.str, "gj")) {
       data = GJ();
     } else if (is_a_binding(item->b)) {
-      char *key = item->b->cells[1].car.str;
-      struct letdata *value = evalx__Heap(&(item->b->items[2]));
-      /* printf("%s %d\n", item->b->items[1].c->car.str, d->value.i+1); */
-      g_hash_table_insert(global_env.hashtable, key, value);
+      /* don't let the name of the binding to go through eval! */
+      char *symname = item->b->cells[1].car.str;
+      struct letdata *symdata = evalx__dm(&(item->b->items[2]), env);
+      struct symbol *sym= malloc(sizeof(struct symbol));
+      sym->symbol_name = symname;
+      sym->symbol_data = symdata;
+      g_hash_table_insert(env->hash_table, symname, sym);
+      data->type = SYMBOL;
+      data->value.let_symbol = sym;
+
     }
     break;			/* break BLOCK */
   default: break;
@@ -1040,24 +1031,25 @@ struct letdata *evalx__Heap(struct block_item *item)
   return data;
 }
 
-struct letdata *evaltl(struct block *root)
+struct letdata *global_eval(struct block *root, struct env *global_env)
 {
   for (int i = 0; i < (root->size - 1); i++) {
-    evalx__Heap(&(root->items[i]));
+    evalx__dm(&(root->items[i]), global_env);
   }
-  return evalx__Heap(&(root->items[root->size - 1]));
+  return evalx__dm(&(root->items[root->size - 1]), global_env);
 }
 
 
-#define X 1
+
+
+#define X 5
 int main()
 {
-
   /* The global environment */
   struct env global_env = {
     .id = 0,
     /* g_hash_table_new returns a GHashTable* */
-    .hashtable = g_hash_table_new(g_str_hash, g_str_equal),
+    .hash_table = g_hash_table_new(g_str_hash, g_str_equal),
     .enclosing_env = NULL,
     /* .symcount = 0 */
   };
@@ -1102,7 +1094,11 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "bind x 23"
+    "bind Pi 1.1",
+    "bind x Pi",
+    "bind y x",
+    "bind z y",
+    "pret z"
     
   };
   size_t all_tokens_count = 0;
@@ -1121,10 +1117,14 @@ int main()
   struct block **b = parse__Hp(&global_block, c, &blocks_count);
   /* assign_envs(b, blocks_count, &global_env); */
   /* print_code_ast(&global_block, 0); */
-  print_ast(&global_block);
-  /* print(evaltl(&global_block)); */
-  evaltl(&global_block);
-
+  /* print_ast(&global_block); */
+  print(global_eval(&global_block, &global_env));
+  /* global_eval(&global_block, &global_env); */
+  /* guint u = g_hash_table_size(global_env.hash_table); */
+  /* gpointer* k=g_hash_table_get_keys_as_array(global_env.hash_table, &u); */
+  /* for (guint i = 0; i < u;i++) { */
+  /*   printf("KEY %s\n", (char *)k[i]); */
+  /* } */
 
 
   
