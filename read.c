@@ -870,10 +870,10 @@ struct symbol {
 struct letdata {
   enum _Type type;
   union {
-    int data_slot_int;
-    float data_slot_float;
-    struct symbol *data_slot_symbol;
-    struct lambda data_slot_lambda;
+    int dataslot_int;
+    float dataslot_float;
+    struct symbol *dataslot_symbol;
+    struct lambda dataslot_lambda;
     /* struct letdata *(*fn)(); */
   } value;
 };
@@ -897,10 +897,10 @@ void print(struct letdata *data)
 {
   switch (data->type) {
   case INTEGER:
-    printf("%d", data->value.data_slot_int);
+    printf("%d", data->value.dataslot_int);
     break;
   case FLOAT:
-    printf("%f", data->value.data_slot_float);
+    printf("%f", data->value.dataslot_float);
     break;
   case LAMBDA:
     printf("lambda...");
@@ -920,8 +920,8 @@ struct letdata *__let_pret(struct letdata *thing)
 {
   /* puts(">"); */
   switch(thing->type) {
-  case INTEGER: printf("%d", thing->value.data_slot_int); break;
-  case FLOAT: printf("%f", thing->value.data_slot_float); break;
+  case INTEGER: printf("%d", thing->value.dataslot_int); break;
+  case FLOAT: printf("%f", thing->value.dataslot_float); break;
   case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
   default: break;
   }
@@ -933,7 +933,7 @@ struct letdata *__let_pret(struct letdata *thing)
 struct letdata *GJ(void) {
   struct letdata *ld = malloc(sizeof *ld);
   ld->type = INTEGER;
-  ld->value.data_slot_int = 1363;
+  ld->value.dataslot_int = 1363;
   /* printf("mein geburtsjahr %d", ld->value.i); */
   return ld;
 }
@@ -957,11 +957,11 @@ struct letdata *eval__DM(struct block_item *item,
     switch (celltype(item->c)) {
     case INTEGER:
       data->type = INTEGER;
-      data->value.data_slot_int = item->c->ival;
+      data->value.dataslot_int = item->c->ival;
       break;
     case FLOAT:
       data->type = FLOAT;
-      data->value.data_slot_float = item->c->fval;
+      data->value.dataslot_float = item->c->fval;
       break;
     case SYMBOL:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
@@ -975,11 +975,11 @@ struct letdata *eval__DM(struct block_item *item,
 	    data->type = sym->symbol_data->type;
 	    switch (data->type) {
 	    case INTEGER:
-	      data->value.data_slot_int = sym->symbol_data->value.data_slot_int; break;
+	      data->value.dataslot_int = sym->symbol_data->value.dataslot_int; break;
 	    case FLOAT:
-	      data->value.data_slot_float = sym->symbol_data->value.data_slot_float; break;
+	      data->value.dataslot_float = sym->symbol_data->value.dataslot_float; break;
 	    case LAMBDA:
-	      data->value.data_slot_lambda = sym->symbol_data->value.data_slot_lambda; break;
+	      data->value.dataslot_lambda = sym->symbol_data->value.dataslot_lambda; break;
 	    default: break;
 	    }
 	    break;
@@ -1004,13 +1004,14 @@ struct letdata *eval__DM(struct block_item *item,
       case 0:
 	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
 	lambda.return_expr = &(item->b->items[1]);
-	data->value.data_slot_lambda = lambda;
+	data->value.dataslot_lambda = lambda;
 	/* data->value.fn = &GJ; */
 	/* data->value.fn = struct letdata *(*)(void); */
 	break;
       }  
     } else if (!strcmp(block_head(item->b).car.str, "call")) {
-      data = eval__DM((eval__DM(&(item->b->items[1]), local_env, global_env))->value.data_slot_lambda.return_expr, local_env, global_env);      
+      struct letdata *lambda_name_or_expr = eval__DM(&(item->b->items[1]), local_env, global_env);
+      data = eval__DM(lambda_name_or_expr->value.dataslot_lambda.return_expr, local_env, global_env);
     } else if (!strcmp(block_head(item->b).car.str, "pret")) {
       data = __let_pret(eval__DM(&((item->b)->items[1]), local_env, global_env));
     } else if (!strcmp(block_head(item->b).car.str, "gj")) {
@@ -1026,7 +1027,7 @@ struct letdata *eval__DM(struct block_item *item,
 	 matter in which environment we are currently */
       g_hash_table_insert(global_env->hash_table, symname, sym);
       data->type = SYMBOL;
-      data->value.data_slot_symbol = sym;
+      data->value.dataslot_symbol = sym;
 
     }
     break;			/* break BLOCK */
@@ -1048,7 +1049,7 @@ struct letdata *global_eval(struct block *root,
 
 
 
-#define X 5
+#define X 3
 int main()
 {
   /* The global environment */
@@ -1100,11 +1101,9 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "define pi lambda 3.14159265359",
-    "define euler pret lambda pret pret 2.7182",
-    "define golden-ratio 1.6180",
-    "pret call euler",
-    "pret golden-ratio"
+    "define f lambda define x 2022",
+    "pret call f",
+    "pret x"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
