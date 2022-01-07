@@ -17,7 +17,7 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <glib.h>
 
 /* ******* reserved keywords, Named strings and characters ******** */
-#define BIND_KW "bind"		/* used to define symbols in the global environment */
+#define DEFINE_KW "define"		/* used to define symbols in the global environment */
 #define LAMBDA_KW "lambda"
 #define PARAM_PREFIX '.'
 /* ********************************** */
@@ -659,22 +659,22 @@ bool is_lambda_param(struct cell *c, struct block *enblock)
 
 bool isbind(struct block *b)
 {
-  return !strcmp(b->cells[0].car.str, BIND_KW);
+  return !strcmp(b->cells[0].car.str, DEFINE_KW);
 }
 
 /* is the direct enclosing block the bind keyword, ie we are about to
    define a new name? */
 bool is_a_binding_name(struct block *b)
 {
-  return !strcmp(block_head(b->enblock).car.str, BIND_KW);
+  return !strcmp(block_head(b->enblock).car.str, DEFINE_KW);
 }
 
 bool need_new_block(struct cell *c, struct block *enblock)
 {
   return isbuiltin(c)
-    || !strcmp(c->car.str, BIND_KW)
+    || !strcmp(c->car.str, DEFINE_KW)
     /* is the symbol to be defined? */
-    /* || !strcmp(block_head(enblock).car.str, BIND_KW) */
+    /* || !strcmp(block_head(enblock).car.str, DEFINE_KW) */
     /* is begin of a lambda expression? */
     || is_lambda_head(*c)
     /* is a lambda parameter? */
@@ -736,7 +736,7 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	(*(newblock->items)).type = CELL;
 	(*(newblock->items)).c = c;
 	/* set the env for the new block */
-	if (!strcmp(newblock->enblock->cells[0].car.str, BIND_KW)) {
+	if (!strcmp(newblock->enblock->cells[0].car.str, DEFINE_KW)) {
 	  /* newblock->env = global_block->env; */
 	  /* newblock->env->symcount++; */
 	}
@@ -918,14 +918,15 @@ void print(struct letdata *data)
 /* hoffentlich ist thing already evaled!!! */
 struct letdata *__let_pret(struct letdata *thing)
 {
-  puts(">");
+  /* puts(">"); */
   switch(thing->type) {
   case INTEGER: printf("%d", thing->value.data_slot_int); break;
   case FLOAT: printf("%f", thing->value.data_slot_float); break;
   case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
   default: break;
   }
-  puts("\n<");
+  puts("");
+  /* puts("<"); */
   return thing;
 }
 
@@ -1099,9 +1100,9 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "bind pi lambda 3.14159265359",
-    "bind euler pret lambda pret pret 2.7182",
-    "bind golden-ratio 1.6180",
+    "define pi lambda 3.14159265359",
+    "define euler pret lambda pret pret 2.7182",
+    "define golden-ratio 1.6180",
     "pret call euler",
     "pret golden-ratio"
   };
