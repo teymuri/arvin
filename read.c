@@ -428,11 +428,20 @@ name foo
 
 /* ein block item kann ein Cell oder selbst ein Block sein (bestehend
    aus anderen block items)*/
+
 struct block_item {
-  struct cell *c;		/* for a cell */
-  struct block *b;		/* for a block */
+  struct cell *cell_item;		/* for a cell */
+  struct block *block_item;		/* for a block */
   enum __Blockitem_type type;
 };
+
+/* struct block_item { */
+/*   union { */
+/*     struct cell *cell; */
+/*     struct block *block; */
+/*   } item; */
+/*   enum __Blockitem_type type; */
+/* }; */
 
 struct block {
   int id;
@@ -657,7 +666,7 @@ bool is_lambda_param(struct cell *c, struct block *enblock)
   return looks_like_lambda_param(c) && is_lambda_head(block_head(enblock));
 }
 
-bool isbind(struct block *b)
+bool is_define(struct block *b)
 {
   return !strcmp(b->cells[0].car.str, DEFINE_KW);
 }
@@ -734,7 +743,7 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	/* set the new block's content */
 	newblock->items = malloc(sizeof(struct block_item));
 	(*(newblock->items)).type = CELL;
-	(*(newblock->items)).c = c;
+	(*(newblock->items)).cell_item = c;
 	/* set the env for the new block */
 	if (!strcmp(newblock->enblock->cells[0].car.str, DEFINE_KW)) {
 	  /* newblock->env = global_block->env; */
@@ -757,14 +766,14 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
 	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
 	  (*(enblock->items + enblock->size)).type = BLOCK;
-	  (*(enblock->items + enblock->size)).b = newblock;
+	  (*(enblock->items + enblock->size)).block_item = newblock;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
       if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
 	(*(enblock->items + enblock->size)).type = CELL;
-	(*(enblock->items + enblock->size)).c = c;
+	(*(enblock->items + enblock->size)).cell_item = c;
       }
       c->enblock = enblock;
       enblock->cells[enblock->size] = *c;
@@ -815,26 +824,26 @@ void print_code_ast(struct block *root, int depth) /* This is the written code p
     case CELL:
       print_indent(depth);
       printf(AST_PRINTER_CELL_STR,
-	     root->items[i].c->car.str,
-	     stringify_cell_type(celltype(root->items[i].c))
+	     root->items[i].cell_item->car.str,
+	     stringify_cell_type(celltype(root->items[i].cell_item))
 	     );
       break;
     case BLOCK:
       print_indent(depth);
       printf(AST_PRINTER_BLOCK_STR,
-	     root->items[i].b->cells[0].car.str,
-	     root->items[i].b->size,
+	     root->items[i].block_item->cells[0].car.str,
+	     root->items[i].block_item->size,
 	     /* root->items[i].b->env ? root->items[i].b->env->symcount : -1, */
-	     root->items[i].b->env ? -1 : -1,
-	     root->items[i].b->env ? root->items[i].b->env->id : -1,
-	     root->items[i].b->env ? (void *)root->items[i].b->env : NULL,
-	     root->items[i].b->islambda ? root->items[i].b->arity : -1
+	     root->items[i].block_item->env ? -1 : -1,
+	     root->items[i].block_item->env ? root->items[i].block_item->env->id : -1,
+	     root->items[i].block_item->env ? (void *)root->items[i].block_item->env : NULL,
+	     root->items[i].block_item->islambda ? root->items[i].block_item->arity : -1
 	     );
-      print_code_ast(root->items[i].b, depth+1);
+      print_code_ast(root->items[i].block_item, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0].car.str, root[i].items[0].c->car.str);
+      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0].car.str, root[i].items[0].cell_item->car.str);
     }
   }
 }
@@ -846,7 +855,7 @@ void print_ast(struct block *root)
      CELL, thats why we are cheating here and print a BLOCK-Like on
      top of the whole ast. */
   printf(AST_PRINTER_BLOCK_STR_TL,
- 	 root->items->c->car.str,
+ 	 root->items->cell_item->car.str,
  	 root->size,
 	 /* root->env ? root->env->symcount : -1, */
 	 root->env ? -1 : -1,
@@ -954,20 +963,20 @@ struct letdata *eval__DM(struct block_item *item,
   struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
   switch (item->type) {
   case CELL:
-    switch (celltype(item->c)) {
+    switch (celltype(item->cell_item)) {
     case INTEGER:
       data->type = INTEGER;
-      data->value.dataslot_int = item->c->ival;
+      data->value.dataslot_int = item->cell_item->ival;
       break;
     case FLOAT:
       data->type = FLOAT;
-      data->value.dataslot_float = item->c->fval;
+      data->value.dataslot_float = item->cell_item->fval;
       break;
     case SYMBOL:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
       {
 	struct symbol *sym;
-	char *symname = item->c->car.str;
+	char *symname = item->cell_item->car.str;
 	/* struct symbol *sym = g_hash_table_lookup(local_env->hash_table, item->c->car.str); */
 	struct env *e = local_env;
 	while (e) {
@@ -997,33 +1006,33 @@ struct letdata *eval__DM(struct block_item *item,
     }
     break;			/* break CELL */
   case BLOCK:
-    if (!strcmp(block_head(item->b).car.str, LAMBDA_KW)) {
+    if (!strcmp(block_head(item->block_item).car.str, LAMBDA_KW)) {
       data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       struct lambda lambda;
-      switch (item->b->arity) {
+      switch (item->block_item->arity) {
       case 0:
 	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
-	lambda.return_expr = &(item->b->items[1]);
+	lambda.return_expr = &(item->block_item->items[1]);
 	data->value.dataslot_lambda = lambda;
 	/* data->value.fn = &GJ; */
 	/* data->value.fn = struct letdata *(*)(void); */
 	break;
       }  
-    } else if (!strcmp(block_head(item->b).car.str, "call")) {
-      struct letdata *lambda_name_or_expr = eval__DM(&(item->b->items[1]), local_env, global_env);
+    } else if (!strcmp(block_head(item->block_item).car.str, "call")) {
+      struct letdata *lambda_name_or_expr = eval__DM(&(item->block_item->items[1]), local_env, global_env);
       data = eval__DM(lambda_name_or_expr->value.dataslot_lambda.return_expr, local_env, global_env);
-    } else if (!strcmp(block_head(item->b).car.str, "pret")) {
-      data = __let_pret(eval__DM(&((item->b)->items[1]), local_env, global_env));
-    } else if (!strcmp(block_head(item->b).car.str, "gj")) {
+    } else if (!strcmp(block_head(item->block_item).car.str, "pret")) {
+      data = __let_pret(eval__DM(&((item->block_item)->items[1]), local_env, global_env));
+    } else if (!strcmp(block_head(item->block_item).car.str, "gj")) {
       data = GJ();
-    } else if (isbind(item->b)) {
+    } else if (is_define(item->block_item)) {
       /* don't let the name of the binding to go through eval! */
-      char *symname = item->b->cells[1].car.str;
-      struct letdata *symdata = eval__DM(&(item->b->items[2]), local_env, global_env);
+      char *symname = item->block_item->cells[1].car.str;
+      struct letdata *symdata = eval__DM(&(item->block_item->items[2]), local_env, global_env);
       struct symbol *sym= malloc(sizeof(struct symbol));
       sym->symbol_name = symname;
       sym->symbol_data = symdata;
-      /* bindings are always saved in the global environment, no
+      /* definitions are always saved in the global environment, no
 	 matter in which environment we are currently */
       g_hash_table_insert(global_env->hash_table, symname, sym);
       data->type = SYMBOL;
@@ -1068,7 +1077,7 @@ int main()
     .linum = -1,
     .id = 0
   };
-  struct cell tlcell = {				/* cells[0] toplevel cell */
+  struct cell global_cell = {				/* cells[0] toplevel cell */
     /* car token */
     .car = tltok,
     /* cdr cell pointer */
@@ -1082,28 +1091,28 @@ int main()
     .fval = 0.0			/* fval */
   };
   
-  struct block_item *tlitems = malloc(sizeof(struct block_item));
-  (*tlitems).type = CELL;
-  (*tlitems).c = &tlcell;
+  struct block_item *global_item = malloc(sizeof(struct block_item));
+  (*global_item).type = CELL;
+  (*global_item).cell_item = &global_cell;
 
   struct block global_block = {
     .id = 0,
-    .cells = { tlcell },
+    .cells = { global_cell },
     /* env (Toplevel Environment) */
     .env = &global_env,
     /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
     .enblock = NULL,
-    .items = tlitems,
+    .items = global_item,
     .islambda = false,
     .arity = -1			/* invalid arity, because this is not a lambda block! */
   };
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "define f lambda define x 2022",
-    "pret call f",
-    "pret x"
+    "define x lambda 2022",
+    "define f x",
+    "pret call f"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
