@@ -656,9 +656,28 @@ void free_linked_cells(struct cell *c)
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
+/* bool looks_like_lambda_param(struct cell *c) */
+/* { */
+/*   return celltype(c) == SYMBOL && *c->car.str == PARAM_PREFIX; */
+/* } */
+
+/* whether string s1 ends with string s2? */
+int str_ends_with(char *str1, char *str2)
+{
+  size_t len1 = strlen(str1);
+  size_t len2 = strlen(str2);
+  for (size_t i = 0; i<len2;i++) {
+    if (!(str1[len1-(len2-i)] == str2[i])) {
+      return 0;
+    }
+  }
+  return 1;
+}
+
 bool looks_like_lambda_param(struct cell *c)
 {
-  return celltype(c) == SYMBOL && *c->car.str == PARAM_PREFIX;
+  return celltype(c) == SYMBOL &&
+    (str_ends_with(c->car.str, ":") || str_ends_with(c->car.str, ":="));
 }
 bool is_lambda_head(struct cell c) { return !strcmp(c.car.str, LAMBDA_KW); }
 bool is_lambda_param(struct cell *c, struct block *enblock)
@@ -813,9 +832,9 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p Arity:%d]\n"
-#define AST_PRINTER_BLOCK_STR "[BLOCK HD:%s SZ:%d ENV(SZ:%d ID:%d)%p Arity:%d]\n"
-#define AST_PRINTER_CELL_STR "[CELL:%s Type:%s]\n"
+#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HEAD(%s) SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
+#define AST_PRINTER_BLOCK_STR "[BLOCK HEAD(%s) SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
+#define AST_PRINTER_CELL_STR "[CELL(%s) TYPE:%s]\n"
 void print_code_ast(struct block *root, int depth) /* This is the written code part */
 /* startpoint is the root block */
 {
@@ -1110,9 +1129,9 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "define x lambda 2022",
-    "define f x",
-    "pret call f"
+    "lambda 2022",
+    "lambda arg:= 10",
+    "lambda x:= y:= 8"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -1130,9 +1149,9 @@ int main()
   struct block **b = parse__Hp(&global_block, c, &blocks_count);
   /* assign_envs(b, blocks_count, &global_env); */
   /* print_code_ast(&global_block, 0); */
-  /* print_ast(&global_block); */
+  print_ast(&global_block);
   /* print(global_eval(&global_block, &global_env, &global_env)); */
-  global_eval(&global_block, &global_env, &global_env);
+  /* global_eval(&global_block, &global_env, &global_env); */
   /* guint u = g_hash_table_size(global_env.hash_table); */
   /* gpointer* k=g_hash_table_get_keys_as_array(global_env.hash_table, &u); */
   /* for (guint i = 0; i < u;i++) { */
