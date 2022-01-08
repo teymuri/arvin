@@ -29,6 +29,8 @@ enum _Type {
   NUMBER = 0, INTEGER = 1, FLOAT = 2,
   SYMBOL = 3, LAMBDA = 4,
   DOUBLE = 5,
+  PARAMETER=6,
+  BOUND_PARAMETER=7,	/* parameter with default argument */
   UNDEFINED
 };
 
@@ -41,6 +43,8 @@ char *stringify_cell_type(enum _Type t)
   case 3: return "SYMBOL";
   case 4: return "LAMBDA";
   case 5: return "DOUBLE";
+  case 6: return "PARAMETER";
+  case 7: return "BOUND_PARAMETER";
   default: return "UNDEFINED";
   }
 }
@@ -274,8 +278,8 @@ struct token *tokenize_lines__Hp(char **srclns, size_t lines_count,
 }
 
 
-int iscom_open(struct token tok) {return !strcmp(tok.str, COMMENT_OPENING);}
-int iscom_close(struct token tok) {return !strcmp(tok.str, COMMENT_CLOSING);}
+int is_comment_opening(struct token tok) {return !strcmp(tok.str, COMMENT_OPENING);}
+int is_comment_closing(struct token tok) {return !strcmp(tok.str, COMMENT_CLOSING);}
 
 /* comment index 1 is the start of an outer-most comment block. this
    function is the equivalent of set_commidx_ip(toks) in the let.py
@@ -284,9 +288,9 @@ void index_comments(struct token *tokens, size_t all_tokens_count)
 {
   int idx = 1;
   for (size_t i = 0; i < all_tokens_count; i++) {
-    if (iscom_open(tokens[i]))
+    if (is_comment_opening(tokens[i]))
       tokens[i].comment_index = idx++;
-    else if (iscom_close(tokens[i]))
+    else if (is_comment_closing(tokens[i]))
       tokens[i].comment_index = --idx;
   }
 }
@@ -346,17 +350,32 @@ struct cell {
   float fval;
 };
 
+
+/* why is this any good??? */
 enum _Type celltype(struct cell *c)
 {
-  switch (c->car.type) {
+  /* switch (c->car.type) { */
+  switch (c->type) {
   case INTEGER: return INTEGER;
   case FLOAT: return FLOAT;
   case SYMBOL: return SYMBOL;
+  case PARAMETER: return PARAMETER;
+  case BOUND_PARAMETER: return BOUND_PARAMETER;
   default: return UNDEFINED;
   }
 }
 
-void set_cell_val(struct cell *c)
+void set_cell_type(struct cell *c)
+{
+  switch (c->car.type) {
+  case INTEGER: c->type = INTEGER; break;
+  case FLOAT: c->type = FLOAT; break;
+  case SYMBOL: c->type = SYMBOL; break;
+  default: break;
+  }
+}
+
+void set_cell_value(struct cell *c)
 {
   switch (c->car.type) {
   case INTEGER:
@@ -459,7 +478,7 @@ struct block {
 				   and exists only for lambda-blocks,
 				   dont confuse it with absoption
 				   capacity which exists in ANY block!!! */
-  int max_absorp_capa;		/* wieviel Zeug wird in diesem block
+  int max_absorption_capacity;		/* wieviel Zeug wird in diesem block
 				   max reingesteckt werden können?! */
 };
 
@@ -497,7 +516,7 @@ struct block **enclosing_blocks__Hp(struct cell c, struct block **blocks,
 }
 
 /* returns the bottom line number */
-int botlinum(struct block **enblocks, int enblocks_count)
+int bottom_line_number(struct block **enblocks, int enblocks_count)
 {
   int ln = -1;
   for (int i = 0; i < enblocks_count; i++) {
@@ -509,7 +528,7 @@ int botlinum(struct block **enblocks, int enblocks_count)
 
 struct block **bottommost_blocks__Hp(struct block **enblocks, int enblocks_count, int *botmost_blocks_count)
 {
-  int bln = botlinum(enblocks, enblocks_count);
+  int bln = bottom_line_number(enblocks, enblocks_count);
   struct block **botmost_blocks = NULL;
   for (int i = 0; i < enblocks_count; i++) {
     if ((*(enblocks + i))->cells[0].car.linum == bln) {
@@ -573,7 +592,8 @@ struct cell *linked_cells__Hp(struct token tokens[], size_t count)
       prev->cdr = c;
     if (i == count-1)
       c->cdr = NULL;
-    set_cell_val(c);
+    set_cell_value(c);
+    set_cell_type(c);
     prev = c;
   }
   return root;
@@ -656,7 +676,7 @@ void free_linked_cells(struct cell *c)
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
-/* bool looks_like_lambda_param(struct cell *c) */
+/* bool looks_like_parameter(struct cell *c) */
 /* { */
 /*   return celltype(c) == SYMBOL && *c->car.str == PARAM_PREFIX; */
 /* } */
@@ -674,15 +694,24 @@ int str_ends_with(char *str1, char *str2)
   return 1;
 }
 
-bool looks_like_lambda_param(struct cell *c)
+bool looks_like_parameter(struct cell *c)
 {
-  return celltype(c) == SYMBOL &&
-    (str_ends_with(c->car.str, ":") || str_ends_with(c->car.str, ":="));
+  return celltype(c) == SYMBOL && str_ends_with(c->car.str, ":");
 }
-bool is_lambda_head(struct cell c) { return !strcmp(c.car.str, LAMBDA_KW); }
-bool is_lambda_param(struct cell *c, struct block *enblock)
+bool looks_like_bound_parameter(struct cell *c)
 {
-  return looks_like_lambda_param(c) && is_lambda_head(block_head(enblock));
+  return celltype(c) == SYMBOL && str_ends_with(c->car.str, ":=");
+}
+
+bool is_lambda_head(struct cell c) { return !strcmp(c.car.str, LAMBDA_KW); }
+/* now we will be sure! */
+bool is_parameter(struct cell *c, struct block *enblock)
+{
+  return looks_like_parameter(c) && is_lambda_head(block_head(enblock));
+}
+bool is_bound_parameter(struct cell *c, struct block *enblock)
+{
+  return looks_like_bound_parameter(c) && is_lambda_head(block_head(enblock));
 }
 
 bool is_define(struct block *b)
@@ -706,7 +735,7 @@ bool need_new_block(struct cell *c, struct block *enblock)
     /* is begin of a lambda expression? */
     || is_lambda_head(*c)
     /* is a lambda parameter? */
-    || is_lambda_param(c, enblock) /* hier muss enblock richtig entschieden sein!!! */
+    || is_bound_parameter(c, enblock) /* hier muss enblock richtig entschieden sein!!! */
     || !strcmp(c->car.str, "call")
     || !strcmp(c->car.str, "pret")
     || !strcmp(c->car.str, "gj") /* geburtsjahr!!! */
@@ -725,13 +754,25 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
   while (c) {
     
     /* find out the DIRECT embedding block of the current cell */
-    if (looks_like_lambda_param(c) && is_enclosed_in(*c, *last_lambda_block)) { /* so its a lambda parameter */
+    if ((looks_like_parameter(c) || looks_like_bound_parameter(c)) && is_enclosed_in(*c, *last_lambda_block)) { /* so its a lambda parameter */
       enblock = last_lambda_block;
       last_lambda_block->arity++;
-    }  else {
+      /* enhance the type of the parameter symbol. */
+      /* ACHTUNG: wir setzen den neuen Typ for bound param nicht hier,
+	 denn is_bound_parameter fragt ab ob das Cell vom Typ SYMBOL
+	 ist, was wiederum unten im need_new_block eine Rolle
+	 spielt. Deshalb verschieben wir das Setzen vom Typ
+	 BOUND_PARAMETER nach need_new_block. */
+      if (is_parameter(c, enblock)) c->type = PARAMETER;
+      /* if (is_bound_parameter(c, enblock)) c->type = BOUND_PARAMETER; */
+    } else {
       enblock = enclosing_block(*c, blocks, *blocks_count);
     }
-
+    if (is_bound_parameter(&(enblock->cells[0]), enblock->enblock)) {
+      /* enblock ist hier der block von bound_param */
+      if (enblock->max_absorption_capacity == 1) enblock->max_absorption_capacity--;
+      else enblock = enblock->enblock;
+    }
     /* If the computed enclosing block is a lambda-parameter and it
        has no more absorption capacity then reset the enclosing block
        to be the enclosing block of the lambda-parameter block
@@ -740,19 +781,22 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
        block still has absorption capacity (i.e. it's single
        default-argument) the computed enclosing block is correct, only
        decrement it's absorption capacity. */
-    if (is_lambda_param(&(enblock->cells[0]), enblock->enblock)) {
-      if (enblock->max_absorp_capa) {
-	enblock->max_absorp_capa--; /* sets it to 0 */
-      } else {			/* bounce the enclosing block back to
-				   the lambda block itslef, if
-				   parameter has already got some
-				   default argument */
-	enblock = enblock->enblock;
-      }
-    }
+    /* &(enblock->cells[0]) */
     
+    /* if (is_parameter(c, enblock->enblock)) { */
+    /*   if (enblock->max_absorption_capacity == 1) { */
+    /* 	enblock->max_absorption_capacity--; /\* sets it to 0 *\/ */
+    /*   } else {			/\* bounce the enclosing block back to */
+    /* 				   the lambda block itslef, if */
+    /* 				   parameter has already got some */
+    /* 				   default argument *\/ */
+    /* 	enblock = enblock->enblock; */
+    /*   } */
+    /* } */
     if (need_new_block(c, enblock)) {
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
+	/* enhance the type from simple SYMBOL to BOUND_PARAMETER */
+	if (is_bound_parameter(c, enblock)) c->type = BOUND_PARAMETER;
 	struct block *newblock = malloc(sizeof *newblock);
 	newblock->id = blockid++;
 	newblock->cells[0] = *c;
@@ -779,8 +823,9 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	  newblock->islambda = false;
 	}
 
-	if (is_lambda_param(c, enblock)) {
-	  newblock->max_absorp_capa = 1;	/* ist maximal das default argument wenn vorhanden */
+	if (is_bound_parameter(c, enblock)) {
+	  /* Das ist die Obergrenze von Aufnahmefähigkeit dieses Blocks! */
+	  newblock->max_absorption_capacity = 1;	/* ist maximal das default argument wenn vorhanden */
 	}
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
 	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
@@ -832,9 +877,9 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HEAD(%s) SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
-#define AST_PRINTER_BLOCK_STR "[BLOCK HEAD(%s) SZ:%d ENV(SZ:%d ID:%d)%p ARITY:%d]\n"
-#define AST_PRINTER_CELL_STR "[CELL(%s) TYPE:%s]\n"
+#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HEAD(%s) SIZE(%d) ENV(SZ:%d ID:%d)%p ARITY(%d)]\n"
+#define AST_PRINTER_BLOCK_STR "[BLOCK HEAD(%s) SIZE(%d) ENV(SZ:%d ID:%d)%p ARITY(%d)]\n"
+#define AST_PRINTER_CELL_STR "[CELL(%s) TYPE(%s)]\n"
 void print_code_ast(struct block *root, int depth) /* This is the written code part */
 /* startpoint is the root block */
 {
@@ -880,7 +925,8 @@ void print_ast(struct block *root)
 	 root->env ? -1 : -1,
 	 root->env ? root->env->id : -1,
 	 root->env ? (void *)root->env : NULL,
-	 root->islambda ? root->arity : -1);
+	 root->islambda ? root->arity : -1
+	 );
   print_code_ast(root, 1);
 }
 
@@ -1077,7 +1123,7 @@ struct letdata *global_eval(struct block *root,
 
 
 
-#define X 3
+#define X 1
 int main()
 {
   /* The global environment */
@@ -1129,9 +1175,7 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "lambda 2022",
-    "lambda arg:= 10",
-    "lambda x:= y:= 8"
+    "call lambda y: q:= w:= e: x:= 0"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -1152,6 +1196,7 @@ int main()
   print_ast(&global_block);
   /* print(global_eval(&global_block, &global_env, &global_env)); */
   /* global_eval(&global_block, &global_env, &global_env); */
+
   /* guint u = g_hash_table_size(global_env.hash_table); */
   /* gpointer* k=g_hash_table_get_keys_as_array(global_env.hash_table, &u); */
   /* for (guint i = 0; i < u;i++) { */
