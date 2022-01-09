@@ -798,10 +798,15 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	/* enhance the type from simple SYMBOL to BOUND_PARAMETER */
 	if (is_bound_parameter(c, enblock)) c->type = BOUND_PARAMETER;
 	struct block *newblock = malloc(sizeof *newblock);
+
 	newblock->id = blockid++;
 	newblock->cells[0] = *c;
 	newblock->size = 1;
 	newblock->enblock = enblock;
+	/* struct env *newenv = { */
+	/*   .enclosing_env = enblock->env; */
+	/* }; */
+	/* newblock->env = newenv; */
 
 	/* set the new block's content */
 	newblock->items = malloc(sizeof(struct block_item));
@@ -1094,7 +1099,7 @@ struct letdata *eval__DM(struct block_item *item,
       /* don't let the name of the binding to go through eval! */
       char *symname = item->block_item->cells[1].car.str;
       struct letdata *symdata = eval__DM(&(item->block_item->items[2]), local_env, global_env);
-      struct symbol *sym= malloc(sizeof(struct symbol));
+      struct symbol *sym= malloc(sizeof (struct symbol));
       sym->symbol_name = symname;
       sym->symbol_data = symdata;
       /* definitions are always saved in the global environment, no
