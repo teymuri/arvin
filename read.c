@@ -17,7 +17,9 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 #include <glib.h>
 
 /* ******* reserved keywords, Named strings and characters ******** */
-#define DEFINE_KW "define"		/* used to define symbols in the global environment */
+/* differentiate btwn assignment and association like W. Richard Stark pg. 97*/
+#define ASSIGNMENT_KEYWORD "define"		/* used to define symbols in the global environment */
+#define ASSOCIATION_KEYWORD "let"
 #define LAMBDA_KW "lambda"
 #define PARAM_PREFIX '.'
 /* ********************************** */
@@ -704,34 +706,45 @@ bool looks_like_bound_parameter(struct cell *c)
 }
 
 bool is_lambda_head(struct cell c) { return !strcmp(c.car.str, LAMBDA_KW); }
+bool is_association(struct cell *c)
+{
+  return !strcmp(c->car.str, ASSOCIATION_KEYWORD);
+}
+
 /* now we will be sure! */
 bool is_parameter(struct cell *c, struct block *enblock)
 {
-  return looks_like_parameter(c) && is_lambda_head(block_head(enblock));
+  return looks_like_parameter(c)
+    && (is_lambda_head(block_head(enblock)) || !strcmp((block_head(enblock)).car.str,
+						       ASSOCIATION_KEYWORD));
 }
 bool is_bound_parameter(struct cell *c, struct block *enblock)
 {
-  return looks_like_bound_parameter(c) && is_lambda_head(block_head(enblock));
+  return looks_like_bound_parameter(c)
+    && (is_lambda_head(block_head(enblock)) || !strcmp((block_head(enblock)).car.str,
+						       ASSOCIATION_KEYWORD));
 }
 
 bool is_define(struct block *b)
 {
-  return !strcmp(b->cells[0].car.str, DEFINE_KW);
+  return !strcmp(b->cells[0].car.str, ASSIGNMENT_KEYWORD);
 }
 
 /* is the direct enclosing block the bind keyword, ie we are about to
    define a new name? */
 bool is_a_binding_name(struct block *b)
 {
-  return !strcmp(block_head(b->enblock).car.str, DEFINE_KW);
+  return !strcmp(block_head(b->enblock).car.str, ASSIGNMENT_KEYWORD);
 }
+
 
 bool need_new_block(struct cell *c, struct block *enblock)
 {
   return isbuiltin(c)
-    || !strcmp(c->car.str, DEFINE_KW)
+    || !strcmp(c->car.str, ASSIGNMENT_KEYWORD)
+    || is_association(c)
     /* is the symbol to be defined? */
-    /* || !strcmp(block_head(enblock).car.str, DEFINE_KW) */
+    /* || !strcmp(block_head(enblock).car.str, ASSIGNMENT_KEYWORD) */
     /* is begin of a lambda expression? */
     || is_lambda_head(*c)
     /* is a lambda parameter? */
@@ -813,7 +826,7 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	(*(newblock->items)).type = CELL;
 	(*(newblock->items)).cell_item = c;
 	/* set the env for the new block */
-	if (!strcmp(newblock->enblock->cells[0].car.str, DEFINE_KW)) {
+	if (!strcmp(newblock->enblock->cells[0].car.str, ASSIGNMENT_KEYWORD)) {
 	  /* newblock->env = global_block->env; */
 	  /* newblock->env->symcount++; */
 	}
@@ -826,6 +839,10 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	  last_lambda_block = newblock;
 	} else {
 	  newblock->islambda = false;
+	}
+	/* LET Block */
+	if (is_association(c)) {
+	  last_lambda_block = newblock; /* change this name */
 	}
 
 	if (is_bound_parameter(c, enblock)) {
@@ -1180,7 +1197,7 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "call lambda y: q:= w:= e: x:= 0"
+    "let x: y:= + 3 4 q: w:= + 2 3"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
