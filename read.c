@@ -817,7 +817,7 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	newblock->env = newenv;
 
 	/* set the new block's content */
-	newblock->items = malloc(sizeof(struct block_item));
+	newblock->items = malloc(sizeof (struct block_item));
 	(*(newblock->items)).type = CELL;
 	(*(newblock->items)).cell_item = c;
 	
@@ -833,7 +833,7 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	}
 	/* LET Block */
 	if (is_association(c)) {
-	  active_superior_block = newblock; /* change this name */
+	  active_superior_block = newblock;
 	}
 
 	if (is_bound_parameter(c, enblock)) {
@@ -946,6 +946,7 @@ void print_ast(struct block *root)
 }
 
 struct lambda {
+  struct env *lambda_env;
   struct block_item *return_expr;	/* the return statement */
 };
 
@@ -962,7 +963,7 @@ struct letdata {
     int dataslot_int;
     float dataslot_float;
     struct symbol *dataslot_symbol;
-    struct lambda dataslot_lambda;
+    struct lambda *dataslot_lambda;
     /* struct letdata *(*fn)(); */
   } value;
 };
@@ -1096,20 +1097,32 @@ struct letdata *eval__Hp(struct block_item *item,
   case BLOCK:
     if (!strcmp(block_head(item->block_item).car.str, LAMBDA_KW)) {
       result->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
-      struct lambda lambda;
+      struct lambda *lambda = malloc(sizeof (struct lambda));
+      /* lambda->lambda_env = item->block_item->env->enclosing_env; */
       switch (item->block_item->arity) {
       case 0:
 	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
-	lambda.return_expr = &(item->block_item->items[1]);
+	lambda->return_expr = &(item->block_item->items[1]);
+	/* lambda->return_expr =item->block_item->items +1; */
 	result->value.dataslot_lambda = lambda;
 	/* result->value.fn = &GJ; */
 	/* result->value.fn = struct letdata *(*)(void); */
 	break;
-      }  
+      }
+      
     } else if (!strcmp(block_head(item->block_item).car.str, "call")) {
       struct letdata *lambda_name_or_expr = eval__Hp(&(item->block_item->items[1]), local_env, global_env);
-      result = eval__Hp(lambda_name_or_expr->value.dataslot_lambda.return_expr, local_env, global_env);
+      /* struct env *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env; */
+      /* printf("%s", stringify_type(lambda_name_or_expr->type)); */
+      result = eval__Hp(lambda_name_or_expr->value.dataslot_lambda->return_expr,
+			local_env,
+			global_env);
+      
     } else if (!strcmp(block_head(item->block_item).car.str, "pret")) {
+      /* struct letdata *thing = eval__Hp(&((item->block_item)->items[1]), local_env, global_env); */
+      /* result->type = thing->type; */
+      /* result->value.dataslot_int =thing->value.dataslot_int; */
+      /* printf("-> %s\n", stringify_type(result->type)); */
       result = __let_pret(eval__Hp(&((item->block_item)->items[1]), local_env, global_env));
     } else if (!strcmp(block_head(item->block_item).car.str, "gj")) {
       result = GJ();
@@ -1118,7 +1131,10 @@ struct letdata *eval__Hp(struct block_item *item,
       /* don't let the name of the binding to go through eval! */
       char *define_name = item->block_item->cells[1].car.str; /* name of the definition */
       /* data can be a lambda expr or some constant or other names etc. */
-      struct letdata *define_data = eval__Hp(&(item->block_item->items[2]), local_env, global_env);
+      struct letdata *define_data = eval__Hp(item->block_item->items + 2,
+					     item->block_item->env,
+					     /* local_env, */
+					     global_env);
       struct symbol *sym= malloc(sizeof (struct symbol));
       sym->symbol_name = define_name;
       sym->symbol_data = define_data;
@@ -1154,8 +1170,7 @@ struct letdata *eval__Hp(struct block_item *item,
 						      global_env);
 	    struct symbol *symbol = malloc(sizeof (struct symbol));
 	    symbol->symbol_name = param_name;
-	    symbol->symbol_data = parameter_data;
-	    
+	    symbol->symbol_data = parameter_data;	    
 	    g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol);
 	    break;
 	  }
@@ -1219,7 +1234,7 @@ struct letdata *global_eval(struct block *root,
 
 
 
-#define X 3
+#define X 1
 int main()
 {
   /* The global environment */
@@ -1268,21 +1283,21 @@ int main()
     .islambda = false,
     .arity = -1			/* invalid arity, because this is not a lambda block! */
   };
-
-  char *lines[X] = {
+  int linum=1;
+  char *lines[] = {
     /* "call call lambda pret lambda pret gj" */
     
     /* "let y:= 3.14 y" */
-    "let x:= 10 y:= 20 a:= 30",
-    " amir:= 1363",
-    "  pret y"
+    /* "let x:= 10", */
+    /* "  define f lambda x", */
+    /* "pret f" */
     /* "let y:= 7", */
-    /* "  define scope-test", */
-    /* "    lambda y" */
+    /* "  pret lambda y", */
+    "call lambda 8"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
-  struct token *toks = tokenize_lines__Hp(lines, X, &all_tokens_count);
+  struct token *toks = tokenize_lines__Hp(lines, linum, &all_tokens_count);
   size_t nctok_count = 0;
   struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
   
@@ -1297,8 +1312,8 @@ int main()
   /* assign_envs(b, blocks_count, &global_env); */
   /* print_code_ast(&global_block, 0); */
   print_ast(&global_block);
-  /* print(global_eval(&global_block, &global_env, &global_env)); */
-  global_eval(&global_block, &global_env, &global_env);
+  print(global_eval(&global_block, &global_env, &global_env));
+  /* global_eval(&global_block, &global_env, &global_env); */
 
   /* guint u = g_hash_table_size(global_env.hash_table); */
   /* gpointer* k=g_hash_table_get_keys_as_array(global_env.hash_table, &u); */
