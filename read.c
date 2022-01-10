@@ -345,7 +345,7 @@ struct cell {
   struct cell *cdr;
   struct cell *in_block_cdr;
   enum _Type type;
-  struct block *enblock;	/* embedding block of this cell */
+  struct block *cell_enclosing_block;	/* embedding block of this cell */
   struct cell *linker;		/* the cell linking into this cell */
   /* here will supported Let-types be stored as evaluating */
   int ival;
@@ -473,7 +473,7 @@ struct block {
   int size;			/* number of cells contained in this block*/
   struct block_item *items;		/* content cells & child blocks */
   /* the embedding block */
-  struct block *enblock;
+  struct block *block_enclosing_block;
   bool islambda;
   void *(*lambda)(void *);
   int arity;			/* arity is the number of arguments
@@ -712,16 +712,16 @@ bool is_association(struct cell *c)
 }
 
 /* now we will be sure! */
-bool is_parameter(struct cell *c, struct block *enblock)
+bool is_parameter(struct cell *c, struct block *enclosing_block)
 {
   return looks_like_parameter(c)
-    && (is_lambda_head(block_head(enblock)) || !strcmp((block_head(enblock)).car.str,
+    && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).car.str,
 						       ASSOCIATION_KEYWORD));
 }
-bool is_bound_parameter(struct cell *c, struct block *enblock)
+bool is_bound_parameter(struct cell *c, struct block *enclosing_block)
 {
   return looks_like_bound_parameter(c)
-    && (is_lambda_head(block_head(enblock)) || !strcmp((block_head(enblock)).car.str,
+    && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).car.str,
 						       ASSOCIATION_KEYWORD));
 }
 
@@ -734,21 +734,21 @@ bool is_define(struct block *b)
    define a new name? */
 bool is_a_binding_name(struct block *b)
 {
-  return !strcmp(block_head(b->enblock).car.str, ASSIGNMENT_KEYWORD);
+  return !strcmp(block_head(b->block_enclosing_block).car.str, ASSIGNMENT_KEYWORD);
 }
 
 
-bool need_new_block(struct cell *c, struct block *enblock)
+bool need_new_block(struct cell *c, struct block *enclosing_block)
 {
   return isbuiltin(c)
     || !strcmp(c->car.str, ASSIGNMENT_KEYWORD)
     || is_association(c)
     /* is the symbol to be defined? */
-    /* || !strcmp(block_head(enblock).car.str, ASSIGNMENT_KEYWORD) */
+    /* || !strcmp(block_head(enclosing_block).car.str, ASSIGNMENT_KEYWORD) */
     /* is begin of a lambda expression? */
     || is_lambda_head(*c)
     /* is a lambda parameter? */
-    || is_bound_parameter(c, enblock) /* hier muss enblock richtig entschieden sein!!! */
+    || is_bound_parameter(c, enclosing_block) /* hier muss enclosing_block richtig entschieden sein!!! */
     || !strcmp(c->car.str, "call")
     || !strcmp(c->car.str, "pret")
     || !strcmp(c->car.str, "gj") /* geburtsjahr!!! */
@@ -781,10 +781,10 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
     } else {
       enblock = enclosing_block(*c, blocks, *blocks_count);
     }
-    if (is_bound_parameter(&(enblock->cells[0]), enblock->enblock)) {
+    if (is_bound_parameter(&(enblock->cells[0]), enblock->block_enclosing_block)) {
       /* enblock ist hier der block von bound_param */
       if (enblock->max_absorption_capacity == 1) enblock->max_absorption_capacity--;
-      else enblock = enblock->enblock;
+      else enblock = enblock->block_enclosing_block;
     }
     /* If the computed enclosing block is a lambda-parameter and it
        has no more absorption capacity then reset the enclosing block
@@ -794,16 +794,16 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
        block still has absorption capacity (i.e. it's single
        default-argument) the computed enclosing block is correct, only
        decrement it's absorption capacity. */
-    /* &(enblock->cells[0]) */
+    /* &(enclosing_block->cells[0]) */
     
-    /* if (is_parameter(c, enblock->enblock)) { */
-    /*   if (enblock->max_absorption_capacity == 1) { */
-    /* 	enblock->max_absorption_capacity--; /\* sets it to 0 *\/ */
+    /* if (is_parameter(c, enclosing_block->enclosing_block)) { */
+    /*   if (enclosing_block->max_absorption_capacity == 1) { */
+    /* 	enclosing_block->max_absorption_capacity--; /\* sets it to 0 *\/ */
     /*   } else {			/\* bounce the enclosing block back to */
     /* 				   the lambda block itslef, if */
     /* 				   parameter has already got some */
     /* 				   default argument *\/ */
-    /* 	enblock = enblock->enblock; */
+    /* 	enclosing_block = enclosing_block->enclosing_block; */
     /*   } */
     /* } */
     if (need_new_block(c, enblock)) {
@@ -811,22 +811,23 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	/* enhance the type from simple SYMBOL to BOUND_PARAMETER */
 	if (is_bound_parameter(c, enblock)) c->type = BOUND_PARAMETER;
 	struct block *newblock = malloc(sizeof *newblock);
-
+	struct env *newenv = malloc(sizeof *newenv);
 	newblock->id = blockid++;
 	newblock->cells[0] = *c;
 	newblock->size = 1;
-	newblock->enblock = enblock;
-	/* struct env *newenv = { */
-	/*   .enclosing_env = enblock->env; */
-	/* }; */
-	/* newblock->env = newenv; */
+	newblock->block_enclosing_block = enblock;
+	*newenv = (struct env){
+	  .enclosing_env = enblock->env,
+	  .hash_table = g_hash_table_new(g_str_hash, g_str_equal)
+	};
+	newblock->env = newenv;
 
 	/* set the new block's content */
 	newblock->items = malloc(sizeof(struct block_item));
 	(*(newblock->items)).type = CELL;
 	(*(newblock->items)).cell_item = c;
 	/* set the env for the new block */
-	if (!strcmp(newblock->enblock->cells[0].car.str, ASSIGNMENT_KEYWORD)) {
+	if (!strcmp(newblock->block_enclosing_block->cells[0].car.str, ASSIGNMENT_KEYWORD)) {
 	  /* newblock->env = global_block->env; */
 	  /* newblock->env->symcount++; */
 	}
@@ -861,7 +862,7 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	(*(enblock->items + enblock->size)).type = CELL;
 	(*(enblock->items + enblock->size)).cell_item = c;
       }
-      c->enblock = enblock;
+      c->cell_enclosing_block = enblock;
       enblock->cells[enblock->size] = *c;
       enblock->size++;
     }
@@ -1041,23 +1042,31 @@ struct letdata *GJ(void) {
 /* blkcont} */
 
 
-
+char *bound_parameter_name(char *param)
+{
+  char *name = malloc(strlen(param) - 1);
+  for (size_t i = 0; i < (strlen(param) - 2); i++) {
+    name[i] = param[i];
+  }
+  name[strlen(param) - 2] = '\0';
+  return name;
+}
 /* eval evaluiert einen Baum */
-struct letdata *eval__DM(struct block_item *item,
+struct letdata *eval__Hp(struct block_item *item,
 			 struct env *local_env,
 			 struct env *global_env)
 {
-  struct letdata *data = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
+  struct letdata *result = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
   switch (item->type) {
   case CELL:
     switch (celltype(item->cell_item)) {
     case INTEGER:
-      data->type = INTEGER;
-      data->value.dataslot_int = item->cell_item->ival;
+      result->type = INTEGER;
+      result->value.dataslot_int = item->cell_item->ival;
       break;
     case FLOAT:
-      data->type = FLOAT;
-      data->value.dataslot_float = item->cell_item->fval;
+      result->type = FLOAT;
+      result->value.dataslot_float = item->cell_item->fval;
       break;
     case SYMBOL:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
@@ -1068,14 +1077,14 @@ struct letdata *eval__DM(struct block_item *item,
 	struct env *e = local_env;
 	while (e) {
 	  if ((sym = g_hash_table_lookup(e->hash_table, symname))) {
-	    data->type = sym->symbol_data->type;
-	    switch (data->type) {
+	    result->type = sym->symbol_data->type;
+	    switch (result->type) {
 	    case INTEGER:
-	      data->value.dataslot_int = sym->symbol_data->value.dataslot_int; break;
+	      result->value.dataslot_int = sym->symbol_data->value.dataslot_int; break;
 	    case FLOAT:
-	      data->value.dataslot_float = sym->symbol_data->value.dataslot_float; break;
+	      result->value.dataslot_float = sym->symbol_data->value.dataslot_float; break;
 	    case LAMBDA:
-	      data->value.dataslot_lambda = sym->symbol_data->value.dataslot_lambda; break;
+	      result->value.dataslot_lambda = sym->symbol_data->value.dataslot_lambda; break;
 	    default: break;
 	    }
 	    break;
@@ -1094,42 +1103,89 @@ struct letdata *eval__DM(struct block_item *item,
     break;			/* break CELL */
   case BLOCK:
     if (!strcmp(block_head(item->block_item).car.str, LAMBDA_KW)) {
-      data->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
+      result->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       struct lambda lambda;
       switch (item->block_item->arity) {
       case 0:
 	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
 	lambda.return_expr = &(item->block_item->items[1]);
-	data->value.dataslot_lambda = lambda;
-	/* data->value.fn = &GJ; */
-	/* data->value.fn = struct letdata *(*)(void); */
+	result->value.dataslot_lambda = lambda;
+	/* result->value.fn = &GJ; */
+	/* result->value.fn = struct letdata *(*)(void); */
 	break;
       }  
     } else if (!strcmp(block_head(item->block_item).car.str, "call")) {
-      struct letdata *lambda_name_or_expr = eval__DM(&(item->block_item->items[1]), local_env, global_env);
-      data = eval__DM(lambda_name_or_expr->value.dataslot_lambda.return_expr, local_env, global_env);
+      struct letdata *lambda_name_or_expr = eval__Hp(&(item->block_item->items[1]), local_env, global_env);
+      result = eval__Hp(lambda_name_or_expr->value.dataslot_lambda.return_expr, local_env, global_env);
     } else if (!strcmp(block_head(item->block_item).car.str, "pret")) {
-      data = __let_pret(eval__DM(&((item->block_item)->items[1]), local_env, global_env));
+      result = __let_pret(eval__Hp(&((item->block_item)->items[1]), local_env, global_env));
     } else if (!strcmp(block_head(item->block_item).car.str, "gj")) {
-      data = GJ();
-    } else if (is_define(item->block_item)) {
+      result = GJ();
+      
+    } else if (is_define(item->block_item)) { /* is_assignment */
       /* don't let the name of the binding to go through eval! */
-      char *symname = item->block_item->cells[1].car.str;
-      struct letdata *symdata = eval__DM(&(item->block_item->items[2]), local_env, global_env);
+      char *define_name = item->block_item->cells[1].car.str; /* name of the definition */
+      /* data can be a lambda expr or some constant or other names etc. */
+      struct letdata *define_data = eval__Hp(&(item->block_item->items[2]), local_env, global_env);
       struct symbol *sym= malloc(sizeof (struct symbol));
-      sym->symbol_name = symname;
-      sym->symbol_data = symdata;
+      sym->symbol_name = define_name;
+      sym->symbol_data = define_data;
       /* definitions are always saved in the global environment, no
 	 matter in which environment we are currently */
-      g_hash_table_insert(global_env->hash_table, symname, sym);
-      data->type = SYMBOL;
-      data->value.dataslot_symbol = sym;
+      g_hash_table_insert(global_env->hash_table, define_name, sym);
+      result->type = SYMBOL;
+      result->value.dataslot_symbol = sym;
+      
+    } else if (is_association(item->block_item->cells)) { /* = &(item->block_item->cells[0]) */
+      /* add let parameters to it's hashtable */
+      /* index 0 ist ja let selbst, fangen wir mit 1 an */
+      for (int i = 1; i < item->block_item->size;i++) {
+	switch (item->block_item->items[i].type) {
+	case CELL:		/* muss ein parameter ohne Wert sein, bind to NIL */
+	  printf("%s %s\n",item->block_item->items[i].cell_item->car.str,
+		 stringify_cell_type(celltype(item->block_item->items[i].cell_item)));
+	  break;
+	case BLOCK:		/* muss ein bound parameter sein! */
+	  {
+	    if (i==item->block_item->size-1){
+	      result = eval__Hp(item->block_item->items + i,
+				item->block_item->env,
+				global_env);
+	      break;
+	    } else {
+	      int bound_parameter_block_size = item->block_item->items[i].block_item->size;
+	      assert(bound_parameter_block_size == 2);
+	      char *parameter = item->block_item->items[i].block_item->cells[0].car.str;
+	      /* char parameter_name[strlen(parameter)-1]; /\* jajaaaa VLA! *\/ */
+	      /* /\* memset(parameter_name, '\0', sizeof (parameter_name)); *\/ */
+	      /* strncpy(parameter_name, parameter, strlen(parameter)-2); */
+	      /* /\* memcpy(parameter_name, parameter, strlen(parameter)-2); *\/ */
+	      /* parameter_name[strlen(parameter)-2]='\0'; */
+	      /* char *parameter_name = "x"; */
+	      char *param_name = bound_parameter_name(parameter); /* problem mit strncpy */
+	      struct letdata *parameter_data = eval__Hp(&(item->block_item->items[i].block_item->items[1]),
+							item->block_item->env,
+							global_env);
+	      struct symbol *symbol = malloc(sizeof (struct symbol));
+	      symbol->symbol_name = param_name;
+	      symbol->symbol_data = parameter_data;
+	    
+	      g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol);
+	      break;
+	    }
+	  }
+	}
 
+    
+      }
+
+
+      
     }
     break;			/* break BLOCK */
   default: break;
   }
-  return data;
+  return result;
 }
 
 struct letdata *global_eval(struct block *root,
@@ -1137,15 +1193,15 @@ struct letdata *global_eval(struct block *root,
 			    struct env *global_env)
 {
   for (int i = 0; i < (root->size - 1); i++) {
-    eval__DM(&(root->items[i]), local_env, global_env);
+    eval__Hp(&(root->items[i]), local_env, global_env);
   }
-  return eval__DM(&(root->items[root->size - 1]), local_env, global_env);
+  return eval__Hp(&(root->items[root->size - 1]), local_env, global_env);
 }
 
 
 
 
-#define X 1
+#define X 2
 int main()
 {
   /* The global environment */
@@ -1189,7 +1245,7 @@ int main()
     .env = &global_env,
     /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
-    .enblock = NULL,
+    .block_enclosing_block = NULL,
     .items = global_item,
     .islambda = false,
     .arity = -1			/* invalid arity, because this is not a lambda block! */
@@ -1197,7 +1253,14 @@ int main()
 
   char *lines[X] = {
     /* "call call lambda pret lambda pret gj" */
-    "let x: y:= + 3 4 q: w:= + 2 3"
+    
+    /* "let y:= 3.14 y" */
+    "let x:= 10 y:= 20 a:= 30",
+    /* " amir:= 1363", */
+    "  pret x"
+    /* "let y:= 7", */
+    /* "  define scope-test", */
+    /* "    lambda y" */
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -1217,7 +1280,7 @@ int main()
   /* print_code_ast(&global_block, 0); */
   print_ast(&global_block);
   /* print(global_eval(&global_block, &global_env, &global_env)); */
-  /* global_eval(&global_block, &global_env, &global_env); */
+  global_eval(&global_block, &global_env, &global_env);
 
   /* guint u = g_hash_table_size(global_env.hash_table); */
   /* gpointer* k=g_hash_table_get_keys_as_array(global_env.hash_table, &u); */
