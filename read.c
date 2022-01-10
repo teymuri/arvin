@@ -1045,11 +1045,11 @@ char *bound_parameter_name(char *param)
   return name;
 }
 /* eval evaluiert einen Baum */
-struct letdata *eval__Hp(struct block_item *item,
+struct letdata *eval__dynmem(struct block_item *item,
 			 struct env *local_env,
 			 struct env *global_env)
 {
-  struct letdata *result = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__Hp */
+  struct letdata *result = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__dynmem */
   switch (item->type) {
   case CELL:
     switch (celltype(item->cell_item)) {
@@ -1098,12 +1098,12 @@ struct letdata *eval__Hp(struct block_item *item,
     if (!strcmp(block_head(item->block_item).car.str, LAMBDA_KW)) {
       result->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       struct lambda *lambda = malloc(sizeof (struct lambda));
-      /* lambda->lambda_env = item->block_item->env->enclosing_env; */
+      lambda->lambda_env = item->block_item->env->enclosing_env;
       switch (item->block_item->arity) {
       case 0:
 	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
-	lambda->return_expr = &(item->block_item->items[1]);
-	/* lambda->return_expr =item->block_item->items +1; */
+	/* lambda->return_expr = &(item->block_item->items[1]); */
+	lambda->return_expr = item->block_item->items + 1;
 	result->value.dataslot_lambda = lambda;
 	/* result->value.fn = &GJ; */
 	/* result->value.fn = struct letdata *(*)(void); */
@@ -1111,19 +1111,20 @@ struct letdata *eval__Hp(struct block_item *item,
       }
       
     } else if (!strcmp(block_head(item->block_item).car.str, "call")) {
-      struct letdata *lambda_name_or_expr = eval__Hp(&(item->block_item->items[1]), local_env, global_env);
-      /* struct env *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env; */
+      struct letdata *lambda_name_or_expr = eval__dynmem(&(item->block_item->items[1]), local_env, global_env);
+      struct env *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env;
       /* printf("%s", stringify_type(lambda_name_or_expr->type)); */
-      result = eval__Hp(lambda_name_or_expr->value.dataslot_lambda->return_expr,
-			local_env,
-			global_env);
+      result = eval__dynmem(lambda_name_or_expr->value.dataslot_lambda->return_expr,
+			    /* local_env, */
+			    lambda_env,
+			    global_env);
       
     } else if (!strcmp(block_head(item->block_item).car.str, "pret")) {
-      /* struct letdata *thing = eval__Hp(&((item->block_item)->items[1]), local_env, global_env); */
+      /* struct letdata *thing = eval__dynmem(&((item->block_item)->items[1]), local_env, global_env); */
       /* result->type = thing->type; */
       /* result->value.dataslot_int =thing->value.dataslot_int; */
       /* printf("-> %s\n", stringify_type(result->type)); */
-      result = __let_pret(eval__Hp(&((item->block_item)->items[1]), local_env, global_env));
+      result = __let_pret(eval__dynmem(&((item->block_item)->items[1]), local_env, global_env));
     } else if (!strcmp(block_head(item->block_item).car.str, "gj")) {
       result = GJ();
       
@@ -1131,7 +1132,7 @@ struct letdata *eval__Hp(struct block_item *item,
       /* don't let the name of the binding to go through eval! */
       char *define_name = item->block_item->cells[1].car.str; /* name of the definition */
       /* data can be a lambda expr or some constant or other names etc. */
-      struct letdata *define_data = eval__Hp(item->block_item->items + 2,
+      struct letdata *define_data = eval__dynmem(item->block_item->items + 2,
 					     item->block_item->env,
 					     /* local_env, */
 					     global_env);
@@ -1155,6 +1156,11 @@ struct letdata *eval__Hp(struct block_item *item,
 	  break;
 	case BLOCK:		/* muss ein bound parameter sein! */
 	  {
+	    /* So kann ich voraussetzen dass diese Teile alle
+	       parameter sind und bis zum letzten Ausruck alles
+	       parameter bleibt! */
+	    assert(is_bound_parameter(item->block_item->items[i].block_item->cells,
+				      item->block_item));
 	    int bound_parameter_block_size = item->block_item->items[i].block_item->size;
 	    assert(bound_parameter_block_size == 2);
 	    char *parameter = item->block_item->items[i].block_item->cells[0].car.str;
@@ -1165,7 +1171,7 @@ struct letdata *eval__Hp(struct block_item *item,
 	    /* parameter_name[strlen(parameter)-2]='\0'; */
 	    /* char *parameter_name = "x"; */
 	    char *param_name = bound_parameter_name(parameter); /* problem mit strncpy */
-	    struct letdata *parameter_data = eval__Hp(&(item->block_item->items[i].block_item->items[1]),
+	    struct letdata *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]),
 						      item->block_item->env,
 						      global_env);
 	    struct symbol *symbol = malloc(sizeof (struct symbol));
@@ -1177,7 +1183,7 @@ struct letdata *eval__Hp(struct block_item *item,
 	  
 	  /* { */
 	  /*   if (i==item->block_item->size-1){ */
-	  /*     result = eval__Hp(item->block_item->items + i, */
+	  /*     result = eval__dynmem(item->block_item->items + i, */
 	  /* 			item->block_item->env, */
 	  /* 			global_env); */
 	  /*     break; */
@@ -1192,7 +1198,7 @@ struct letdata *eval__Hp(struct block_item *item,
 	  /*     /\* parameter_name[strlen(parameter)-2]='\0'; *\/ */
 	  /*     /\* char *parameter_name = "x"; *\/ */
 	  /*     char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
-	  /*     struct letdata *parameter_data = eval__Hp(&(item->block_item->items[i].block_item->items[1]), */
+	  /*     struct letdata *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]), */
 	  /* 						item->block_item->env, */
 	  /* 						global_env); */
 	  /*     struct symbol *symbol = malloc(sizeof (struct symbol)); */
@@ -1208,7 +1214,7 @@ struct letdata *eval__Hp(struct block_item *item,
 
     
       }
-      result = eval__Hp(item->block_item->items + (item->block_item->size - 1),
+      result = eval__dynmem(item->block_item->items + (item->block_item->size - 1),
 			item->block_item->env,
 			global_env);
 	  
@@ -1226,9 +1232,9 @@ struct letdata *global_eval(struct block *root,
 			    struct env *global_env)
 {
   for (int i = 0; i < (root->size - 1); i++) {
-    eval__Hp(&(root->items[i]), local_env, global_env);
+    eval__dynmem(&(root->items[i]), local_env, global_env);
   }
-  return eval__Hp(&(root->items[root->size - 1]), local_env, global_env);
+  return eval__dynmem(&(root->items[root->size - 1]), local_env, global_env);
 }
 
 
@@ -1283,7 +1289,7 @@ int main()
     .islambda = false,
     .arity = -1			/* invalid arity, because this is not a lambda block! */
   };
-  int linum=1;
+  int linum=4;
   char *lines[] = {
     /* "call call lambda pret lambda pret gj" */
     
@@ -1291,9 +1297,10 @@ int main()
     /* "let x:= 10", */
     /* "  define f lambda x", */
     /* "pret f" */
-    /* "let y:= 7", */
-    /* "  pret lambda y", */
-    "call lambda 8"
+    "let (This is 2.5 Scope, pg. 16 On Lisp)",
+    "  y:= 7",
+    "  define scope-test lambda y",
+    "call scope-test"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
