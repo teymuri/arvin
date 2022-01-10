@@ -762,30 +762,35 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
   *(blocks + (*blocks_count)++) = global_block;
   struct cell *c = linked_cells_root;
   struct block *enblock;
-  struct block *last_lambda_block;
+  struct block *active_superior_block;
   int blockid = 1;
   while (c) {
     
     /* find out the DIRECT embedding block of the current cell */
-    if ((looks_like_parameter(c) || looks_like_bound_parameter(c)) && is_enclosed_in(*c, *last_lambda_block)) { /* so its a lambda parameter */
-      enblock = last_lambda_block;
-      last_lambda_block->arity++;
+    if ((looks_like_parameter(c) || looks_like_bound_parameter(c)) && is_enclosed_in(*c, *active_superior_block)) { /* so its a lambda parameter */
+      enblock = active_superior_block;
+      active_superior_block->arity++;
       /* enhance the type of the parameter symbol. */
-      /* ACHTUNG: wir setzen den neuen Typ for bound param nicht hier,
+      /* ACHTUNG: wir setzen den neuen Typ für bound param nicht hier,
 	 denn is_bound_parameter fragt ab ob das Cell vom Typ SYMBOL
 	 ist, was wiederum unten im need_new_block eine Rolle
-	 spielt. Deshalb verschieben wir das Setzen vom Typ
-	 BOUND_PARAMETER nach need_new_block. */
+	 spielt. Deshalb verschieben wir das Setzen vom Typ von SYMBOL zum
+	 BOUND_PARAMETER auf nach need_new_block. */
       if (is_parameter(c, enblock)) c->type = PARAMETER;
       /* if (is_bound_parameter(c, enblock)) c->type = BOUND_PARAMETER; */
     } else {
       enblock = enclosing_block(*c, blocks, *blocks_count);
     }
-    if (is_bound_parameter(&(enblock->cells[0]), enblock->block_enclosing_block)) {
+
+    if (is_bound_parameter(enblock->cells + 0, enblock->block_enclosing_block)) {
+      /* i.e. ist das Ding jetzt der WERT für einen Bound Parameter?
+	 ich frag hier ob das enclosing Zeug von einem bound param
+	 ist ...*/
       /* enblock ist hier der block von bound_param */
-      if (enblock->max_absorption_capacity == 1) enblock->max_absorption_capacity--;
+      if (enblock->max_absorption_capacity == 1) enblock->max_absorption_capacity = 0;
       else enblock = enblock->block_enclosing_block;
     }
+    
     /* If the computed enclosing block is a lambda-parameter and it
        has no more absorption capacity then reset the enclosing block
        to be the enclosing block of the lambda-parameter block
@@ -796,20 +801,9 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
        decrement it's absorption capacity. */
     /* &(enclosing_block->cells[0]) */
     
-    /* if (is_parameter(c, enclosing_block->enclosing_block)) { */
-    /*   if (enclosing_block->max_absorption_capacity == 1) { */
-    /* 	enclosing_block->max_absorption_capacity--; /\* sets it to 0 *\/ */
-    /*   } else {			/\* bounce the enclosing block back to */
-    /* 				   the lambda block itslef, if */
-    /* 				   parameter has already got some */
-    /* 				   default argument *\/ */
-    /* 	enclosing_block = enclosing_block->enclosing_block; */
-    /*   } */
-    /* } */
     if (need_new_block(c, enblock)) {
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
-	/* enhance the type from simple SYMBOL to BOUND_PARAMETER */
-	if (is_bound_parameter(c, enblock)) c->type = BOUND_PARAMETER;
+
 	struct block *newblock = malloc(sizeof *newblock);
 	struct env *newenv = malloc(sizeof *newenv);
 	newblock->id = blockid++;
@@ -826,30 +820,28 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	newblock->items = malloc(sizeof(struct block_item));
 	(*(newblock->items)).type = CELL;
 	(*(newblock->items)).cell_item = c;
-	/* set the env for the new block */
-	if (!strcmp(newblock->block_enclosing_block->cells[0].car.str, ASSIGNMENT_KEYWORD)) {
-	  /* newblock->env = global_block->env; */
-	  /* newblock->env->symcount++; */
-	}
+	
 	*(blocks + (*blocks_count)++) = newblock;
 	
 	/* keep an eye on this if its THE BEGINNING of a lambda */
 	if (is_lambda_head(*c)) {
 	  newblock->islambda = true; /* is a lambda-block */
 	  newblock->arity = 0; /* default is null-arity */
-	  last_lambda_block = newblock;
+	  active_superior_block = newblock;
 	} else {
 	  newblock->islambda = false;
 	}
 	/* LET Block */
 	if (is_association(c)) {
-	  last_lambda_block = newblock; /* change this name */
+	  active_superior_block = newblock; /* change this name */
 	}
 
 	if (is_bound_parameter(c, enblock)) {
-	  /* Das ist die Obergrenze von Aufnahmefähigkeit dieses Blocks! */
 	  newblock->max_absorption_capacity = 1;	/* ist maximal das default argument wenn vorhanden */
+	  /* enhance the type from simple SYMBOL to BOUND_PARAMETER */
+	  c->type = BOUND_PARAMETER;
 	}
+		
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
 	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
 	  (*(enblock->items + enblock->size)).type = BLOCK;
@@ -1139,7 +1131,7 @@ struct letdata *eval__Hp(struct block_item *item,
     } else if (is_association(item->block_item->cells)) { /* = &(item->block_item->cells[0]) */
       /* add let parameters to it's hashtable */
       /* index 0 ist ja let selbst, fangen wir mit 1 an */
-      for (int i = 1; i < item->block_item->size;i++) {
+      for (int i = 1; i < item->block_item->size - 1;i++) {
 	switch (item->block_item->items[i].type) {
 	case CELL:		/* muss ein parameter ohne Wert sein, bind to NIL */
 	  printf("%s %s\n",item->block_item->items[i].cell_item->car.str,
@@ -1147,38 +1139,64 @@ struct letdata *eval__Hp(struct block_item *item,
 	  break;
 	case BLOCK:		/* muss ein bound parameter sein! */
 	  {
-	    if (i==item->block_item->size-1){
-	      result = eval__Hp(item->block_item->items + i,
-				item->block_item->env,
-				global_env);
-	      break;
-	    } else {
-	      int bound_parameter_block_size = item->block_item->items[i].block_item->size;
-	      assert(bound_parameter_block_size == 2);
-	      char *parameter = item->block_item->items[i].block_item->cells[0].car.str;
-	      /* char parameter_name[strlen(parameter)-1]; /\* jajaaaa VLA! *\/ */
-	      /* /\* memset(parameter_name, '\0', sizeof (parameter_name)); *\/ */
-	      /* strncpy(parameter_name, parameter, strlen(parameter)-2); */
-	      /* /\* memcpy(parameter_name, parameter, strlen(parameter)-2); *\/ */
-	      /* parameter_name[strlen(parameter)-2]='\0'; */
-	      /* char *parameter_name = "x"; */
-	      char *param_name = bound_parameter_name(parameter); /* problem mit strncpy */
-	      struct letdata *parameter_data = eval__Hp(&(item->block_item->items[i].block_item->items[1]),
-							item->block_item->env,
-							global_env);
-	      struct symbol *symbol = malloc(sizeof (struct symbol));
-	      symbol->symbol_name = param_name;
-	      symbol->symbol_data = parameter_data;
+	    int bound_parameter_block_size = item->block_item->items[i].block_item->size;
+	    assert(bound_parameter_block_size == 2);
+	    char *parameter = item->block_item->items[i].block_item->cells[0].car.str;
+	    /* char parameter_name[strlen(parameter)-1]; /\* jajaaaa VLA! *\/ */
+	    /* /\* memset(parameter_name, '\0', sizeof (parameter_name)); *\/ */
+	    /* strncpy(parameter_name, parameter, strlen(parameter)-2); */
+	    /* /\* memcpy(parameter_name, parameter, strlen(parameter)-2); *\/ */
+	    /* parameter_name[strlen(parameter)-2]='\0'; */
+	    /* char *parameter_name = "x"; */
+	    char *param_name = bound_parameter_name(parameter); /* problem mit strncpy */
+	    struct letdata *parameter_data = eval__Hp(&(item->block_item->items[i].block_item->items[1]),
+						      item->block_item->env,
+						      global_env);
+	    struct symbol *symbol = malloc(sizeof (struct symbol));
+	    symbol->symbol_name = param_name;
+	    symbol->symbol_data = parameter_data;
 	    
-	      g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol);
-	      break;
-	    }
+	    g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol);
+	    break;
 	  }
+	  
+	  /* { */
+	  /*   if (i==item->block_item->size-1){ */
+	  /*     result = eval__Hp(item->block_item->items + i, */
+	  /* 			item->block_item->env, */
+	  /* 			global_env); */
+	  /*     break; */
+	  /*   } else { */
+	  /*     int bound_parameter_block_size = item->block_item->items[i].block_item->size; */
+	  /*     assert(bound_parameter_block_size == 2); */
+	  /*     char *parameter = item->block_item->items[i].block_item->cells[0].car.str; */
+	  /*     /\* char parameter_name[strlen(parameter)-1]; /\\* jajaaaa VLA! *\\/ *\/ */
+	  /*     /\* /\\* memset(parameter_name, '\0', sizeof (parameter_name)); *\\/ *\/ */
+	  /*     /\* strncpy(parameter_name, parameter, strlen(parameter)-2); *\/ */
+	  /*     /\* /\\* memcpy(parameter_name, parameter, strlen(parameter)-2); *\\/ *\/ */
+	  /*     /\* parameter_name[strlen(parameter)-2]='\0'; *\/ */
+	  /*     /\* char *parameter_name = "x"; *\/ */
+	  /*     char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
+	  /*     struct letdata *parameter_data = eval__Hp(&(item->block_item->items[i].block_item->items[1]), */
+	  /* 						item->block_item->env, */
+	  /* 						global_env); */
+	  /*     struct symbol *symbol = malloc(sizeof (struct symbol)); */
+	  /*     symbol->symbol_name = param_name; */
+	  /*     symbol->symbol_data = parameter_data; */
+	    
+	  /*     g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol); */
+	  /*     break; */
+	  /*   } */
+	  /* } */
+	  
 	}
 
     
       }
-
+      result = eval__Hp(item->block_item->items + (item->block_item->size - 1),
+			item->block_item->env,
+			global_env);
+	  
 
       
     }
@@ -1201,7 +1219,7 @@ struct letdata *global_eval(struct block *root,
 
 
 
-#define X 2
+#define X 3
 int main()
 {
   /* The global environment */
@@ -1256,8 +1274,8 @@ int main()
     
     /* "let y:= 3.14 y" */
     "let x:= 10 y:= 20 a:= 30",
-    /* " amir:= 1363", */
-    "  pret x"
+    " amir:= 1363",
+    "  pret y"
     /* "let y:= 7", */
     /* "  define scope-test", */
     /* "    lambda y" */
