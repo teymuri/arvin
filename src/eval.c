@@ -1,8 +1,6 @@
 
-#include <assert.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include "type.h"
+#include "let.h"
+
 
 extern struct letdata *pret(struct letdata *);
 extern struct letdata *GJ(void);

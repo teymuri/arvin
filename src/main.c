@@ -1,22 +1,22 @@
-#include <glib.h>
-#include "type.h"
-/* #include "read.h" */
-/* #include "ast.h" */
-#include "print.h"
-/* #include "eval.h" */
+/* #include <glib.h> */
+/* #include "type.h" */
+/* /\* #include "read.h" *\/ */
+/* /\* #include "ast.h" *\/ */
+/* #include "print.h" */
+/* /\* #include "eval.h" *\/ */
+#include "let.h"
 
-
-extern struct token *tokenize_lines__Hp(char **srclns, size_t lines_count,
-					size_t *all_tokens_count);
-extern struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count,
-					 size_t all_tokens_count);
-extern struct cell *linked_cells__Hp(struct token tokens[], size_t count);
-extern struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_root, int *blocks_count);
-extern struct letdata *global_eval(struct block *root,
-			    struct env *local_env,
-				   struct env *global_env);
-extern void free_parser_blocks(struct block **blocks, int blocks_count);
-extern void free_linked_cells(struct cell *c);
+/* extern struct token *tokenize_lines__Hp(char **srclns, size_t lines_count, */
+/* 					size_t *all_tokens_count); */
+/* extern struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count, */
+/* 					 size_t all_tokens_count); */
+/* extern struct cell *linked_cells__Hp(struct token tokens[], size_t count); */
+/* extern struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_root, int *blocks_count); */
+/* extern struct letdata *global_eval(struct block *root, */
+/* 			    struct env *local_env, */
+/* 				   struct env *global_env); */
+/* extern void free_parser_blocks(struct block **blocks, int blocks_count); */
+/* extern void free_linked_cells(struct cell *c); */
 
 
 int main()
@@ -69,14 +69,15 @@ int main()
   };
   int linum=4;
   char *lines[] = {
-    "let x:= 100",
-    "  let y:= x",
-    "    define f lambda y",
-    "pret call f"
-    /* "let x:= 1000 define f1 lambda x", */
-    /* "define f2 lambda call f1", */
-    /* "pret call f1", */
-    /* "pret call f2" */
+    /* "let x:= 100", */
+    /* "  let y:= x", */
+    /* "    define f lambda y", */
+    /* "pret call f" */
+    
+    "let jahr:= 2022 define f1 lambda jahr",
+    "define f2 lambda call f1",
+    "pret call f1",
+    "pret call f2"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */

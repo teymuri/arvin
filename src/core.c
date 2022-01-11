@@ -1,7 +1,7 @@
 
 
-#include <stdio.h>
-#include "type.h"
+
+#include "let.h"
 
 
 /* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */

@@ -1,8 +1,8 @@
-#include <stdlib.h>
-/* #include "ast.h" */
-#include "type.h"
 
-extern bool isbuiltin(struct cell *);
+#include "let.h"
+/* #include "type.h" */
+
+
 
 
 /* is b directly or indirectly embedding c? */
@@ -58,7 +58,7 @@ struct block **bottommost_blocks__Hp(struct block **enblocks, int enblocks_count
   return botmost_blocks;
 }
 
-#define LEAST_COL_START_IDX -2
+
 /* here we test column start index of block heads to decide */
 struct block *rightmost_block(struct block **botmost_blocks, int botmost_blocks_count)
 {

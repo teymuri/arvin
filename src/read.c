@@ -5,17 +5,17 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 
 */
 
-#define _GNU_SOURCE
+/* #define _GNU_SOURCE */
 
-/* #include <string.h> */
+/* /\* #include <string.h> *\/ */
 
 
-#include <stdbool.h>
-#include <regex.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include "type.h"
+/* #include <stdbool.h> */
+/* #include <regex.h> */
+/* #include <stdio.h> */
+/* #include <ctype.h> */
+/* #include <stdlib.h> */
+#include "let.h"
 
 /* #include "read.h" */
 
@@ -28,11 +28,6 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 
 
 
-
-#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
-
-#define COMMENT_OPENING "("		/* comment opening token */
-#define COMMENT_CLOSING ")"		/* comment closing token */
 
 
 

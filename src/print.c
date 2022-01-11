@@ -1,10 +1,7 @@
 /* #include "print.h" */
-#include <stdio.h>
-#include "type.h"
+/* #include <stdio.h> */
+#include "let.h"
 
-#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HEAD(%s) SIZE(%d) ENV(SZ:%d ID:%d)%p ARITY(%d)]\n"
-#define AST_PRINTER_BLOCK_STR "[BLOCK HEAD(%s) SIZE(%d) ENV(SZ:%d ID:%d)%p ARITY(%d)]\n"
-#define AST_PRINTER_CELL_STR "[CELL(%s) TYPE(%s)]\n"
 
 void print_indent(int i)
 {

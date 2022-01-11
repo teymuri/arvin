@@ -1,4 +1,4 @@
-#include "type.h"
+#include "let.h"
 
 char *stringify_cell_type(enum _Type t)
 {
@@ -70,15 +70,14 @@ void set_cell_value(struct cell *c)
   case FLOAT:
     c->fval = atof(c->car.str);
     break;
-    /* case SYMBOL: */
-    /*   c->symval = makesym */
+  default: break;
   }
 }
 char *cellstr(struct cell *c) {return c->car.str;}
 
 /* löschen!!!!!!!! */
 /* Type Lambda */
-typedef void (*lambda_t)(struct cell *);
+/* typedef void (*lambda_t)(struct cell *); */
 
 
 
