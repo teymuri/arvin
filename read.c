@@ -1291,16 +1291,10 @@ int main()
   };
   int linum=4;
   char *lines[] = {
-    /* "call call lambda pret lambda pret gj" */
-    
-    /* "let y:= 3.14 y" */
-    /* "let x:= 10", */
-    /* "  define f lambda x", */
-    /* "pret f" */
-    "let (This is 2.5 Scope, pg. 16 On Lisp)",
-    "  y:= 7",
-    "  define scope-test lambda y",
-    "call scope-test"
+    "let x:= 10 define f1 lambda x",
+    "define f2 lambda call f1",
+    "pret call f1",
+    "pret call f2"
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
@@ -1319,8 +1313,8 @@ int main()
   /* assign_envs(b, blocks_count, &global_env); */
   /* print_code_ast(&global_block, 0); */
   print_ast(&global_block);
-  print(global_eval(&global_block, &global_env, &global_env));
-  /* global_eval(&global_block, &global_env, &global_env); */
+  /* print(global_eval(&global_block, &global_env, &global_env)); */
+  global_eval(&global_block, &global_env, &global_env);
 
   /* guint u = g_hash_table_size(global_env.hash_table); */
   /* gpointer* k=g_hash_table_get_keys_as_array(global_env.hash_table, &u); */
