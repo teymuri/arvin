@@ -69,10 +69,14 @@ int main()
   };
   int linum=4;
   char *lines[] = {
-    "let x:= 1000 define f1 lambda x",
-    "define f2 lambda call f1",
-    "pret call f1",
-    "pret call f2"
+    "let x:= 100",
+    "  let y:= x",
+    "    define f lambda y",
+    "pret call f"
+    /* "let x:= 1000 define f1 lambda x", */
+    /* "define f2 lambda call f1", */
+    /* "pret call f1", */
+    /* "pret call f2" */
   };
   size_t all_tokens_count = 0;
   /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
