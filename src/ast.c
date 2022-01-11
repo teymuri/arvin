@@ -162,7 +162,7 @@ bool need_new_block(struct cell *c, struct block *enclosing_block)
 struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_root, int *blocks_count)
 {
   /* this is the blocktracker in the python prototype */
-  struct block **blocks = malloc(sizeof(struct block *)); /* make room for the toplevel block */
+  struct block **blocks = malloc(sizeof (struct block *)); /* make room for the toplevel block */
   *(blocks + (*blocks_count)++) = global_block;
   struct cell *c = linked_cells_root;
   struct block *enblock;

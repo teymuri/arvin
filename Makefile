@@ -6,3 +6,6 @@ OBJS = src/ast.o src/core.o src/eval.o src/print.o src/read.o src/type.o src/mai
 
 let: $(OBJS)
 	$(CC) $(CFLAGS) -o let $(OBJS)
+
+clean:
+	rm -rf src/*.o

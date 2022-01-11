@@ -71,7 +71,7 @@ struct cell {
   float fval;
 };
 /* int __Blockid = 0; */
-#define MAX_BLOCK_SIZE 1000
+#define MAX_BLOCK_SIZE 10
 struct block {
   int id;
   struct cell cells[MAX_BLOCK_SIZE];

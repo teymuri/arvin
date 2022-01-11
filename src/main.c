@@ -19,7 +19,7 @@
 /* extern void free_linked_cells(struct cell *c); */
 
 
-int main()
+int main(int argc, char **argv)
 {
   /* The global environment */
   struct env global_env = {
@@ -67,50 +67,53 @@ int main()
     .islambda = false,
     .arity = -1			/* invalid arity, because this is not a lambda block! */
   };
-  int linum=4;
+  
+  int linum=1;
   char *lines[] = {
-    /* "let x:= 100", */
-    /* "  let y:= x", */
-    /* "    define f lambda y", */
-    /* "pret call f" */
+    "pret 1"
     
-    "let jahr:= 2022 define f1 lambda jahr",
-    "define f2 lambda call f1",
-    "pret call f1",
-    "pret call f2"
+    /* "let jahr:= 2022 define f1 lambda jahr", */
+    /* "define f2 lambda call f1", */
+    /* "pret call f1", */
+    /* "pret call f2" */
   };
+  
   size_t all_tokens_count = 0;
-  /* struct token *toks = tokenize_source__Hp("/home/amir/a.let", &all_tokens_count); */
-  struct token *toks = tokenize_lines__Hp(lines, linum, &all_tokens_count);
+  struct token *toks = tokenize_source__Hp(argv[1], &all_tokens_count);
+  /* struct token *toks = tokenize_lines__Hp(lines, linum, &all_tokens_count); */
   size_t nctok_count = 0;
   struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
   
-  /* for (size_t i = 0; i<nctok_count;i++) { */
-  /*   printf("TOK-%zu. %s \n", i, nct[i].str); */
-  /* } */
-
-  struct cell *c = linked_cells__Hp(nct, nctok_count);
-  struct cell *base = c;
-  int blocks_count = 0;
-  struct block **b = parse__Hp(&global_block, c, &blocks_count);
-  /* assign_envs(b, blocks_count, &global_env); */
-  /* print_code_ast(&global_block, 0); */
-  print_ast(&global_block);
-  /* print(global_eval(&global_block, &global_env, &global_env)); */
-  global_eval(&global_block, &global_env, &global_env);
-
-  /* guint u = g_hash_table_size(global_env.hash_table); */
-  /* gpointer* k=g_hash_table_get_keys_as_array(global_env.hash_table, &u); */
-  /* for (guint i = 0; i < u;i++) { */
-  /*   printf("KEY %s\n", (char *)k[i]); */
-  /* } */
-
-
+  /* fortfahren nur wenn vom Quelcode nach dem Entfernen von
+     Kommentaren was übrig geblieben ist */
   
-  free_parser_blocks(b, blocks_count);
-  free_linked_cells(base);
-  free(nct);
+  if (nctok_count) {
+    struct cell *c = linked_cells__Hp(nct, nctok_count);
+    struct cell *base = c;
+    int blocks_count = 0;
+    struct block **b = parse__Hp(&global_block, c, &blocks_count);
+    
+    /* print_ast(&global_block); */
+    /* print(global_eval(&global_block, &global_env, &global_env)); */
+    global_eval(&global_block, &global_env, &global_env);
+
+    free_parser_blocks(b, blocks_count);
+    free_linked_cells(base);
+    free(nct);
+  }
+  
+  /* struct cell *c = linked_cells__Hp(nct, nctok_count); */
+  /* struct cell *base = c; */
+  /* int blocks_count = 0; */
+
+  /* struct block **b = parse__Hp(&global_block, c, &blocks_count); */
+  /* print_ast(&global_block); */
+  /* /\* print(global_eval(&global_block, &global_env, &global_env)); *\/ */
+  /* /\* global_eval(&global_block, &global_env, &global_env); *\/ */
+
+  /* free_parser_blocks(b, blocks_count); */
+  /* free_linked_cells(base); */
+  /* free(nct); */
+
   exit(EXIT_SUCCESS);
-
-
 }
