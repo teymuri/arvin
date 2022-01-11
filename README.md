@@ -1,4 +1,6 @@
 # LET Anatomie
+- ## Single Expressivity
+  - ist eine ganz zentrale Eigenschaft der Sprache und entscheidender Faktor deren Syntax/Semnatik. U.a. haben `lambda` und `let` Konstrukte diese Eigenschaft. 
 - ## Lambda
   - ### Parameterreihenfolge beim Aufrufen
     - generally when no param is named when calling, the definition order of params is applied to the passed arguments. If any of the params is named, the **parameter definition order** is applied to args from there until the _last needed argument_ or up to the next named parameter. 
