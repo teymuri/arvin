@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <glib.h>
 #include "type.h"
-#include "letdata.h"
+#include "let_data.h"
 #include "token.h"
 #include "env.h"
 #include "bit.h"

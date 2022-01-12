@@ -1,7 +1,7 @@
 #ifndef LET_SYMBOL_H
 #define LET_SYMBOL_H
 
-#include "letdata.h"
+#include "let_data.h"
 
 struct Symbol {
   char *symbol_name;
