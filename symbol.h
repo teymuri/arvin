@@ -3,9 +3,9 @@
 
 #include "let_data.h"
 
-struct symbol {
+struct Symbol {
   char *symbol_name;
-  struct letdata *symbol_data;
+  struct LetData *symbol_data;
 };
 
 #endif	/* LET_SYMBOL_H */

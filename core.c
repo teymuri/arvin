@@ -5,14 +5,14 @@
 #include "type.h"
 #include "let_data.h"
 #include "bit.h"
-/* #include "let.h" */
 
 
-/* wie jede andere funktion, muss hier auch eine struct letdata pointer zurückgegeben werden */
+
+/* wie jede andere funktion, muss hier auch eine struct LetData pointer zurückgegeben werden */
 /* das hier ist ein (interner Sprachkonstrukt) console.log ähnliches
    ding */
 /* hoffentlich ist thing already evaled!!! */
-struct letdata *pret(struct letdata *thing)
+struct LetData *pret(struct LetData *thing)
 {
   /* puts(">"); */
   switch(thing->type) {
@@ -26,17 +26,17 @@ struct letdata *pret(struct letdata *thing)
   return thing;
 }
 
-struct letdata *GJ(void) {
-  struct letdata *ld = malloc(sizeof *ld);
+struct LetData *GJ(void) {
+  struct LetData *ld = malloc(sizeof *ld);
   ld->type = INTEGER;
   ld->value.dataslot_int = 1363;
   /* printf("mein geburtsjahr %d", ld->value.i); */
   return ld;
 }
-/* struct letdata *(*lambda_0)(); */
-/* struct letdata *(*f1)(struct letdata *); */
-/* struct letdata *(*f2)(struct letdata *, struct letdata *); */
-/* struct lambda { */
+/* struct LetData *(*lambda_0)(); */
+/* struct LetData *(*f1)(struct LetData *); */
+/* struct LetData *(*f2)(struct LetData *, struct LetData *); */
+/* struct Lambda { */
 /*   int arity; */
 /* blkcont} */
 
@@ -47,7 +47,7 @@ int __Builtins_count = 4;
 
 
 /* is the cell c a builtin? */
-bool isbuiltin(struct cell *c)
+bool isbuiltin(struct Bit *c)
 {
   for (int i = 0; i < __Builtins_count; i++)
     if (!strcmp(cellstr(c), __Builtins[i]))

@@ -4,7 +4,7 @@
 #include "bit.h"
 #include "bundle.h"
 
-char *stringify_cell_type(enum _Type t)
+char *stringify_cell_type(enum Type t)
 {
   switch (t) {
   case 0: return "Weiss net, waisch?!! vielleicht number??????";
@@ -21,7 +21,7 @@ char *stringify_cell_type(enum _Type t)
 
 
 
-char *stringify_block_item_type(enum __Blockitem_type t)
+char *stringify_block_item_type(enum BundleUnitType t)
 {
   switch (t) {
   case CELL:
@@ -46,7 +46,7 @@ char *stringify_block_item_type(enum __Blockitem_type t)
 
 /* löschen!!!!!!!! */
 /* Type Lambda */
-/* typedef void (*lambda_t)(struct cell *); */
+/* typedef void (*lambda_t)(struct Bit *); */
 
 
 
@@ -54,7 +54,7 @@ char *stringify_block_item_type(enum __Blockitem_type t)
 
 
 
-struct cell block_head(struct block *b) { return b->cells[0]; }
+struct Bit block_head(struct Bundle *b) { return b->cells[0]; }
 
 
 
@@ -64,7 +64,7 @@ struct cell block_head(struct block *b) { return b->cells[0]; }
 
 
 
-char *stringify_type(enum _Type t)
+char *stringify_type(enum Type t)
 {
   switch (t) {
   case 0: return "Weiss net, waisch?!! vielleicht number??????";

@@ -1,22 +1,22 @@
-#ifndef LET_LDATA_H
-#define LET_LDATA_H
+#ifndef LET_LETDATA_H
+#define LET_LETDATA_H
 
 #include "type.h"
-/* #include "lambda.h" */
-/* #include "symbol.h" */
+/* #include "Lambda.h" */
+/* #include "Symbol.h" */
 
-struct symbol;
-struct lambda;
+struct Symbol;
+struct Lambda;
 
-struct letdata {
-  enum _Type type;
+struct LetData {
+  enum Type type;
   union {
     int dataslot_int;
     float dataslot_float;
-    struct symbol *dataslot_symbol;
-    struct lambda *dataslot_lambda;
+    struct Symbol *dataslot_symbol;
+    struct Lambda *dataslot_lambda;
     /* struct letdata *(*fn)(); */
   } value;
 };
 
-#endif	/* LET_LDATA_H */
+#endif	/* LET_LETDATA_H */

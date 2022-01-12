@@ -14,7 +14,7 @@
 
 
 /* is b directly or indirectly embedding c? */
-bool is_enclosed_in(struct cell c, struct block b)
+bool is_enclosed_in(struct Bit c, struct Bundle b)
 {
   return (c.car.column_start_idx > b.cells[0].car.column_start_idx)
     && (c.car.linum >= b.cells[0].car.linum);
@@ -25,13 +25,13 @@ bool is_enclosed_in(struct cell c, struct block b)
    points to pointers to block structures, so it's return value must
    be freed (which doesn't any harm to the actual structure pointers
    it points to!) */
-struct block **enclosing_blocks__Hp(struct cell c, struct block **blocks,
+struct Bundle **enclosing_blocks__Hp(struct Bit c, struct Bundle **blocks,
 				    int blocks_count, int *enblocks_count)
 {
-  struct block **enblocks = NULL;
+  struct Bundle **enblocks = NULL;
   for (int i = 0; i < blocks_count; i++) {
     if (is_enclosed_in(c, *(blocks[i]))) {
-      if ((enblocks = realloc(enblocks, (*enblocks_count + 1) * sizeof(struct block *))) != NULL)
+      if ((enblocks = realloc(enblocks, (*enblocks_count + 1) * sizeof(struct Bundle *))) != NULL)
 	*(enblocks + (*enblocks_count)++) = *(blocks + i);
       else exit(EXIT_FAILURE);
     }
@@ -40,7 +40,7 @@ struct block **enclosing_blocks__Hp(struct cell c, struct block **blocks,
 }
 
 /* returns the bottom line number */
-int bottom_line_number(struct block **enblocks, int enblocks_count)
+int bottom_line_number(struct Bundle **enblocks, int enblocks_count)
 {
   int ln = -1;
   for (int i = 0; i < enblocks_count; i++) {
@@ -50,13 +50,13 @@ int bottom_line_number(struct block **enblocks, int enblocks_count)
   return ln;
 }
 
-struct block **bottommost_blocks__Hp(struct block **enblocks, int enblocks_count, int *botmost_blocks_count)
+struct Bundle **bottommost_blocks__Hp(struct Bundle **enblocks, int enblocks_count, int *botmost_blocks_count)
 {
   int bln = bottom_line_number(enblocks, enblocks_count);
-  struct block **botmost_blocks = NULL;
+  struct Bundle **botmost_blocks = NULL;
   for (int i = 0; i < enblocks_count; i++) {
     if ((*(enblocks + i))->cells[0].car.linum == bln) {
-      if ((botmost_blocks = realloc(botmost_blocks, (*botmost_blocks_count + 1) * sizeof(struct block *))) != NULL) {
+      if ((botmost_blocks = realloc(botmost_blocks, (*botmost_blocks_count + 1) * sizeof(struct Bundle *))) != NULL) {
 	*(botmost_blocks + (*botmost_blocks_count)++) = *(enblocks + i);
       }	else exit(EXIT_FAILURE);
     }
@@ -68,10 +68,10 @@ struct block **bottommost_blocks__Hp(struct block **enblocks, int enblocks_count
 
 #define LEAST_COL_START_IDX -2
 /* here we test column start index of block heads to decide */
-struct block *rightmost_block(struct block **botmost_blocks, int botmost_blocks_count)
+struct Bundle *rightmost_block(struct Bundle **botmost_blocks, int botmost_blocks_count)
 {
   int column_start_idx = LEAST_COL_START_IDX;			/* start index */
-  struct block *rmost_block = NULL;
+  struct Bundle *rmost_block = NULL;
   for (int i = 0; i < botmost_blocks_count; i++) {    
     if ((*(botmost_blocks + i))->cells[0].car.column_start_idx > column_start_idx) {
       rmost_block = *(botmost_blocks + i);
@@ -83,12 +83,12 @@ struct block *rightmost_block(struct block **botmost_blocks, int botmost_blocks_
 }
 
 /* which one of the blocks is the direct embedding block of c? */
-struct block *enclosing_block(struct cell c, struct block **blocks, int blocks_count)
+struct Bundle *enclosing_block(struct Bit c, struct Bundle **blocks, int blocks_count)
 {  
   int enblocks_count = 0;
-  struct block **enblocks = enclosing_blocks__Hp(c, blocks, blocks_count, &enblocks_count);
+  struct Bundle **enblocks = enclosing_blocks__Hp(c, blocks, blocks_count, &enblocks_count);
   int botmost_blocks_count = 0;
-  struct block **botmost_blocks = bottommost_blocks__Hp(enblocks, enblocks_count, &botmost_blocks_count);
+  struct Bundle **botmost_blocks = bottommost_blocks__Hp(enblocks, enblocks_count, &botmost_blocks_count);
   return rightmost_block(botmost_blocks, botmost_blocks_count);
 }
 
@@ -107,35 +107,35 @@ int str_ends_with(char *str1, char *str2)
   return 1;
 }
 
-bool looks_like_parameter(struct cell *c)
+bool looks_like_parameter(struct Bit *c)
 {
   return celltype(c) == SYMBOL && str_ends_with(c->car.str, ":");
 }
-bool looks_like_bound_parameter(struct cell *c)
+bool looks_like_bound_parameter(struct Bit *c)
 {
   return celltype(c) == SYMBOL && str_ends_with(c->car.str, ":=");
 }
 
 /* to be included also in eval */
-bool is_lambda_unit(struct cell *u)
+bool is_lambda_unit(struct Bit *u)
 {
   return !strcmp(u->car.str, LAMBDA_KW);
 }
 
-bool is_lambda_head(struct cell c) { return !strcmp(c.car.str, LAMBDA_KW); }
-bool is_association(struct cell *c)
+bool is_lambda_head(struct Bit c) { return !strcmp(c.car.str, LAMBDA_KW); }
+bool is_association(struct Bit *c)
 {
   return !strcmp(c->car.str, ASSOCIATION_KEYWORD);
 }
 
 /* now we will be sure! */
-bool is_parameter(struct cell *c, struct block *enclosing_block)
+bool is_parameter(struct Bit *c, struct Bundle *enclosing_block)
 {
   return looks_like_parameter(c)
     && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).car.str,
 						       ASSOCIATION_KEYWORD));
 }
-bool is_bound_parameter(struct cell *c, struct block *enclosing_block)
+bool is_bound_parameter(struct Bit *c, struct Bundle *enclosing_block)
 {
   return looks_like_bound_parameter(c)
     && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).car.str,
@@ -145,13 +145,13 @@ bool is_bound_parameter(struct cell *c, struct block *enclosing_block)
 
 /* is the direct enclosing block the bind keyword, ie we are about to
    define a new name? */
-bool is_a_binding_name(struct block *b)
+bool is_a_binding_name(struct Bundle *b)
 {
   return !strcmp(block_head(b->block_enclosing_block).car.str, ASSIGNMENT_KEYWORD);
 }
 
 
-bool need_new_block(struct cell *c, struct block *enclosing_block)
+bool need_new_block(struct Bit *c, struct Bundle *enclosing_block)
 {
   return isbuiltin(c)
     || !strcmp(c->car.str, ASSIGNMENT_KEYWORD)
@@ -169,14 +169,14 @@ bool need_new_block(struct cell *c, struct block *enclosing_block)
 }
 
 
-struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_root, int *blocks_count)
+struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_root, int *blocks_count)
 {
   /* this is the blocktracker in the python prototype */
-  struct block **blocks = malloc(sizeof (struct block *)); /* make room for the toplevel block */
+  struct Bundle **blocks = malloc(sizeof (struct Bundle *)); /* make room for the toplevel block */
   *(blocks + (*blocks_count)++) = global_block;
-  struct cell *c = linked_cells_root;
-  struct block *enblock;
-  struct block *active_superior_block;
+  struct Bit *c = linked_cells_root;
+  struct Bundle *enblock;
+  struct Bundle *active_superior_block;
   int blockid = 1;
   while (c) {
     
@@ -216,22 +216,22 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
     /* &(enclosing_block->cells[0]) */
     
     if (need_new_block(c, enblock)) {
-      if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct block *))) != NULL) {
+      if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct Bundle *))) != NULL) {
 
-	struct block *newblock = malloc(sizeof *newblock);
-	struct env *newenv = malloc(sizeof *newenv);
+	struct Bundle *newblock = malloc(sizeof *newblock);
+	struct Env *newenv = malloc(sizeof *newenv);
 	newblock->id = blockid++;
 	newblock->cells[0] = *c;
 	newblock->size = 1;
 	newblock->block_enclosing_block = enblock;
-	*newenv = (struct env){
+	*newenv = (struct Env){
 	  .enclosing_env = enblock->env,
 	  .hash_table = g_hash_table_new(g_str_hash, g_str_equal)
 	};
 	newblock->env = newenv;
 
 	/* set the new block's content */
-	newblock->items = malloc(sizeof (struct block_item));
+	newblock->items = malloc(sizeof (struct BundleUnit));
 	(*(newblock->items)).type = CELL;
 	(*(newblock->items)).cell_item = c;
 	
@@ -257,14 +257,14 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
 	}
 		
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
-	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
+	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct BundleUnit))) != NULL) {
 	  (*(enblock->items + enblock->size)).type = BLOCK;
 	  (*(enblock->items + enblock->size)).block_item = newblock;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct block_item))) != NULL) {
+      if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct BundleUnit))) != NULL) {
 	(*(enblock->items + enblock->size)).type = CELL;
 	(*(enblock->items + enblock->size)).cell_item = c;
       }
@@ -277,7 +277,7 @@ struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_r
   return blocks;
 }
 
-void free_parser_blocks(struct block **blocks, int blocks_count)
+void free_parser_blocks(struct Bundle **blocks, int blocks_count)
 {
   /* the first pointer in **blocks points to the global_block, thats why we
      can't free *(blocks + 0), as global_block is created on the

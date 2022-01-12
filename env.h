@@ -4,11 +4,11 @@
 #include <glib.h>
 
 
-struct env {
+struct Env {
   int id;
   GHashTable *hash_table;		/* hashtable keeping known symbols */
   /* int symcount;			/\* number of symbols *\/ */
-  struct env *enclosing_env;		/* parent environment */
+  struct Env *enclosing_env;		/* parent environment */
 };
 
 
