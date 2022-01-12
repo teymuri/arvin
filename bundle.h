@@ -16,7 +16,7 @@ struct Bundle {
   /* bool needs_env; */
   struct Env *env;
   int size;			/* number of cells contained in this block*/
-  struct BundleUnit *items;		/* content cells & child blocks */
+  struct Bundle_unit *items;		/* content cells & child blocks */
   /* the embedding block */
   struct Bundle *block_enclosing_block;
   bool islambda;

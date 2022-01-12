@@ -231,7 +231,7 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
 	newblock->env = newenv;
 
 	/* set the new block's content */
-	newblock->items = malloc(sizeof (struct BundleUnit));
+	newblock->items = malloc(sizeof (struct Bundle_unit));
 	(*(newblock->items)).type = CELL;
 	(*(newblock->items)).cell_item = c;
 	
@@ -257,14 +257,14 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
 	}
 		
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
-	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct BundleUnit))) != NULL) {
+	if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct Bundle_unit))) != NULL) {
 	  (*(enblock->items + enblock->size)).type = BLOCK;
 	  (*(enblock->items + enblock->size)).block_item = newblock;
 	  enblock->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct BundleUnit))) != NULL) {
+      if ((enblock->items = realloc(enblock->items, (enblock->size+1) * sizeof(struct Bundle_unit))) != NULL) {
 	(*(enblock->items + enblock->size)).type = CELL;
 	(*(enblock->items + enblock->size)).cell_item = c;
       }

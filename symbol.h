@@ -5,7 +5,7 @@
 
 struct Symbol {
   char *symbol_name;
-  struct LetData *symbol_data;
+  struct Let_data *symbol_data;
 };
 
 #endif	/* LET_SYMBOL_H */

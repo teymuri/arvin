@@ -4,8 +4,8 @@
 
 #include "let_data.h"
 
-struct LetData *pret(struct LetData *);
-struct LetData *GJ(void);
+struct Let_data *pret(struct Let_data *);
+struct Let_data *GJ(void);
 /* bool is_define(struct Bundle *); */
 /* extern bool is_association(struct Bit *); */
 /* extern bool is_bound_parameter(struct Bit *, struct Bundle *); */

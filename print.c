@@ -74,7 +74,7 @@ void print_ast(struct Bundle *root)
 
 /* string representation of data, this is the P in REPL */
 /* data arg is the evaluated expression (is gone through eval already) */
-void print(struct LetData *data)
+void print(struct Let_data *data)
 {
   switch (data->type) {
   case INTEGER:

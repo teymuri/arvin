@@ -21,7 +21,7 @@ char *stringify_cell_type(enum Type t)
 
 
 
-char *stringify_block_item_type(enum BundleUnitType t)
+char *stringify_block_item_type(enum Bundle_unit_type t)
 {
   switch (t) {
   case CELL:

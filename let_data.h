@@ -11,7 +11,7 @@
 /* struct Symbol; */
 /* struct Lambda; */
 
-struct LetData {
+struct Let_data {
   enum Type type;
   union {
     int dataslot_int;

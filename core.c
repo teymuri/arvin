@@ -8,11 +8,11 @@
 
 
 
-/* wie jede andere funktion, muss hier auch eine struct LetData pointer zurückgegeben werden */
+/* wie jede andere funktion, muss hier auch eine struct Let_data pointer zurückgegeben werden */
 /* das hier ist ein (interner Sprachkonstrukt) console.log ähnliches
    ding */
 /* hoffentlich ist thing already evaled!!! */
-struct LetData *pret(struct LetData *thing)
+struct Let_data *pret(struct Let_data *thing)
 {
   /* puts(">"); */
   switch(thing->type) {
@@ -26,16 +26,16 @@ struct LetData *pret(struct LetData *thing)
   return thing;
 }
 
-struct LetData *GJ(void) {
-  struct LetData *ld = malloc(sizeof *ld);
+struct Let_data *GJ(void) {
+  struct Let_data *ld = malloc(sizeof *ld);
   ld->type = INTEGER;
   ld->value.dataslot_int = 1363;
   /* printf("mein geburtsjahr %d", ld->value.i); */
   return ld;
 }
-/* struct LetData *(*lambda_0)(); */
-/* struct LetData *(*f1)(struct LetData *); */
-/* struct LetData *(*f2)(struct LetData *, struct LetData *); */
+/* struct Let_data *(*lambda_0)(); */
+/* struct Let_data *(*f1)(struct Let_data *); */
+/* struct Let_data *(*f2)(struct Let_data *, struct Let_data *); */
 /* struct Lambda { */
 /*   int arity; */
 /* blkcont} */

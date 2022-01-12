@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     .fval = 0.0			/* fval */
   };
   
-  struct BundleUnit *global_item = malloc(sizeof (struct BundleUnit));
+  struct Bundle_unit *global_item = malloc(sizeof (struct Bundle_unit));
   (*global_item).type = CELL;
   (*global_item).cell_item = &global_cell;
 

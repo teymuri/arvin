@@ -6,7 +6,7 @@
 
 struct Lambda {
   struct Env *lambda_env;
-  struct BundleUnit *return_expr;	/* the return statement */
+  struct Bundle_unit *return_expr;	/* the return statement */
 };
 
 #endif	/* LET_LAMBDA_H */

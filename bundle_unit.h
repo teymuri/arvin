@@ -4,12 +4,12 @@
 #include "bit.h"
 #include "bundle.h"
 
-enum BundleUnitType { CELL, BLOCK };
+enum Bundle_unit_type { CELL, BLOCK };
 
-struct BundleUnit {
+struct Bundle_unit {
   struct Bit *cell_item;		/* for a cell */
   struct Bundle *block_item;		/* for a block */
-  enum BundleUnitType type;
+  enum Bundle_unit_type type;
 };
 
 
