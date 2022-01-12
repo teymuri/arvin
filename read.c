@@ -23,7 +23,7 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
    and may be modified or removed any time without notice... */
 
 
-/* char *stringify_cell_type(enum _Type); */
+/* char *stringify_cell_type(enum Type); */
 
 
 
@@ -43,21 +43,21 @@ int __Tokid = 1;		/* id 0 is reserved for the toplevel
 /* char **read_lines__Hp(char *path, size_t *count); */
 /* void free_lines(char **lines, size_t count); */
 
-/* struct token *tokenize_line__Hp */
+/* struct Token *tokenize_line__Hp */
 /* (char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum); */
 
-/* struct token *tokenize_source__Hp(char *path, size_t *all_tokens_count); */
+/* struct Token *tokenize_source__Hp(char *path, size_t *all_tokens_count); */
 
-/* struct token *tokenize_lines__Hp */
+/* struct Token *tokenize_lines__Hp */
 /* (char **srclns, size_t lines_count, size_t *all_tokens_count); */
 
-/* int is_comment_opening(struct token tok); */
-/* int is_comment_closing(struct token tok); */
-/* void index_comments(struct token *tokens, size_t all_tokens_count); */
-/* struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count, */
+/* int is_comment_opening(struct Token tok); */
+/* int is_comment_closing(struct Token tok); */
+/* void index_comments(struct Token *tokens, size_t all_tokens_count); */
+/* struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count, */
 /* 				  size_t all_tokens_count); */
-/* struct cell *linked_cells__Hp(struct token tokens[], size_t count); */
-/* void free_linked_cells(struct cell *c); */
+/* struct Bit *linked_cells__Hp(struct Token tokens[], size_t count); */
+/* void free_linked_cells(struct Bit *c); */
 
 
 
@@ -113,7 +113,7 @@ void free_lines(char **lines, size_t count)
 }
 
 /* Generates tokens */
-struct token *tokenize_line__Hp
+struct Token *tokenize_line__Hp
 (char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum)
 {
   regex_t re;
@@ -155,16 +155,16 @@ struct token *tokenize_line__Hp
   }  
   regmatch_t match[1];	/* interesed only in the whole match */
   int offset = 0, tokstrlen;
-  struct token *tokptr = NULL;
+  struct Token *tokptr = NULL;
   /* overall size of memory allocated for tokens of the line sofar */
   size_t memsize = 0;
   /* int tokscnt = 0; */
   while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
     /* make room for the new token */
-    memsize += sizeof(struct token);
+    memsize += sizeof(struct Token);
     if ((tokptr = realloc(tokptr, memsize)) != NULL) { /* new memory allocated successfully */
       tokstrlen = match[0].rm_eo - match[0].rm_so;
-      struct token t;
+      struct Token t;
       memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
 
@@ -206,12 +206,12 @@ struct token *tokenize_line__Hp
 }
 
 
-struct token *tokenize_source__Hp(char *path, size_t *all_tokens_count)
+struct Token *tokenize_source__Hp(char *path, size_t *all_tokens_count)
 {
   size_t lines_count = 0;
   char **lines = read_lines__Hp(path, &lines_count);
-  struct token *tokens = NULL;
-  struct token *lntoks = NULL;
+  struct Token *tokens = NULL;
+  struct Token *lntoks = NULL;
   size_t line_toks_count, global_toks_count_cpy;
   for (size_t l = 0; l < lines_count; l++) {
     line_toks_count = 0;
@@ -219,7 +219,7 @@ struct token *tokenize_source__Hp(char *path, size_t *all_tokens_count)
        it's changed by tokenize_line__Hp */
     global_toks_count_cpy = *all_tokens_count;
     lntoks = tokenize_line__Hp(lines[l], &line_toks_count, all_tokens_count, l);
-    if ((tokens = realloc(tokens, *all_tokens_count * sizeof(struct token))) != NULL) {
+    if ((tokens = realloc(tokens, *all_tokens_count * sizeof(struct Token))) != NULL) {
       for (size_t i = 0; i < line_toks_count; i++) {
 	*(tokens + i + global_toks_count_cpy) = lntoks[i];
       }
@@ -233,11 +233,11 @@ struct token *tokenize_source__Hp(char *path, size_t *all_tokens_count)
   return tokens;
 }
 
-struct token *tokenize_lines__Hp(char **srclns, size_t lines_count,
+struct Token *tokenize_lines__Hp(char **srclns, size_t lines_count,
 				  size_t *all_tokens_count)
 {
-  struct token *tokens = NULL;
-  struct token *lntoks = NULL;
+  struct Token *tokens = NULL;
+  struct Token *lntoks = NULL;
   size_t line_toks_count, global_toks_count_cpy;
   for (size_t l = 0; l < lines_count; l++) {
     line_toks_count = 0;
@@ -245,7 +245,7 @@ struct token *tokenize_lines__Hp(char **srclns, size_t lines_count,
        it's changed by tokenize_line__Hp */
     global_toks_count_cpy = *all_tokens_count;
     lntoks = tokenize_line__Hp(srclns[l], &line_toks_count, all_tokens_count, l);
-    if ((tokens = realloc(tokens, *all_tokens_count * sizeof(struct token))) != NULL) {
+    if ((tokens = realloc(tokens, *all_tokens_count * sizeof(struct Token))) != NULL) {
       for (size_t i = 0; i < line_toks_count; i++) {
 	*(tokens + i + global_toks_count_cpy) = lntoks[i];
       }
@@ -259,13 +259,13 @@ struct token *tokenize_lines__Hp(char **srclns, size_t lines_count,
 }
 
 
-int is_comment_opening(struct token tok) {return !strcmp(tok.str, COMMENT_OPENING);}
-int is_comment_closing(struct token tok) {return !strcmp(tok.str, COMMENT_CLOSING);}
+int is_comment_opening(struct Token tok) {return !strcmp(tok.str, COMMENT_OPENING);}
+int is_comment_closing(struct Token tok) {return !strcmp(tok.str, COMMENT_CLOSING);}
 
 /* comment index 1 is the start of an outer-most comment block. this
    function is the equivalent of set_commidx_ip(toks) in the let.py
    file. */
-void index_comments(struct token *tokens, size_t all_tokens_count)
+void index_comments(struct Token *tokens, size_t all_tokens_count)
 {
   int idx = 1;
   for (size_t i = 0; i < all_tokens_count; i++) {
@@ -276,11 +276,11 @@ void index_comments(struct token *tokens, size_t all_tokens_count)
   }
 }
 
-struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count,
+struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count,
 				  size_t all_tokens_count) /* nct = non-comment token */
 {
   index_comments(toks, all_tokens_count);
-  struct token *nctoks = NULL;	/* non-comment tokens */
+  struct Token *nctoks = NULL;	/* non-comment tokens */
   int isincom = false;		/* are we inside of a comment block? */
   for (size_t i = 0; i < all_tokens_count; i++) {
     if (toks[i].comment_index == 1) {
@@ -289,7 +289,7 @@ struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count,
     } else if (!isincom) {
       /* not in a comment block, allocate space for the new non-comment token */
       /* (*nctok_count)++; */
-      if ((nctoks = realloc(nctoks, ++(*nctok_count) * sizeof(struct token))) != NULL)
+      if ((nctoks = realloc(nctoks, ++(*nctok_count) * sizeof(struct Token))) != NULL)
 	/* the index for the new token is one less than the current number of non-comment tokens */
 	*(nctoks + *nctok_count - 1) = toks[i];
       else

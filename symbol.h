@@ -1,11 +1,11 @@
 #ifndef LET_SYMBOL_H
 #define LET_SYMBOL_H
 
-#include "let_data.h"
+#include "letdata.h"
 
-struct symbol {
+struct Symbol {
   char *symbol_name;
-  struct letdata *symbol_data;
+  struct LetData *symbol_data;
 };
 
 #endif	/* LET_SYMBOL_H */

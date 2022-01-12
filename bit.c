@@ -8,7 +8,7 @@
 
 
 /* why is this any good??? */
-enum _Type celltype(struct cell *c)
+enum Type celltype(struct Bit *c)
 {
   /* switch (c->car.type) { */
   switch (c->type) {
@@ -21,7 +21,7 @@ enum _Type celltype(struct cell *c)
   }
 }
 
-void set_cell_type(struct cell *c)
+void set_cell_type(struct Bit *c)
 {
   switch (c->car.type) {
   case INTEGER: c->type = INTEGER; break;
@@ -31,7 +31,7 @@ void set_cell_type(struct cell *c)
   }
 }
 
-void set_cell_value(struct cell *c)
+void set_cell_value(struct Bit *c)
 {
   switch (c->car.type) {
   case INTEGER:
@@ -43,18 +43,18 @@ void set_cell_value(struct cell *c)
   default: break;
   }
 }
-char *cellstr(struct cell *c) {return c->car.str;}
+char *cellstr(struct Bit *c) {return c->car.str;}
 
 /* 
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
 /* returns a list of linked cells made of tokens */
-struct cell *linked_cells__Hp(struct token tokens[], size_t count)
+struct Bit *linked_cells__Hp(struct Token tokens[], size_t count)
 {
-  struct cell *prev, *root;	/* store previous and first cell address */
+  struct Bit *prev, *root;	/* store previous and first cell address */
   for (size_t i = 0; i < count; i++) {
-    struct cell *c = malloc(sizeof (struct cell));
+    struct Bit *c = malloc(sizeof (struct Bit));
     if (i == 0) root = c;
     
     /* guess_token_type(tokens+i);	/\* pass the pointer to the token *\/ */
@@ -71,9 +71,9 @@ struct cell *linked_cells__Hp(struct token tokens[], size_t count)
   return root;
 }
 
-void free_linked_cells(struct cell *c)
+void free_linked_cells(struct Bit *c)
 {
-  struct cell *tmp;
+  struct Bit *tmp;
   while (c != NULL) {
     tmp = c;
     c = c->cdr;

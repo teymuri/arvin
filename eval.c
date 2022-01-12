@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <glib.h>
 #include "type.h"
-#include "let_data.h"
+#include "letdata.h"
 #include "token.h"
 #include "env.h"
 #include "bit.h"
@@ -15,9 +15,9 @@
 
 
 /* is external, defined in ast.c */
-bool is_bound_parameter(struct cell *, struct block *);
+bool is_bound_parameter(struct Bit *, struct Bundle *);
 
-bool is_association(struct cell *);
+bool is_association(struct Bit *);
 
 char *bound_parameter_name(char *param)
 {
@@ -29,18 +29,18 @@ char *bound_parameter_name(char *param)
   return name;
 }
 
-bool is_define(struct block *b)
+bool is_define(struct Bundle *b)
 {
   return !strcmp(b->cells[0].car.str, ASSIGNMENT_KEYWORD);
 }
 
 
 /* eval evaluiert einen Baum */
-struct letdata *eval__dynmem(struct block_item *item,
-			 struct env *local_env,
-			 struct env *global_env)
+struct LetData *eval__dynmem(struct BundleUnit *item,
+			 struct Env *local_env,
+			 struct Env *global_env)
 {
-  struct letdata *result = malloc(sizeof(struct letdata)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__dynmem */
+  struct LetData *result = malloc(sizeof(struct LetData)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__dynmem */
   switch (item->type) {
   case CELL:
     switch (celltype(item->cell_item)) {
@@ -55,10 +55,10 @@ struct letdata *eval__dynmem(struct block_item *item,
     case SYMBOL:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
       {
-	struct symbol *sym;
+	struct Symbol *sym;
 	char *symname = item->cell_item->car.str;
-	/* struct symbol *sym = g_hash_table_lookup(local_env->hash_table, item->c->car.str); */
-	struct env *e = local_env;
+	/* struct Symbol *sym = g_hash_table_lookup(local_env->hash_table, item->c->car.str); */
+	struct Env *e = local_env;
 	while (e) {
 	  if ((sym = g_hash_table_lookup(e->hash_table, symname))) {
 	    result->type = sym->symbol_data->type;
@@ -89,7 +89,7 @@ struct letdata *eval__dynmem(struct block_item *item,
     /* if (is_lambda_unit(&block_head(item->block_item))) { */
     if (!strcmp(block_head(item->block_item).car.str, LAMBDA_KW)) {
       result->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
-      struct lambda *lambda = malloc(sizeof (struct lambda));
+      struct Lambda *lambda = malloc(sizeof (struct Lambda));
       lambda->lambda_env = item->block_item->env->enclosing_env;
       switch (item->block_item->arity) {
       case 0:
@@ -98,13 +98,13 @@ struct letdata *eval__dynmem(struct block_item *item,
 	lambda->return_expr = item->block_item->items + 1;
 	result->value.dataslot_lambda = lambda;
 	/* result->value.fn = &GJ; */
-	/* result->value.fn = struct letdata *(*)(void); */
+	/* result->value.fn = struct LetData *(*)(void); */
 	break;
       }
       
     } else if (!strcmp(block_head(item->block_item).car.str, "call")) {
-      struct letdata *lambda_name_or_expr = eval__dynmem(&(item->block_item->items[1]), local_env, global_env);
-      struct env *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env;
+      struct LetData *lambda_name_or_expr = eval__dynmem(&(item->block_item->items[1]), local_env, global_env);
+      struct Env *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env;
       /* printf("%s", stringify_type(lambda_name_or_expr->type)); */
       result = eval__dynmem(lambda_name_or_expr->value.dataslot_lambda->return_expr,
 			    /* local_env, */
@@ -112,7 +112,7 @@ struct letdata *eval__dynmem(struct block_item *item,
 			    global_env);
       
     } else if (!strcmp(block_head(item->block_item).car.str, "pret")) {
-      /* struct letdata *thing = eval__dynmem(&((item->block_item)->items[1]), local_env, global_env); */
+      /* struct LetData *thing = eval__dynmem(&((item->block_item)->items[1]), local_env, global_env); */
       /* result->type = thing->type; */
       /* result->value.dataslot_int =thing->value.dataslot_int; */
       /* printf("-> %s\n", stringify_type(result->type)); */
@@ -124,11 +124,11 @@ struct letdata *eval__dynmem(struct block_item *item,
       /* don't let the name of the binding to go through eval! */
       char *define_name = item->block_item->cells[1].car.str; /* name of the definition */
       /* data can be a lambda expr or some constant or other names etc. */
-      struct letdata *define_data = eval__dynmem(item->block_item->items + 2,
+      struct LetData *define_data = eval__dynmem(item->block_item->items + 2,
 					     item->block_item->env,
 					     /* local_env, */
 					     global_env);
-      struct symbol *sym= malloc(sizeof (struct symbol));
+      struct Symbol *sym= malloc(sizeof (struct Symbol));
       sym->symbol_name = define_name;
       sym->symbol_data = define_data;
       /* definitions are always saved in the global environment, no
@@ -163,10 +163,10 @@ struct letdata *eval__dynmem(struct block_item *item,
 	    /* parameter_name[strlen(parameter)-2]='\0'; */
 	    /* char *parameter_name = "x"; */
 	    char *param_name = bound_parameter_name(parameter); /* problem mit strncpy */
-	    struct letdata *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]),
+	    struct LetData *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]),
 						      item->block_item->env,
 						      global_env);
-	    struct symbol *symbol = malloc(sizeof (struct symbol));
+	    struct Symbol *symbol = malloc(sizeof (struct Symbol));
 	    symbol->symbol_name = param_name;
 	    symbol->symbol_data = parameter_data;	    
 	    g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol);
@@ -190,10 +190,10 @@ struct letdata *eval__dynmem(struct block_item *item,
 	  /*     /\* parameter_name[strlen(parameter)-2]='\0'; *\/ */
 	  /*     /\* char *parameter_name = "x"; *\/ */
 	  /*     char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
-	  /*     struct letdata *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]), */
+	  /*     struct LetData *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]), */
 	  /* 						item->block_item->env, */
 	  /* 						global_env); */
-	  /*     struct symbol *symbol = malloc(sizeof (struct symbol)); */
+	  /*     struct Symbol *symbol = malloc(sizeof (struct Symbol)); */
 	  /*     symbol->symbol_name = param_name; */
 	  /*     symbol->symbol_data = parameter_data; */
 	    
@@ -219,9 +219,9 @@ struct letdata *eval__dynmem(struct block_item *item,
   return result;
 }
 
-struct letdata *global_eval(struct block *root,
-			    struct env *local_env,
-			    struct env *global_env)
+struct LetData *global_eval(struct Bundle *root,
+			    struct Env *local_env,
+			    struct Env *global_env)
 {
   for (int i = 0; i < (root->size - 1); i++) {
     eval__dynmem(&(root->items[i]), local_env, global_env);

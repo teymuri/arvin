@@ -4,9 +4,9 @@
 #include "env.h"
 #include "bundle_unit.h"
 
-struct lambda {
-  struct env *lambda_env;
-  struct block_item *return_expr;	/* the return statement */
+struct Lambda {
+  struct Env *lambda_env;
+  struct BundleUnit *return_expr;	/* the return statement */
 };
 
 #endif	/* LET_LAMBDA_H */

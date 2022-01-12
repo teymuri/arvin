@@ -10,24 +10,24 @@
 #include "token.h"
 #include "eval.h"
 #include "bundle.h"
-/* extern struct token *tokenize_lines__Hp(char **srclns, size_t lines_count, */
+/* extern struct Token *tokenize_lines__Hp(char **srclns, size_t lines_count, */
 /* 					size_t *all_tokens_count); */
-/* extern struct token *remove_comments__Hp(struct token *toks, size_t *nctok_count, */
+/* extern struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count, */
 /* 					 size_t all_tokens_count); */
-/* extern struct cell *linked_cells__Hp(struct token tokens[], size_t count); */
-/* extern struct block **parse__Hp(struct block *global_block, struct cell *linked_cells_root, int *blocks_count); */
-/* extern struct letdata *global_eval(struct block *root, */
+/* extern struct Bit *linked_cells__Hp(struct Token tokens[], size_t count); */
+/* extern struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_root, int *blocks_count); */
+/* extern struct letdata *global_eval(struct Bundle *root, */
 /* 			    struct env *local_env, */
 /* 				   struct env *global_env); */
-/* extern void free_parser_blocks(struct block **blocks, int blocks_count); */
-/* extern void free_linked_cells(struct cell *c); */
+/* extern void free_parser_blocks(struct Bundle **blocks, int blocks_count); */
+/* extern void free_linked_cells(struct Bit *c); */
 #define GLOBAL_TOKEN_STR "GLOBAL_TOKEN_STR"
 
 
 int main(int argc, char **argv)
 {
   /* The global environment */
-  struct env global_env = {
+  struct Env global_env = {
     .id = 0,
     /* g_hash_table_new returns a GHashTable* */
     .hash_table = g_hash_table_new(g_str_hash, g_str_equal),
@@ -35,14 +35,14 @@ int main(int argc, char **argv)
     /* .symcount = 0 */
   };
 
-  struct token global_token = {
+  struct Token global_token = {
     .str = GLOBAL_TOKEN_STR,
     .column_start_idx = -1,
     .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
     .linum = -1,
     .id = 0
   };
-  struct cell global_cell = {				/* cells[0] toplevel cell */
+  struct Bit global_cell = {				/* cells[0] toplevel cell */
     /* car token */
     .car = global_token,
     /* cdr cell pointer */
@@ -56,11 +56,11 @@ int main(int argc, char **argv)
     .fval = 0.0			/* fval */
   };
   
-  struct block_item *global_item = malloc(sizeof (struct block_item));
+  struct BundleUnit *global_item = malloc(sizeof (struct BundleUnit));
   (*global_item).type = CELL;
   (*global_item).cell_item = &global_cell;
 
-  struct block global_block = {
+  struct Bundle global_block = {
     .id = 0,
     .cells = { global_cell },
     /* env (Toplevel Environment) */
@@ -84,19 +84,19 @@ int main(int argc, char **argv)
   /* }; */
   
   size_t all_tokens_count = 0;
-  struct token *toks = tokenize_source__Hp(argv[1], &all_tokens_count);
-  /* struct token *toks = tokenize_lines__Hp(lines, linum, &all_tokens_count); */
+  struct Token *toks = tokenize_source__Hp(argv[1], &all_tokens_count);
+  /* struct Token *toks = tokenize_lines__Hp(lines, linum, &all_tokens_count); */
   size_t nctok_count = 0;
-  struct token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
+  struct Token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
   
   /* fortfahren nur wenn vom Quelcode nach dem Entfernen von
      Kommentaren was übrig geblieben ist */
   
   if (nctok_count) {
-    struct cell *c = linked_cells__Hp(nct, nctok_count);
-    struct cell *base = c;
+    struct Bit *c = linked_cells__Hp(nct, nctok_count);
+    struct Bit *base = c;
     int blocks_count = 0;
-    struct block **b = parse__Hp(&global_block, c, &blocks_count);
+    struct Bundle **b = parse__Hp(&global_block, c, &blocks_count);
     
     /* print_ast(&global_block); */
     /* print(global_eval(&global_block, &global_env, &global_env)); */
@@ -107,11 +107,11 @@ int main(int argc, char **argv)
     free(nct);
   }
   
-  /* struct cell *c = linked_cells__Hp(nct, nctok_count); */
-  /* struct cell *base = c; */
+  /* struct Bit *c = linked_cells__Hp(nct, nctok_count); */
+  /* struct Bit *base = c; */
   /* int blocks_count = 0; */
 
-  /* struct block **b = parse__Hp(&global_block, c, &blocks_count); */
+  /* struct Bundle **b = parse__Hp(&global_block, c, &blocks_count); */
   /* print_ast(&global_block); */
   /* /\* print(global_eval(&global_block, &global_env, &global_env)); *\/ */
   /* /\* global_eval(&global_block, &global_env, &global_env); *\/ */

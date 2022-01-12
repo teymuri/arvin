@@ -5,20 +5,20 @@
 #include "bit.h"
 #include "env.h"
 
-struct cell block_head(struct block *b);
+struct Bit block_head(struct Bundle *b);
 
 /* int __Blockid = 0; */
 #define MAX_BLOCK_SIZE 10
-struct block {
+struct Bundle {
   int id;
-  struct cell cells[MAX_BLOCK_SIZE];
+  struct Bit cells[MAX_BLOCK_SIZE];
   /* nicht alle Blocks brauchen eingenes env, z.B. +  */
   /* bool needs_env; */
-  struct env *env;
+  struct Env *env;
   int size;			/* number of cells contained in this block*/
-  struct block_item *items;		/* content cells & child blocks */
+  struct BundleUnit *items;		/* content cells & child blocks */
   /* the embedding block */
-  struct block *block_enclosing_block;
+  struct Bundle *block_enclosing_block;
   bool islambda;
   void *(*lambda)(void *);
   int arity;			/* arity is the number of arguments

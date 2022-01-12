@@ -1,6 +1,6 @@
 /* #include "print.h" */
 #include <stdio.h>
-#include "let_data.h"
+#include "letdata.h"
 #include "bundle.h"
 #include "bundle_unit.h"
 /* #include "let.h" */
@@ -22,7 +22,7 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-void print_code_ast(struct block *root, int depth) /* This is the written code part */
+void print_code_ast(struct Bundle *root, int depth) /* This is the written code part */
 /* startpoint is the root block */
 {
   for (int i = 0; i < root->size; i++) {
@@ -53,7 +53,7 @@ void print_code_ast(struct block *root, int depth) /* This is the written code p
     }
   }
 }
-void print_ast(struct block *root)
+void print_ast(struct Bundle *root)
 {
   /* root's (the toplevel block) items is a block_item of
      type CELL, so when iterating over root's items this CELL
@@ -74,7 +74,7 @@ void print_ast(struct block *root)
 
 /* string representation of data, this is the P in REPL */
 /* data arg is the evaluated expression (is gone through eval already) */
-void print(struct letdata *data)
+void print(struct LetData *data)
 {
   switch (data->type) {
   case INTEGER:
