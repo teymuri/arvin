@@ -1,12 +1,15 @@
-#ifndef LET_LETDATA_H
-#define LET_LETDATA_H
+#ifndef LET_DATA_H
+#define LET_DATA_H
 
 #include "type.h"
 /* #include "Lambda.h" */
-/* #include "Symbol.h" */
+/* #include "symbol.h" */
 
-struct Symbol;
-struct Lambda;
+
+/* forward declare Symbol and Lambda structures to avoid cyclic
+   dependency betwenn these and LetData */
+/* struct Symbol; */
+/* struct Lambda; */
 
 struct LetData {
   enum Type type;
@@ -19,4 +22,4 @@ struct LetData {
   } value;
 };
 
-#endif	/* LET_LETDATA_H */
+#endif	/* LET_DATA_H */
