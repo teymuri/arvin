@@ -10,13 +10,14 @@
 #include "token.h"
 #include "eval.h"
 #include "bundle.h"
+#include "print.h"
 /* extern struct Token *tokenize_lines__Hp(char **srclns, size_t lines_count, */
 /* 					size_t *all_tokens_count); */
 /* extern struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count, */
 /* 					 size_t all_tokens_count); */
 /* extern struct Bit *linked_cells__Hp(struct Token tokens[], size_t count); */
 /* extern struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_root, int *blocks_count); */
-/* extern struct letdata *global_eval(struct Bundle *root, */
+/* extern struct letdata *eval(struct Bundle *root, */
 /* 			    struct env *local_env, */
 /* 				   struct env *global_env); */
 /* extern void free_parser_blocks(struct Bundle **blocks, int blocks_count); */
@@ -98,9 +99,9 @@ int main(int argc, char **argv)
     int blocks_count = 0;
     struct Bundle **b = parse__Hp(&global_block, c, &blocks_count);
     
-    /* print_ast(&global_block); */
-    /* print(global_eval(&global_block, &global_env, &global_env)); */
-    global_eval(&global_block, &global_env, &global_env);
+    print_ast(&global_block);
+    /* print(eval(&global_block, &global_env, &global_env)); */
+    eval(&global_block, &global_env, &global_env);
 
     free_parser_blocks(b, blocks_count);
     free_linked_cells(base);
@@ -113,8 +114,8 @@ int main(int argc, char **argv)
 
   /* struct Bundle **b = parse__Hp(&global_block, c, &blocks_count); */
   /* print_ast(&global_block); */
-  /* /\* print(global_eval(&global_block, &global_env, &global_env)); *\/ */
-  /* /\* global_eval(&global_block, &global_env, &global_env); *\/ */
+  /* /\* print(eval(&global_block, &global_env, &global_env)); *\/ */
+  /* /\* eval(&global_block, &global_env, &global_env); *\/ */
 
   /* free_parser_blocks(b, blocks_count); */
   /* free_linked_cells(base); */

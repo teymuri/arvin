@@ -36,11 +36,11 @@ bool is_define(struct Bundle *b)
 
 
 /* eval evaluiert einen Baum */
-struct Let_data *eval__dynmem(struct Bundle_unit *item,
+struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
 			 struct Env *local_env,
 			 struct Env *global_env)
 {
-  struct Let_data *result = malloc(sizeof(struct Let_data)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__dynmem */
+  struct Let_data *result = malloc(sizeof(struct Let_data)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval_bundle_unit */
   switch (item->type) {
   case CELL:
     switch (celltype(item->cell_item)) {
@@ -103,20 +103,20 @@ struct Let_data *eval__dynmem(struct Bundle_unit *item,
       }
       
     } else if (!strcmp(block_head(item->block_item).car.str, "call")) {
-      struct Let_data *lambda_name_or_expr = eval__dynmem(&(item->block_item->items[1]), local_env, global_env);
+      struct Let_data *lambda_name_or_expr = eval_bundle_unit(&(item->block_item->items[1]), local_env, global_env);
       struct Env *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env;
       /* printf("%s", stringify_type(lambda_name_or_expr->type)); */
-      result = eval__dynmem(lambda_name_or_expr->value.dataslot_lambda->return_expr,
+      result = eval_bundle_unit(lambda_name_or_expr->value.dataslot_lambda->return_expr,
 			    /* local_env, */
 			    lambda_env,
 			    global_env);
       
     } else if (!strcmp(block_head(item->block_item).car.str, "pret")) {
-      /* struct Let_data *thing = eval__dynmem(&((item->block_item)->items[1]), local_env, global_env); */
+      /* struct Let_data *thing = eval_bundle_unit(&((item->block_item)->items[1]), local_env, global_env); */
       /* result->type = thing->type; */
       /* result->value.dataslot_int =thing->value.dataslot_int; */
       /* printf("-> %s\n", stringify_type(result->type)); */
-      result = pret(eval__dynmem(&((item->block_item)->items[1]), local_env, global_env));
+      result = pret(eval_bundle_unit(&((item->block_item)->items[1]), local_env, global_env));
     } else if (!strcmp(block_head(item->block_item).car.str, "gj")) {
       result = GJ();
       
@@ -124,7 +124,7 @@ struct Let_data *eval__dynmem(struct Bundle_unit *item,
       /* don't let the name of the binding to go through eval! */
       char *define_name = item->block_item->cells[1].car.str; /* name of the definition */
       /* data can be a lambda expr or some constant or other names etc. */
-      struct Let_data *define_data = eval__dynmem(item->block_item->items + 2,
+      struct Let_data *define_data = eval_bundle_unit(item->block_item->items + 2,
 					     item->block_item->env,
 					     /* local_env, */
 					     global_env);
@@ -163,7 +163,7 @@ struct Let_data *eval__dynmem(struct Bundle_unit *item,
 	    /* parameter_name[strlen(parameter)-2]='\0'; */
 	    /* char *parameter_name = "x"; */
 	    char *param_name = bound_parameter_name(parameter); /* problem mit strncpy */
-	    struct Let_data *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]),
+	    struct Let_data *parameter_data = eval_bundle_unit(&(item->block_item->items[i].block_item->items[1]),
 						      item->block_item->env,
 						      global_env);
 	    struct Symbol *symbol = malloc(sizeof (struct Symbol));
@@ -175,7 +175,7 @@ struct Let_data *eval__dynmem(struct Bundle_unit *item,
 	  
 	  /* { */
 	  /*   if (i==item->block_item->size-1){ */
-	  /*     result = eval__dynmem(item->block_item->items + i, */
+	  /*     result = eval_bundle_unit(item->block_item->items + i, */
 	  /* 			item->block_item->env, */
 	  /* 			global_env); */
 	  /*     break; */
@@ -190,7 +190,7 @@ struct Let_data *eval__dynmem(struct Bundle_unit *item,
 	  /*     /\* parameter_name[strlen(parameter)-2]='\0'; *\/ */
 	  /*     /\* char *parameter_name = "x"; *\/ */
 	  /*     char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
-	  /*     struct Let_data *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]), */
+	  /*     struct Let_data *parameter_data = eval_bundle_unit(&(item->block_item->items[i].block_item->items[1]), */
 	  /* 						item->block_item->env, */
 	  /* 						global_env); */
 	  /*     struct Symbol *symbol = malloc(sizeof (struct Symbol)); */
@@ -206,7 +206,7 @@ struct Let_data *eval__dynmem(struct Bundle_unit *item,
 
     
       }
-      result = eval__dynmem(item->block_item->items + (item->block_item->size - 1),
+      result = eval_bundle_unit(item->block_item->items + (item->block_item->size - 1),
 			item->block_item->env,
 			global_env);
 	  
@@ -219,12 +219,12 @@ struct Let_data *eval__dynmem(struct Bundle_unit *item,
   return result;
 }
 
-struct Let_data *global_eval(struct Bundle *root,
-			    struct Env *local_env,
-			    struct Env *global_env)
+struct Let_data *eval(struct Bundle *root,
+		      struct Env *local_env,
+		      struct Env *global_env)
 {
   for (int i = 0; i < (root->size - 1); i++) {
-    eval__dynmem(&(root->items[i]), local_env, global_env);
+    eval_bundle_unit(&(root->items[i]), local_env, global_env);
   }
-  return eval__dynmem(&(root->items[root->size - 1]), local_env, global_env);
+  return eval_bundle_unit(&(root->items[root->size - 1]), local_env, global_env);
 }
