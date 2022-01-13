@@ -31,7 +31,7 @@ char *bound_parameter_name(char *param)
 
 bool is_define(struct Bundle *b)
 {
-  return !strcmp(b->cells[0].car.str, ASSIGNMENT_KEYWORD);
+  return !strcmp(b->cells[0]->car.str, ASSIGNMENT_KEYWORD);
 }
 
 
@@ -124,7 +124,7 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
       
     } else if (is_define(item->block_item)) { /* is_assignment */
       /* don't let the name of the binding to go through eval! */
-      char *define_name = item->block_item->cells[1].car.str; /* name of the definition */
+      char *define_name = item->block_item->cells[1]->car.str; /* name of the definition */
       /* data can be a lambda expr or some constant or other names etc. */
       struct Let_data *define_data = eval_bundle_unit(item->block_item->items + 2,
 					     item->block_item->env,
@@ -139,7 +139,7 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
       result->type = SYMBOL;
       result->value.dataslot_symbol = sym;
       
-    } else if (is_association(item->block_item->cells)) { /* = &(item->block_item->cells[0]) */
+    } else if (is_association(*item->block_item->cells)) { /* = &(item->block_item->cells[0]) */
       /* add let parameters to it's hashtable */
       /* index 0 ist ja let selbst, fangen wir mit 1 an */
       for (int i = 1; i < item->block_item->size - 1;i++) {
@@ -153,11 +153,11 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
 	    /* So kann ich voraussetzen dass diese Teile alle
 	       parameter sind und bis zum letzten Ausruck alles
 	       parameter bleibt! */
-	    assert(is_bound_parameter(item->block_item->items[i].block_item->cells,
+	    assert(is_bound_parameter(*item->block_item->items[i].block_item->cells,
 				      item->block_item));
 	    int bound_parameter_block_size = item->block_item->items[i].block_item->size;
 	    assert(bound_parameter_block_size == 2);
-	    char *parameter = item->block_item->items[i].block_item->cells[0].car.str;
+	    char *parameter = item->block_item->items[i].block_item->cells[0]->car.str;
 
 	    /* .x */
 	    char *param_name=malloc(strlen(parameter)); /* jajaaaa VLA! */

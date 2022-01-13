@@ -37,7 +37,7 @@ void print_code_ast(struct Bundle *root, int depth) /* This is the written code 
     case BLOCK:
       print_indent(depth);
       printf(AST_PRINTER_BLOCK_STR,
-	     root->items[i].block_item->cells[0].car.str,
+	     root->items[i].block_item->cells[0]->car.str,
 	     root->items[i].block_item->size,
 	     /* root->items[i].b->env ? root->items[i].b->env->symcount : -1, */
 	     root->items[i].block_item->env ? -1 : -1,
@@ -49,7 +49,7 @@ void print_code_ast(struct Bundle *root, int depth) /* This is the written code 
       break;
     default:
       print_indent(depth);
-      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0].car.str, root[i].items[0].cell_item->car.str);
+      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0]->car.str, root[i].items[0].cell_item->car.str);
     }
   }
 }

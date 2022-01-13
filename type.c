@@ -40,7 +40,7 @@ char *stringify_block_item_type(enum Bundle_unit_type t)
 
 
 
-struct Bit block_head(struct Bundle *b) { return b->cells[0]; }
+struct Bit block_head(struct Bundle *b) { return *b->cells[0]; }
 
 
 

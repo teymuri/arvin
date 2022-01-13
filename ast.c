@@ -17,8 +17,8 @@
 /* is b directly or indirectly embedding c? */
 bool is_enclosed_in(struct Bit c, struct Bundle b)
 {
-  return (c.car.column_start_idx > b.cells[0].car.column_start_idx)
-    && (c.car.linum >= b.cells[0].car.linum);
+  return (c.car.column_start_idx > b.cells[0]->car.column_start_idx)
+    && (c.car.linum >= b.cells[0]->car.linum);
 }
 
 
@@ -45,8 +45,8 @@ int bottom_line_number(struct Bundle **enblocks, int enblocks_count)
 {
   int ln = -1;
   for (int i = 0; i < enblocks_count; i++) {
-    if ((*(enblocks + i))->cells[0].car.linum > ln)
-      ln = (*(enblocks + i))->cells[0].car.linum;
+    if ((*(enblocks + i))->cells[0]->car.linum > ln)
+      ln = (*(enblocks + i))->cells[0]->car.linum;
   }
   return ln;
 }
@@ -56,7 +56,7 @@ struct Bundle **bottommost_blocks__Hp(struct Bundle **enblocks, int enblocks_cou
   int bln = bottom_line_number(enblocks, enblocks_count);
   struct Bundle **botmost_blocks = NULL;
   for (int i = 0; i < enblocks_count; i++) {
-    if ((*(enblocks + i))->cells[0].car.linum == bln) {
+    if ((*(enblocks + i))->cells[0]->car.linum == bln) {
       if ((botmost_blocks = realloc(botmost_blocks, (*botmost_blocks_count + 1) * sizeof(struct Bundle *))) != NULL) {
 	*(botmost_blocks + (*botmost_blocks_count)++) = *(enblocks + i);
       }	else exit(EXIT_FAILURE);
@@ -74,9 +74,9 @@ struct Bundle *rightmost_block(struct Bundle **botmost_blocks, int botmost_block
   int column_start_idx = LEAST_COL_START_IDX;			/* start index */
   struct Bundle *rmost_block = NULL;
   for (int i = 0; i < botmost_blocks_count; i++) {    
-    if ((*(botmost_blocks + i))->cells[0].car.column_start_idx > column_start_idx) {
+    if ((*(botmost_blocks + i))->cells[0]->car.column_start_idx > column_start_idx) {
       rmost_block = *(botmost_blocks + i);
-      column_start_idx = rmost_block->cells[0].car.column_start_idx;
+      column_start_idx = rmost_block->cells[0]->car.column_start_idx;
     }
   }
   free(botmost_blocks);
@@ -220,8 +220,8 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
        ist ...*/
     /* enclosure ist hier der block von bound_param */
     /* is_binding(enclosure->cells + 0, enclosure->block_enclosing_block) */
-    if (enclosure->cells->type == BINDING || enclosure->cells->type == BOUND_BINDING) {
-      enclosure->cells->type = BOUND_BINDING;
+    if ((*enclosure->cells)->type == BINDING || (*enclosure->cells)->type == BOUND_BINDING) {
+      (*enclosure->cells)->type = BOUND_BINDING;
       if (enclosure->max_absorption_capacity == 1)
 	enclosure->max_absorption_capacity = 0;
       else {
@@ -244,12 +244,10 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof (struct Bundle *))) != NULL) {
 
 	struct Bundle *newblock = malloc(sizeof *newblock);
+	newblock->cells=malloc(sizeof (struct Bit *));
 	struct Env *newenv = malloc(sizeof *newenv);
-	/* *newblock = (struct Bundle) { */
-	/*   .cells = c */
-	/* }; */
 	newblock->id = blockid++;
-	newblock->cells[0] = *c;
+	*newblock->cells = c;
 	newblock->size = 1;
 	newblock->block_enclosing_block = enclosure;
 	*newenv = (struct Env){
@@ -298,7 +296,10 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
 	(*(enclosure->items + enclosure->size)).cell_item = c;
       }
       c->cell_enclosing_block = enclosure;
-      enclosure->cells[enclosure->size] = *c;
+      /* enclosure->cells[enclosure->size] = *c; */
+      if ((enclosure->cells = realloc(enclosure->cells, (enclosure->size + 1) * sizeof (struct Bit *))) != NULL) {
+	*(enclosure->cells + enclosure->size) = c;
+      }
       enclosure->size++;
     }
     c = c->cdr;

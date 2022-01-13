@@ -11,7 +11,8 @@ struct Bit block_head(struct Bundle *b);
 #define MAX_BLOCK_SIZE 10
 struct Bundle {
   int id;
-  struct Bit cells[MAX_BLOCK_SIZE];
+  /* struct Bit cells[MAX_BLOCK_SIZE]; */
+  struct Bit **cells;
   /* nicht alle Blocks brauchen eingenes env, z.B. +  */
   /* bool needs_env; */
   struct Env *env;

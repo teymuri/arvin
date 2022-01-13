@@ -63,7 +63,7 @@ int main(int argc, char **argv)
 
   struct Bundle global_block = {
     .id = 0,
-    .cells = { global_cell },
+    /* .cells = &global_cell, */
     /* env (Toplevel Environment) */
     .env = &global_env,
     /* .env = NULL, */
@@ -73,6 +73,8 @@ int main(int argc, char **argv)
     .islambda = false,
     .arity = -1			/* invalid arity, because this is not a lambda block! */
   };
+  global_block.cells = malloc(sizeof (struct Bit *));
+  *global_block.cells = &global_cell;
   
   /* int linum=1; */
   /* char *lines[] = { */
