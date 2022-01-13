@@ -5,9 +5,9 @@
 #include "bundle_unit.h"
 
 
-#define AST_PRINTER_BLOCK_STR_TL "[!BLOCK HEAD(%s) SIZE(%d) ENV(SZ:%d ID:%d)%p ARITY(%d)]\n"
-#define AST_PRINTER_BLOCK_STR "[BLOCK HEAD(%s) SIZE(%d) ENV(SZ:%d ID:%d)%p ARITY(%d)]\n"
-#define AST_PRINTER_CELL_STR "[CELL(%s) TYPE(%s)]\n"
+#define AST_PRINTER_BLOCK_STR_TL "[!BUNDLE Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
+#define AST_PRINTER_BLOCK_STR "[BUNDLE Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
+#define AST_PRINTER_CELL_STR "[BIT(%s) Type(%s)]\n"
 
 void print_indent(int i)
 {
@@ -31,7 +31,7 @@ void print_code_ast(struct Bundle *root, int depth) /* This is the written code 
       print_indent(depth);
       printf(AST_PRINTER_CELL_STR,
 	     root->items[i].cell_item->car.str,
-	     stringify_cell_type(celltype(root->items[i].cell_item))
+	     stringify_type(celltype(root->items[i].cell_item))
 	     );
       break;
     case BLOCK:

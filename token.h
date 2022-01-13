@@ -8,7 +8,7 @@
 #define ASSIGNMENT_KEYWORD "define"		/* used to define symbols in the global environment */
 #define ASSOCIATION_KEYWORD "let"
 #define LAMBDA_KW "lambda"
-/* #define PARAM_PREFIX '.' */
+#define BINDING_PREFIX '.'
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 

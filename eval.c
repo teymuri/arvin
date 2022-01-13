@@ -91,6 +91,8 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
       result->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       struct Lambda *lambda = malloc(sizeof (struct Lambda));
       lambda->lambda_env = item->block_item->env->enclosing_env;
+      printf("%d\n", item->block_item->arity);
+      /* item->block_item->items + 0 ist ja lambda wort selbst!!! */
       switch (item->block_item->arity) {
       case 0:
 	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
@@ -143,7 +145,7 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
       for (int i = 1; i < item->block_item->size - 1;i++) {
 	switch (item->block_item->items[i].type) {
 	case CELL:		/* muss ein parameter ohne Wert sein, bind to NIL */
-	  printf("%s %s\n",item->block_item->items[i].cell_item->car.str,
+	  printf("in Eval bundle Unit BIT: %s %s\n",item->block_item->items[i].cell_item->car.str,
 		 stringify_cell_type(celltype(item->block_item->items[i].cell_item)));
 	  break;
 	case BLOCK:		/* muss ein bound parameter sein! */
@@ -156,13 +158,16 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
 	    int bound_parameter_block_size = item->block_item->items[i].block_item->size;
 	    assert(bound_parameter_block_size == 2);
 	    char *parameter = item->block_item->items[i].block_item->cells[0].car.str;
-	    /* char parameter_name[strlen(parameter)-1]; /\* jajaaaa VLA! *\/ */
-	    /* /\* memset(parameter_name, '\0', sizeof (parameter_name)); *\/ */
-	    /* strncpy(parameter_name, parameter, strlen(parameter)-2); */
-	    /* /\* memcpy(parameter_name, parameter, strlen(parameter)-2); *\/ */
-	    /* parameter_name[strlen(parameter)-2]='\0'; */
-	    /* char *parameter_name = "x"; */
-	    char *param_name = bound_parameter_name(parameter); /* problem mit strncpy */
+
+	    /* .x */
+	    char *param_name=malloc(strlen(parameter)); /* jajaaaa VLA! */
+	    strncpy(param_name, parameter + 1, strlen(parameter));
+	    /* memcpy(param_name, parameter, strlen(parameter)-2); */
+	    /* param_name[strlen(parameter)-2]='\0'; */
+	    /* char *param_name = "x"; */
+	    
+	    /* char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
+	    
 	    struct Let_data *parameter_data = eval_bundle_unit(&(item->block_item->items[i].block_item->items[1]),
 						      item->block_item->env,
 						      global_env);
@@ -170,38 +175,9 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
 	    symbol->symbol_name = param_name;
 	    symbol->symbol_data = parameter_data;	    
 	    g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol);
+	    /* printf("%s %d\n", param_name, g_hash_table_contains(item->block_item->env->hash_table, param_name)); */
 	    break;
 	  }
-	  
-	  /* { */
-	  /*   if (i==item->block_item->size-1){ */
-	  /*     result = eval_bundle_unit(item->block_item->items + i, */
-	  /* 			item->block_item->env, */
-	  /* 			global_env); */
-	  /*     break; */
-	  /*   } else { */
-	  /*     int bound_parameter_block_size = item->block_item->items[i].block_item->size; */
-	  /*     assert(bound_parameter_block_size == 2); */
-	  /*     char *parameter = item->block_item->items[i].block_item->cells[0].car.str; */
-	  /*     /\* char parameter_name[strlen(parameter)-1]; /\\* jajaaaa VLA! *\\/ *\/ */
-	  /*     /\* /\\* memset(parameter_name, '\0', sizeof (parameter_name)); *\\/ *\/ */
-	  /*     /\* strncpy(parameter_name, parameter, strlen(parameter)-2); *\/ */
-	  /*     /\* /\\* memcpy(parameter_name, parameter, strlen(parameter)-2); *\\/ *\/ */
-	  /*     /\* parameter_name[strlen(parameter)-2]='\0'; *\/ */
-	  /*     /\* char *parameter_name = "x"; *\/ */
-	  /*     char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
-	  /*     struct Let_data *parameter_data = eval_bundle_unit(&(item->block_item->items[i].block_item->items[1]), */
-	  /* 						item->block_item->env, */
-	  /* 						global_env); */
-	  /*     struct Symbol *symbol = malloc(sizeof (struct Symbol)); */
-	  /*     symbol->symbol_name = param_name; */
-	  /*     symbol->symbol_data = parameter_data; */
-	    
-	  /*     g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol); */
-	  /*     break; */
-	  /*   } */
-	  /* } */
-	  
 	}
 
     

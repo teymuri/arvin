@@ -15,8 +15,8 @@ enum Type celltype(struct Bit *c)
   case INTEGER: return INTEGER;
   case FLOAT: return FLOAT;
   case SYMBOL: return SYMBOL;
-  case PARAMETER: return PARAMETER;
-  case BOUND_PARAMETER: return BOUND_PARAMETER;
+  case BINDING: return BINDING;
+  case BOUND_BINDING: return BOUND_BINDING;
   default: return UNDEFINED;
   }
 }

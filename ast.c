@@ -1,7 +1,8 @@
 #include <stdlib.h>		/* EXIT_FAILURE */
+#include <stdio.h>
+#include <assert.h>
 #include <stdbool.h>
 #include <string.h>
-/* #include "let.h" */
 #include "type.h"
 #include "env.h"
 #include "token.h"
@@ -113,9 +114,9 @@ bool looks_like_parameter(struct Bit *c)
 }
 bool looks_like_bound_parameter(struct Bit *c)
 {
-  /* return celltype(c) == SYMBOL && *c->car.str == '.'; */
   return celltype(c) == SYMBOL && str_ends_with(c->car.str, ":=");
 }
+
 
 /* to be included also in eval */
 bool is_lambda_unit(struct Bit *u)
@@ -136,6 +137,20 @@ bool is_parameter(struct Bit *c, struct Bundle *enclosing_block)
     && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).car.str,
 						       ASSOCIATION_KEYWORD));
 }
+
+
+bool maybe_binding(struct Bit *b)
+{
+  return celltype(b) == SYMBOL && *b->car.str == '.';
+}
+bool is_binding(struct Bit *b, struct Bundle *enclosure)
+{
+  return maybe_binding(b) &&
+    (is_lambda_head(block_head(enclosure)) ||
+     !strcmp((block_head(enclosure)).car.str, ASSOCIATION_KEYWORD));
+}
+
+
 bool is_bound_parameter(struct Bit *c, struct Bundle *enclosing_block)
 {
   return looks_like_bound_parameter(c)
@@ -146,10 +161,10 @@ bool is_bound_parameter(struct Bit *c, struct Bundle *enclosing_block)
 
 /* is the direct enclosing block the bind keyword, ie we are about to
    define a new name? */
-bool is_a_binding_name(struct Bundle *b)
-{
-  return !strcmp(block_head(b->block_enclosing_block).car.str, ASSIGNMENT_KEYWORD);
-}
+/* bool is_a_binding_name(struct Bundle *b) */
+/* { */
+/*   return !strcmp(block_head(b->block_enclosing_block).car.str, ASSIGNMENT_KEYWORD); */
+/* } */
 
 
 bool need_new_block(struct Bit *c, struct Bundle *enclosing_block)
@@ -162,7 +177,8 @@ bool need_new_block(struct Bit *c, struct Bundle *enclosing_block)
     /* is begin of a lambda expression? */
     || is_lambda_head(*c)
     /* is a lambda parameter? */
-    || is_bound_parameter(c, enclosing_block) /* hier muss enclosing_block richtig entschieden sein!!! */
+    || is_binding(c, enclosing_block) /* hier muss enclosing_block richtig entschieden sein!!! */
+    /* || is_bound_parameter(c, enclosing_block) /\* hier muss enclosing_block richtig entschieden sein!!! *\/ */
     || !strcmp(c->car.str, "call")
     || !strcmp(c->car.str, "pret")
     || !strcmp(c->car.str, "gj") /* geburtsjahr!!! */
@@ -177,12 +193,14 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
   *(blocks + (*blocks_count)++) = global_block;
   struct Bit *c = linked_cells_root;
   struct Bundle *enclosure;	/* the enclosing bundle */
-  struct Bundle *active_binding_bundle;
+  struct Bundle *active_binding_bundle; /* this is the last lambda, let etc. */
   int blockid = 1;
   while (c) {
     
     /* find out the DIRECT embedding block of the current cell */
-    if ((looks_like_parameter(c) || looks_like_bound_parameter(c)) && is_enclosed_in(*c, *active_binding_bundle)) { /* so its a lambda parameter */
+    /* (looks_like_parameter(c) || looks_like_bound_parameter(c)) */
+    if (maybe_binding(c) && is_enclosed_in(*c, *active_binding_bundle)) { /* so its a lambda parameter */
+      c->type = BINDING;
       enclosure = active_binding_bundle;
       active_binding_bundle->arity++;
       /* enhance the type of the parameter symbol. */
@@ -190,21 +208,27 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
 	 denn is_bound_parameter fragt ab ob das Cell vom Typ SYMBOL
 	 ist, was wiederum unten im need_new_block eine Rolle
 	 spielt. Deshalb verschieben wir das Setzen vom Typ von SYMBOL zum
-	 BOUND_PARAMETER auf nach need_new_block. */
-      if (is_parameter(c, enclosure)) c->type = PARAMETER;
-      /* if (is_bound_parameter(c, enclosure)) c->type = BOUND_PARAMETER; */
+	 BOUND_BINDING auf nach need_new_block. */
+      /* if (is_parameter(c, enclosure)) c->type = BINDING; */
+      /* if (is_bound_parameter(c, enclosure)) c->type = BOUND_BINDING; */
     } else {			/* compute the enclosure anew */
       enclosure = enclosing_block(*c, blocks, *blocks_count);
     }
 
-    if (is_bound_parameter(enclosure->cells + 0, enclosure->block_enclosing_block)) {
-      /* i.e. ist das Ding jetzt der WERT für einen Bound Parameter?
-	 ich frag hier ob das enclosing Zeug von einem bound param
-	 ist ...*/
-      /* enclosure ist hier der block von bound_param */
-      if (enclosure->max_absorption_capacity == 1) enclosure->max_absorption_capacity = 0;
-      else enclosure = enclosure->block_enclosing_block;
+    /* i.e. ist das Ding jetzt der WERT für einen Bound Parameter?
+       ich frag hier ob das enclosing Zeug von einem bound param
+       ist ...*/
+    /* enclosure ist hier der block von bound_param */
+    /* is_binding(enclosure->cells + 0, enclosure->block_enclosing_block) */
+    if (enclosure->cells->type == BINDING || enclosure->cells->type == BOUND_BINDING) {
+      enclosure->cells->type = BOUND_BINDING;
+      if (enclosure->max_absorption_capacity == 1)
+	enclosure->max_absorption_capacity = 0;
+      else {
+	enclosure = enclosure->block_enclosing_block;
+      }
     }
+    /* enclosure->block_enclosing_block->cells->car.str; */
     
     /* If the computed enclosing block is a lambda-parameter and it
        has no more absorption capacity then reset the enclosing block
@@ -216,11 +240,14 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
        decrement it's absorption capacity. */
     /* &(enclosing_block->cells[0]) */
     
-    if (need_new_block(c, enclosure)) {
-      if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof(struct Bundle *))) != NULL) {
+    if (need_new_block(c, enclosure) || c->type==BINDING) {
+      if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof (struct Bundle *))) != NULL) {
 
 	struct Bundle *newblock = malloc(sizeof *newblock);
 	struct Env *newenv = malloc(sizeof *newenv);
+	/* *newblock = (struct Bundle) { */
+	/*   .cells = c */
+	/* }; */
 	newblock->id = blockid++;
 	newblock->cells[0] = *c;
 	newblock->size = 1;
@@ -251,10 +278,11 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
 	  active_binding_bundle = newblock;
 	}
 
-	if (is_bound_parameter(c, enclosure)) {
+	if (is_binding(c, enclosure) || c->type==BINDING) {
+	  /* printf("Christoph Seibert"); */
 	  newblock->max_absorption_capacity = 1;	/* ist maximal das default argument wenn vorhanden */
-	  /* enhance the type from simple SYMBOL to BOUND_PARAMETER */
-	  c->type = BOUND_PARAMETER;
+	  /* enhance the type from simple SYMBOL to BOUND_BINDING */
+	  /* c->type = BOUND_BINDING; */
 	}
 		
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
