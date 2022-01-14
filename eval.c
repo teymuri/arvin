@@ -17,6 +17,7 @@
 /* is external, defined in ast.c */
 bool is_bound_parameter(struct Brick *, struct Plate *);
 bool is_bound_binding(struct Brick *);
+void check_lambda_bindings(struct Plate *);
 
 bool is_association(struct Brick *);
 
@@ -89,10 +90,15 @@ struct Let_data *eval_bundle_unit(struct Plate_element *item,
   case PLATE:
     /* if (is_lambda_unit(&block_head(item->block_item))) { */
     if (!strcmp(block_head(item->block_item).car.str, LAMBDA_KW)) {
+
+      /* int lambda_IS_size = item->block_item->size - 1; /\* head is lambda word itself, cut it off *\/ */
+      /* int lambda_SHOULDBE_size = item->block_item->arity + 1; */
+      /* printf("%d %d\n", lambda_IS_size, lambda_SHOULDBE_size); */
+      /* assert(lambda_IS_size == lambda_SHOULDBE_size); */
       result->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       struct Lambda *lambda = malloc(sizeof (struct Lambda));
       lambda->lambda_env = item->block_item->env->enclosing_env;
-      printf("%d\n", item->block_item->arity);
+
       /* item->block_item->items + 0 ist ja lambda wort selbst!!! */
       switch (item->block_item->arity) {
       case 0:
@@ -200,6 +206,7 @@ struct Let_data *eval(struct Plate *root,
 		      struct Env *local_env,
 		      struct Env *global_env)
 {
+  check_lambda_bindings(root);
   for (int i = 0; i < (root->size - 1); i++) {
     eval_bundle_unit(&(root->items[i]), local_env, global_env);
   }

@@ -196,16 +196,16 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
   *(blocks + (*blocks_count)++) = global_block;
   struct Brick *c = linked_cells_root;
   struct Plate *enclosure;	/* the enclosing bundle */
-  struct Plate *active_binding_bundle; /* this is the last lambda, let etc. */
+  struct Plate *active_binding_plate; /* this is the last lambda, let etc. */
   int blockid = 1;
   while (c) {
     
     /* find out the DIRECT embedding block of the current cell */
     /* (looks_like_parameter(c) || looks_like_bound_parameter(c)) */
-    if (maybe_binding(c) && is_enclosed_in(*c, *active_binding_bundle)) { /* so its a lambda parameter */
+    if (maybe_binding(c) && is_enclosed_in(*c, *active_binding_plate)) { /* so its a lambda parameter */
       c->type = BINDING;
-      enclosure = active_binding_bundle;
-      active_binding_bundle->arity++;
+      enclosure = active_binding_plate;
+      active_binding_plate->arity++;
       /* enhance the type of the parameter symbol. */
       /* ACHTUNG: wir setzen den neuen Typ für bound param nicht hier,
 	 denn is_bound_parameter fragt ab ob das Cell vom Typ SYMBOL
@@ -270,13 +270,14 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
 	if (is_lambda_head(*c)) {
 	  newblock->islambda = true; /* is a lambda-block */
 	  newblock->arity = 0; /* default is null-arity */
-	  active_binding_bundle = newblock;
+	  active_binding_plate = newblock;
+	  c->type=LAMBDA;
 	} else {
 	  newblock->islambda = false;
 	}
 	/* LET Block */
 	if (is_association(c)) {
-	  active_binding_bundle = newblock;
+	  active_binding_plate = newblock;
 	}
 
 	if (is_binding(c, enclosure) || c->type==BINDING) {
@@ -308,6 +309,23 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
     c = c->cdr;
   }
   return blocks;
+}
+void print_code_ast(struct Plate *root, int depth);
+/* testen wir mal die Semantik von Lambda expressions */
+void check_lambda_bindings(struct Plate *root)
+{
+  for (int i = 0; i < root->size; i++) {
+    switch (root->items[i].type) {
+    case BRICK:
+      break;
+    case PLATE:
+      printf("%s\n", (*(root->items[i].block_item->cells))->car.str);
+      print_code_ast(root->items[i].block_item,1);
+      check_lambda_bindings(root->items[i].block_item);
+      break;
+    default: break;
+    }
+  }
 }
 
 void free_parser_blocks(struct Plate **blocks, int blocks_count)

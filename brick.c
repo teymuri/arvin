@@ -10,11 +10,11 @@
 /* why is this any good??? */
 enum Type celltype(struct Brick *c)
 {
-  /* switch (c->car.type) { */
   switch (c->type) {
   case INTEGER: return INTEGER;
   case FLOAT: return FLOAT;
   case SYMBOL: return SYMBOL;
+  case LAMBDA: return LAMBDA;
   case BINDING: return BINDING;
   case BOUND_BINDING: return BOUND_BINDING;
   default: return UNDEFINED;

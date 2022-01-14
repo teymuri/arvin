@@ -5,9 +5,9 @@
 #include "plate_element.h"
 
 
-#define AST_PRINTER_PLATE_STR_TL "[!MULTIPLE.Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
-#define AST_PRINTER_PLATE_STR "[MULTIPLE.Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
-#define AST_PRINTER_BRICK_STR "[BIT(%s) Type(%s)]\n"
+#define AST_PRINTER_PLATE_STR_TL "[Baseplate Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
+#define AST_PRINTER_PLATE_STR "[Plate Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
+#define AST_PRINTER_BRICK_STR "[Brick(%s) Type(%s)]\n"
 
 void print_indent(int i)
 {
