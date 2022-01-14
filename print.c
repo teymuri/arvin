@@ -1,13 +1,13 @@
 /* #include "print.h" */
 #include <stdio.h>
 #include "let_data.h"
-#include "bundle.h"
-#include "bundle_unit.h"
+#include "plate.h"
+#include "plate_element.h"
 
 
-#define AST_PRINTER_BLOCK_STR_TL "[!BUNDLE Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
-#define AST_PRINTER_BLOCK_STR "[BUNDLE Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
-#define AST_PRINTER_CELL_STR "[BIT(%s) Type(%s)]\n"
+#define AST_PRINTER_PLATE_STR_TL "[!MULTIPLE.Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
+#define AST_PRINTER_PLATE_STR "[MULTIPLE.Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
+#define AST_PRINTER_BRICK_STR "[BIT(%s) Type(%s)]\n"
 
 void print_indent(int i)
 {
@@ -22,21 +22,21 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-void print_code_ast(struct Bundle *root, int depth) /* This is the written code part */
+void print_code_ast(struct Plate *root, int depth) /* This is the written code part */
 /* startpoint is the root block */
 {
   for (int i = 0; i < root->size; i++) {
     switch (root->items[i].type) {
-    case CELL:
+    case BRICK:
       print_indent(depth);
-      printf(AST_PRINTER_CELL_STR,
+      printf(AST_PRINTER_BRICK_STR,
 	     root->items[i].cell_item->car.str,
 	     stringify_type(celltype(root->items[i].cell_item))
 	     );
       break;
-    case BLOCK:
+    case PLATE:
       print_indent(depth);
-      printf(AST_PRINTER_BLOCK_STR,
+      printf(AST_PRINTER_PLATE_STR,
 	     root->items[i].block_item->cells[0]->car.str,
 	     root->items[i].block_item->size,
 	     /* root->items[i].b->env ? root->items[i].b->env->symcount : -1, */
@@ -53,14 +53,14 @@ void print_code_ast(struct Bundle *root, int depth) /* This is the written code 
     }
   }
 }
-void print_ast(struct Bundle *root)
+void print_ast(struct Plate *root)
 {
   /* root's (the toplevel block) items is a block_item of
-     type CELL, so when iterating over root's items this CELL
-     will be printed but there will be no BLOCK printed on top of that
-     CELL, thats why we are cheating here and print a BLOCK-Like on
+     type BRICK, so when iterating over root's items this BRICK
+     will be printed but there will be no PLATE printed on top of that
+     BRICK, thats why we are cheating here and print a PLATE-Like on
      top of the whole ast. */
-  printf(AST_PRINTER_BLOCK_STR_TL,
+  printf(AST_PRINTER_PLATE_STR_TL,
  	 root->items->cell_item->car.str,
  	 root->size,
 	 /* root->env ? root->env->symcount : -1, */

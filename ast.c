@@ -6,16 +6,16 @@
 #include "type.h"
 #include "env.h"
 #include "token.h"
-#include "bit.h"
-#include "bundle.h"
+#include "brick.h"
+#include "plate.h"
 #include "core.h"
-#include "bundle_unit.h"
+#include "plate_element.h"
 
 
 
 
 /* is b directly or indirectly embedding c? */
-bool is_enclosed_in(struct Bit c, struct Bundle b)
+bool is_enclosed_in(struct Brick c, struct Plate b)
 {
   return (c.car.column_start_idx > b.cells[0]->car.column_start_idx)
     && (c.car.linum >= b.cells[0]->car.linum);
@@ -26,13 +26,13 @@ bool is_enclosed_in(struct Bit c, struct Bundle b)
    points to pointers to block structures, so it's return value must
    be freed (which doesn't any harm to the actual structure pointers
    it points to!) */
-struct Bundle **enclosing_blocks__Hp(struct Bit c, struct Bundle **blocks,
+struct Plate **enclosing_blocks__Hp(struct Brick c, struct Plate **blocks,
 				    int blocks_count, int *enblocks_count)
 {
-  struct Bundle **enblocks = NULL;
+  struct Plate **enblocks = NULL;
   for (int i = 0; i < blocks_count; i++) {
     if (is_enclosed_in(c, *(blocks[i]))) {
-      if ((enblocks = realloc(enblocks, (*enblocks_count + 1) * sizeof(struct Bundle *))) != NULL)
+      if ((enblocks = realloc(enblocks, (*enblocks_count + 1) * sizeof(struct Plate *))) != NULL)
 	*(enblocks + (*enblocks_count)++) = *(blocks + i);
       else exit(EXIT_FAILURE);
     }
@@ -41,7 +41,7 @@ struct Bundle **enclosing_blocks__Hp(struct Bit c, struct Bundle **blocks,
 }
 
 /* returns the bottom line number */
-int bottom_line_number(struct Bundle **enblocks, int enblocks_count)
+int bottom_line_number(struct Plate **enblocks, int enblocks_count)
 {
   int ln = -1;
   for (int i = 0; i < enblocks_count; i++) {
@@ -51,13 +51,13 @@ int bottom_line_number(struct Bundle **enblocks, int enblocks_count)
   return ln;
 }
 
-struct Bundle **bottommost_blocks__Hp(struct Bundle **enblocks, int enblocks_count, int *botmost_blocks_count)
+struct Plate **bottommost_blocks__Hp(struct Plate **enblocks, int enblocks_count, int *botmost_blocks_count)
 {
   int bln = bottom_line_number(enblocks, enblocks_count);
-  struct Bundle **botmost_blocks = NULL;
+  struct Plate **botmost_blocks = NULL;
   for (int i = 0; i < enblocks_count; i++) {
     if ((*(enblocks + i))->cells[0]->car.linum == bln) {
-      if ((botmost_blocks = realloc(botmost_blocks, (*botmost_blocks_count + 1) * sizeof(struct Bundle *))) != NULL) {
+      if ((botmost_blocks = realloc(botmost_blocks, (*botmost_blocks_count + 1) * sizeof(struct Plate *))) != NULL) {
 	*(botmost_blocks + (*botmost_blocks_count)++) = *(enblocks + i);
       }	else exit(EXIT_FAILURE);
     }
@@ -69,10 +69,10 @@ struct Bundle **bottommost_blocks__Hp(struct Bundle **enblocks, int enblocks_cou
 
 #define LEAST_COL_START_IDX -2
 /* here we test column start index of block heads to decide */
-struct Bundle *rightmost_block(struct Bundle **botmost_blocks, int botmost_blocks_count)
+struct Plate *rightmost_block(struct Plate **botmost_blocks, int botmost_blocks_count)
 {
   int column_start_idx = LEAST_COL_START_IDX;			/* start index */
-  struct Bundle *rmost_block = NULL;
+  struct Plate *rmost_block = NULL;
   for (int i = 0; i < botmost_blocks_count; i++) {    
     if ((*(botmost_blocks + i))->cells[0]->car.column_start_idx > column_start_idx) {
       rmost_block = *(botmost_blocks + i);
@@ -84,12 +84,12 @@ struct Bundle *rightmost_block(struct Bundle **botmost_blocks, int botmost_block
 }
 
 /* which one of the blocks is the direct embedding block of c? */
-struct Bundle *enclosing_block(struct Bit c, struct Bundle **blocks, int blocks_count)
+struct Plate *enclosing_block(struct Brick c, struct Plate **blocks, int blocks_count)
 {  
   int enblocks_count = 0;
-  struct Bundle **enblocks = enclosing_blocks__Hp(c, blocks, blocks_count, &enblocks_count);
+  struct Plate **enblocks = enclosing_blocks__Hp(c, blocks, blocks_count, &enblocks_count);
   int botmost_blocks_count = 0;
-  struct Bundle **botmost_blocks = bottommost_blocks__Hp(enblocks, enblocks_count, &botmost_blocks_count);
+  struct Plate **botmost_blocks = bottommost_blocks__Hp(enblocks, enblocks_count, &botmost_blocks_count);
   return rightmost_block(botmost_blocks, botmost_blocks_count);
 }
 
@@ -108,66 +108,69 @@ int str_ends_with(char *str1, char *str2)
   return 1;
 }
 
-bool looks_like_parameter(struct Bit *c)
-{
-  return celltype(c) == SYMBOL && str_ends_with(c->car.str, ":");
-}
-bool looks_like_bound_parameter(struct Bit *c)
-{
-  return celltype(c) == SYMBOL && str_ends_with(c->car.str, ":=");
-}
+/* bool looks_like_parameter(struct Brick *c) */
+/* { */
+/*   return celltype(c) == SYMBOL && str_ends_with(c->car.str, ":"); */
+/* } */
+/* bool looks_like_bound_parameter(struct Brick *c) */
+/* { */
+/*   return celltype(c) == SYMBOL && str_ends_with(c->car.str, ":="); */
+/* } */
 
 
 /* to be included also in eval */
-bool is_lambda_unit(struct Bit *u)
+bool is_lambda_unit(struct Brick *u)
 {
   return !strcmp(u->car.str, LAMBDA_KW);
 }
 
-bool is_lambda_head(struct Bit c) { return !strcmp(c.car.str, LAMBDA_KW); }
-bool is_association(struct Bit *c)
+bool is_lambda_head(struct Brick c) { return !strcmp(c.car.str, LAMBDA_KW); }
+bool is_association(struct Brick *c)
 {
   return !strcmp(c->car.str, ASSOCIATION_KEYWORD);
 }
 
 /* now we will be sure! */
-bool is_parameter(struct Bit *c, struct Bundle *enclosing_block)
-{
-  return looks_like_parameter(c)
-    && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).car.str,
-						       ASSOCIATION_KEYWORD));
-}
+/* bool is_parameter(struct Brick *c, struct Plate *enclosing_block) */
+/* { */
+/*   return looks_like_parameter(c) */
+/*     && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).car.str, */
+/* 						       ASSOCIATION_KEYWORD)); */
+/* } */
 
 
-bool maybe_binding(struct Bit *b)
+bool maybe_binding(struct Brick *b)
 {
   return celltype(b) == SYMBOL && *b->car.str == '.';
 }
-bool is_binding(struct Bit *b, struct Bundle *enclosure)
+bool is_binding(struct Brick *b, struct Plate *enclosure)
 {
   return maybe_binding(b) &&
     (is_lambda_head(block_head(enclosure)) ||
      !strcmp((block_head(enclosure)).car.str, ASSOCIATION_KEYWORD));
 }
-
-
-bool is_bound_parameter(struct Bit *c, struct Bundle *enclosing_block)
+bool is_bound_binding(struct Brick *c)
 {
-  return looks_like_bound_parameter(c)
-    && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).car.str,
-						       ASSOCIATION_KEYWORD));
+  return c->type == BOUND_BINDING;
 }
+
+/* bool is_bound_parameter(struct Brick *c, struct Plate *enclosing_block) */
+/* { */
+/*   return looks_like_bound_parameter(c) */
+/*     && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).car.str, */
+/* 						       ASSOCIATION_KEYWORD)); */
+/* } */
 
 
 /* is the direct enclosing block the bind keyword, ie we are about to
    define a new name? */
-/* bool is_a_binding_name(struct Bundle *b) */
+/* bool is_a_binding_name(struct Plate *b) */
 /* { */
 /*   return !strcmp(block_head(b->block_enclosing_block).car.str, ASSIGNMENT_KEYWORD); */
 /* } */
 
 
-bool need_new_block(struct Bit *c, struct Bundle *enclosing_block)
+bool need_new_block(struct Brick *c, struct Plate *enclosing_block)
 {
   return isbuiltin(c)
     || !strcmp(c->car.str, ASSIGNMENT_KEYWORD)
@@ -186,14 +189,14 @@ bool need_new_block(struct Bit *c, struct Bundle *enclosing_block)
 }
 
 
-struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_root, int *blocks_count)
+struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_root, int *blocks_count)
 {
   /* this is the blocktracker in the python prototype */
-  struct Bundle **blocks = malloc(sizeof (struct Bundle *)); /* make room for the toplevel block */
+  struct Plate **blocks = malloc(sizeof (struct Plate *)); /* make room for the toplevel block */
   *(blocks + (*blocks_count)++) = global_block;
-  struct Bit *c = linked_cells_root;
-  struct Bundle *enclosure;	/* the enclosing bundle */
-  struct Bundle *active_binding_bundle; /* this is the last lambda, let etc. */
+  struct Brick *c = linked_cells_root;
+  struct Plate *enclosure;	/* the enclosing bundle */
+  struct Plate *active_binding_bundle; /* this is the last lambda, let etc. */
   int blockid = 1;
   while (c) {
     
@@ -241,10 +244,10 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
     /* &(enclosing_block->cells[0]) */
     
     if (need_new_block(c, enclosure) || c->type==BINDING) {
-      if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof (struct Bundle *))) != NULL) {
+      if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof (struct Plate *))) != NULL) {
 
-	struct Bundle *newblock = malloc(sizeof *newblock);
-	newblock->cells=malloc(sizeof (struct Bit *));
+	struct Plate *newblock = malloc(sizeof *newblock);
+	newblock->cells=malloc(sizeof (struct Brick *));
 	struct Env *newenv = malloc(sizeof *newenv);
 	newblock->id = blockid++;
 	*newblock->cells = c;
@@ -257,8 +260,8 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
 	newblock->env = newenv;
 
 	/* set the new block's content */
-	newblock->items = malloc(sizeof (struct Bundle_unit));
-	(*(newblock->items)).type = CELL;
+	newblock->items = malloc(sizeof (struct Plate_element));
+	(*(newblock->items)).type = BRICK;
 	(*(newblock->items)).cell_item = c;
 	
 	*(blocks + (*blocks_count)++) = newblock;
@@ -284,20 +287,20 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
 	}
 		
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
-	if ((enclosure->items = realloc(enclosure->items, (enclosure->size+1) * sizeof(struct Bundle_unit))) != NULL) {
-	  (*(enclosure->items + enclosure->size)).type = BLOCK;
+	if ((enclosure->items = realloc(enclosure->items, (enclosure->size+1) * sizeof(struct Plate_element))) != NULL) {
+	  (*(enclosure->items + enclosure->size)).type = PLATE;
 	  (*(enclosure->items + enclosure->size)).block_item = newblock;
 	  enclosure->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enclosure->items = realloc(enclosure->items, (enclosure->size+1) * sizeof(struct Bundle_unit))) != NULL) {
-	(*(enclosure->items + enclosure->size)).type = CELL;
+      if ((enclosure->items = realloc(enclosure->items, (enclosure->size+1) * sizeof(struct Plate_element))) != NULL) {
+	(*(enclosure->items + enclosure->size)).type = BRICK;
 	(*(enclosure->items + enclosure->size)).cell_item = c;
       }
       c->cell_enclosing_block = enclosure;
       /* enclosure->cells[enclosure->size] = *c; */
-      if ((enclosure->cells = realloc(enclosure->cells, (enclosure->size + 1) * sizeof (struct Bit *))) != NULL) {
+      if ((enclosure->cells = realloc(enclosure->cells, (enclosure->size + 1) * sizeof (struct Brick *))) != NULL) {
 	*(enclosure->cells + enclosure->size) = c;
       }
       enclosure->size++;
@@ -307,7 +310,7 @@ struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_
   return blocks;
 }
 
-void free_parser_blocks(struct Bundle **blocks, int blocks_count)
+void free_parser_blocks(struct Plate **blocks, int blocks_count)
 {
   /* the first pointer in **blocks points to the global_block, thats why we
      can't free *(blocks + 0), as global_block is created on the

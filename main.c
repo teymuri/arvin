@@ -3,32 +3,32 @@
 
 #include <glib.h>
 #include "read.h"
-#include "bundle_unit.h"
-#include "bit.h"
+#include "plate_element.h"
+#include "brick.h"
 #include "env.h"
 #include "ast.h"
 #include "token.h"
 #include "eval.h"
-#include "bundle.h"
+#include "plate.h"
 #include "print.h"
 /* extern struct Token *tokenize_lines__Hp(char **srclns, size_t lines_count, */
 /* 					size_t *all_tokens_count); */
 /* extern struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count, */
 /* 					 size_t all_tokens_count); */
-/* extern struct Bit *linked_cells__Hp(struct Token tokens[], size_t count); */
-/* extern struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_root, int *blocks_count); */
-/* extern struct letdata *eval(struct Bundle *root, */
+/* extern struct Brick *linked_cells__Hp(struct Token tokens[], size_t count); */
+/* extern struct Plate **parse__Hp(struct Plate *base_plate, struct Brick *linked_cells_root, int *blocks_count); */
+/* extern struct letdata *eval(struct Plate *root, */
 /* 			    struct env *local_env, */
-/* 				   struct env *global_env); */
-/* extern void free_parser_blocks(struct Bundle **blocks, int blocks_count); */
-/* extern void free_linked_cells(struct Bit *c); */
+/* 				   struct env *base_plate_env); */
+/* extern void free_parser_blocks(struct Plate **blocks, int blocks_count); */
+/* extern void free_linked_cells(struct Brick *c); */
 #define GLOBAL_TOKEN_STR "GLOBAL_TOKEN_STR"
 
 
 int main(int argc, char **argv)
 {
   /* The global environment */
-  struct Env global_env = {
+  struct Env base_plate_env = {
     .id = 0,
     /* g_hash_table_new returns a GHashTable* */
     .hash_table = g_hash_table_new(g_str_hash, g_str_equal),
@@ -36,16 +36,16 @@ int main(int argc, char **argv)
     /* .symcount = 0 */
   };
 
-  struct Token global_token = {
+  struct Token base_plate_token = {
     .str = GLOBAL_TOKEN_STR,
     .column_start_idx = -1,
     .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
     .linum = -1,
     .id = 0
   };
-  struct Bit global_cell = {				/* cells[0] toplevel cell */
+  struct Brick base_plate_brick = {				/* cells[0] toplevel cell */
     /* car token */
-    .car = global_token,
+    .car = base_plate_token,
     /* cdr cell pointer */
     .cdr = NULL,
     /* in block cdr */
@@ -57,24 +57,24 @@ int main(int argc, char **argv)
     .fval = 0.0			/* fval */
   };
   
-  struct Bundle_unit *global_item = malloc(sizeof (struct Bundle_unit));
-  (*global_item).type = CELL;
-  (*global_item).cell_item = &global_cell;
+  struct Plate_element *base_plate_element = malloc(sizeof (struct Plate_element));
+  (*base_plate_element).type = BRICK;
+  (*base_plate_element).cell_item = &base_plate_brick;
 
-  struct Bundle global_block = {
+  struct Plate base_plate = {
     .id = 0,
-    /* .cells = &global_cell, */
+    /* .cells = &base_plate_brick, */
     /* env (Toplevel Environment) */
-    .env = &global_env,
+    .env = &base_plate_env,
     /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
     .block_enclosing_block = NULL,
-    .items = global_item,
+    .items = base_plate_element,
     .islambda = false,
     .arity = -1			/* invalid arity, because this is not a lambda block! */
   };
-  global_block.cells = malloc(sizeof (struct Bit *));
-  *global_block.cells = &global_cell;
+  base_plate.cells = malloc(sizeof (struct Brick *));
+  *base_plate.cells = &base_plate_brick;
   
   /* int linum=1; */
   /* char *lines[] = { */
@@ -96,28 +96,28 @@ int main(int argc, char **argv)
      Kommentaren was übrig geblieben ist */
   
   if (nctok_count) {
-    struct Bit *c = linked_cells__Hp(nct, nctok_count);
-    struct Bit *base = c;
+    struct Brick *c = linked_cells__Hp(nct, nctok_count);
+    struct Brick *base = c;
     int blocks_count = 0;
-    struct Bundle **b = parse__Hp(&global_block, c, &blocks_count);
+    struct Plate **b = parse__Hp(&base_plate, c, &blocks_count);
     
-    print_ast(&global_block);
-    /* print(eval(&global_block, &global_env, &global_env)); */
-    eval(&global_block, &global_env, &global_env);
+    print_ast(&base_plate);
+    /* print(eval(&base_plate, &base_plate_env, &base_plate_env)); */
+    eval(&base_plate, &base_plate_env, &base_plate_env);
 
     free_parser_blocks(b, blocks_count);
     free_linked_cells(base);
     free(nct);
   }
   
-  /* struct Bit *c = linked_cells__Hp(nct, nctok_count); */
-  /* struct Bit *base = c; */
+  /* struct Brick *c = linked_cells__Hp(nct, nctok_count); */
+  /* struct Brick *base = c; */
   /* int blocks_count = 0; */
 
-  /* struct Bundle **b = parse__Hp(&global_block, c, &blocks_count); */
-  /* print_ast(&global_block); */
-  /* /\* print(eval(&global_block, &global_env, &global_env)); *\/ */
-  /* /\* eval(&global_block, &global_env, &global_env); *\/ */
+  /* struct Plate **b = parse__Hp(&base_plate, c, &blocks_count); */
+  /* print_ast(&base_plate); */
+  /* /\* print(eval(&base_plate, &base_plate_env, &base_plate_env)); *\/ */
+  /* /\* eval(&base_plate, &base_plate_env, &base_plate_env); *\/ */
 
   /* free_parser_blocks(b, blocks_count); */
   /* free_linked_cells(base); */

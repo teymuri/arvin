@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "type.h"
 #include "let_data.h"
-#include "bit.h"
+#include "brick.h"
 
 
 
@@ -47,7 +47,7 @@ int __Builtins_count = 4;
 
 
 /* is the cell c a builtin? */
-bool isbuiltin(struct Bit *c)
+bool isbuiltin(struct Brick *c)
 {
   for (int i = 0; i < __Builtins_count; i++)
     if (!strcmp(cellstr(c), __Builtins[i]))

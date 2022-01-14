@@ -1,25 +1,25 @@
-#ifndef LET_BUNDLE_H
-#define LET_BUNDLE_H
+#ifndef LET_MULTIPLE_H
+#define LET_MULTIPLE_H
 
 #include <stdbool.h>
-#include "bit.h"
+#include "brick.h"
 #include "env.h"
 
-struct Bit block_head(struct Bundle *b);
+struct Brick block_head(struct Plate *b);
 
 /* int __Blockid = 0; */
-#define MAX_BLOCK_SIZE 10
-struct Bundle {
+#define MAX_PLATE_SIZE 10
+struct Plate {
   int id;
-  /* struct Bit cells[MAX_BLOCK_SIZE]; */
-  struct Bit **cells;
+  /* struct Brick cells[MAX_PLATE_SIZE]; */
+  struct Brick **cells;
   /* nicht alle Blocks brauchen eingenes env, z.B. +  */
   /* bool needs_env; */
   struct Env *env;
   int size;			/* number of cells contained in this block*/
-  struct Bundle_unit *items;		/* content cells & child blocks */
+  struct Plate_element *items;		/* content cells & child blocks */
   /* the embedding block */
-  struct Bundle *block_enclosing_block;
+  struct Plate *block_enclosing_block;
   bool islambda;
   void *(*lambda)(void *);
   int arity;			/* arity is the number of arguments
@@ -30,4 +30,4 @@ struct Bundle {
 				   max reingesteckt werden können?! */
 };
 
-#endif	/* LET_BUNDLE_H */
+#endif	/* LET_MULTIPLE_H */

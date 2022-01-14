@@ -56,8 +56,8 @@ int __Tokid = 1;		/* id 0 is reserved for the toplevel
 /* void index_comments(struct Token *tokens, size_t all_tokens_count); */
 /* struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count, */
 /* 				  size_t all_tokens_count); */
-/* struct Bit *linked_cells__Hp(struct Token tokens[], size_t count); */
-/* void free_linked_cells(struct Bit *c); */
+/* struct Brick *linked_cells__Hp(struct Token tokens[], size_t count); */
+/* void free_linked_cells(struct Brick *c); */
 
 
 

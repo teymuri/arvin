@@ -6,18 +6,19 @@
 #include "let_data.h"
 #include "token.h"
 #include "env.h"
-#include "bit.h"
-#include "bundle.h"
-#include "bundle_unit.h"
+#include "brick.h"
+#include "plate.h"
+#include "plate_element.h"
 #include "core.h"
 #include "symbol.h"
 #include "lambda.h"
 
 
 /* is external, defined in ast.c */
-bool is_bound_parameter(struct Bit *, struct Bundle *);
+bool is_bound_parameter(struct Brick *, struct Plate *);
+bool is_bound_binding(struct Brick *);
 
-bool is_association(struct Bit *);
+bool is_association(struct Brick *);
 
 char *bound_parameter_name(char *param)
 {
@@ -29,20 +30,20 @@ char *bound_parameter_name(char *param)
   return name;
 }
 
-bool is_define(struct Bundle *b)
+bool is_define(struct Plate *b)
 {
   return !strcmp(b->cells[0]->car.str, ASSIGNMENT_KEYWORD);
 }
 
 
 /* eval evaluiert einen Baum */
-struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
+struct Let_data *eval_bundle_unit(struct Plate_element *item,
 			 struct Env *local_env,
 			 struct Env *global_env)
 {
   struct Let_data *result = malloc(sizeof(struct Let_data)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval_bundle_unit */
   switch (item->type) {
-  case CELL:
+  case BRICK:
     switch (celltype(item->cell_item)) {
     case INTEGER:
       result->type = INTEGER;
@@ -84,8 +85,8 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
       break;
     default: break;
     }
-    break;			/* break CELL */
-  case BLOCK:
+    break;			/* break BRICK */
+  case PLATE:
     /* if (is_lambda_unit(&block_head(item->block_item))) { */
     if (!strcmp(block_head(item->block_item).car.str, LAMBDA_KW)) {
       result->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
@@ -144,17 +145,17 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
       /* index 0 ist ja let selbst, fangen wir mit 1 an */
       for (int i = 1; i < item->block_item->size - 1;i++) {
 	switch (item->block_item->items[i].type) {
-	case CELL:		/* muss ein parameter ohne Wert sein, bind to NIL */
+	case BRICK:		/* muss ein parameter ohne Wert sein, bind to NIL */
 	  printf("in Eval bundle Unit BIT: %s %s\n",item->block_item->items[i].cell_item->car.str,
 		 stringify_cell_type(celltype(item->block_item->items[i].cell_item)));
 	  break;
-	case BLOCK:		/* muss ein bound parameter sein! */
+	case PLATE:		/* muss ein bound parameter sein! */
 	  {
 	    /* So kann ich voraussetzen dass diese Teile alle
 	       parameter sind und bis zum letzten Ausruck alles
 	       parameter bleibt! */
-	    assert(is_bound_parameter(*item->block_item->items[i].block_item->cells,
-				      item->block_item));
+	    assert(is_bound_binding(*item->block_item->items[i].block_item->cells));
+	    /* assert(is_bound_parameter(*item->block_item->items[i].block_item->cells, item->block_item)); */
 	    int bound_parameter_block_size = item->block_item->items[i].block_item->size;
 	    assert(bound_parameter_block_size == 2);
 	    char *parameter = item->block_item->items[i].block_item->cells[0]->car.str;
@@ -189,13 +190,13 @@ struct Let_data *eval_bundle_unit(struct Bundle_unit *item,
 
       
     }
-    break;			/* break BLOCK */
+    break;			/* break PLATE */
   default: break;
   }
   return result;
 }
 
-struct Let_data *eval(struct Bundle *root,
+struct Let_data *eval(struct Plate *root,
 		      struct Env *local_env,
 		      struct Env *global_env)
 {

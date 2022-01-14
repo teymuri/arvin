@@ -1,20 +1,20 @@
-/* #include "let.h" */
+
 #include "type.h"
-#include "bundle_unit.h"
-#include "bit.h"
-#include "bundle.h"
+#include "plate_element.h"
+#include "brick.h"
+#include "plate.h"
 
 
 
 
-char *stringify_block_item_type(enum Bundle_unit_type t)
+char *stringify_block_item_type(enum Plate_element_type t)
 {
   switch (t) {
-  case CELL:
-    return "CELL";
+  case BRICK:
+    return "BRICK";
     break;
-  case BLOCK:
-    return "BLOCK";
+  case PLATE:
+    return "PLATE";
     break;
   default:
     return "INVALID?????????????";
@@ -32,7 +32,7 @@ char *stringify_block_item_type(enum Bundle_unit_type t)
 
 /* löschen!!!!!!!! */
 /* Type Lambda */
-/* typedef void (*lambda_t)(struct Bit *); */
+/* typedef void (*lambda_t)(struct Brick *); */
 
 
 
@@ -40,7 +40,7 @@ char *stringify_block_item_type(enum Bundle_unit_type t)
 
 
 
-struct Bit block_head(struct Bundle *b) { return *b->cells[0]; }
+struct Brick block_head(struct Plate *b) { return *b->cells[0]; }
 
 
 

@@ -3,12 +3,12 @@
 #include <stdlib.h>
 #include "token.h"
 #include "type.h"
-#include "bit.h"
+#include "brick.h"
 
 
 
 /* why is this any good??? */
-enum Type celltype(struct Bit *c)
+enum Type celltype(struct Brick *c)
 {
   /* switch (c->car.type) { */
   switch (c->type) {
@@ -21,7 +21,7 @@ enum Type celltype(struct Bit *c)
   }
 }
 
-void set_cell_type(struct Bit *c)
+void set_cell_type(struct Brick *c)
 {
   switch (c->car.type) {
   case INTEGER: c->type = INTEGER; break;
@@ -31,7 +31,7 @@ void set_cell_type(struct Bit *c)
   }
 }
 
-void set_cell_value(struct Bit *c)
+void set_cell_value(struct Brick *c)
 {
   switch (c->car.type) {
   case INTEGER:
@@ -43,18 +43,18 @@ void set_cell_value(struct Bit *c)
   default: break;
   }
 }
-char *cellstr(struct Bit *c) {return c->car.str;}
+char *cellstr(struct Brick *c) {return c->car.str;}
 
 /* 
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
 /* returns a list of linked cells made of tokens */
-struct Bit *linked_cells__Hp(struct Token tokens[], size_t count)
+struct Brick *linked_cells__Hp(struct Token tokens[], size_t count)
 {
-  struct Bit *prev, *root;	/* store previous and first cell address */
+  struct Brick *prev, *root;	/* store previous and first cell address */
   for (size_t i = 0; i < count; i++) {
-    struct Bit *c = malloc(sizeof (struct Bit));
+    struct Brick *c = malloc(sizeof (struct Brick));
     if (i == 0) root = c;
     
     /* guess_token_type(tokens+i);	/\* pass the pointer to the token *\/ */
@@ -71,9 +71,9 @@ struct Bit *linked_cells__Hp(struct Token tokens[], size_t count)
   return root;
 }
 
-void free_linked_cells(struct Bit *c)
+void free_linked_cells(struct Brick *c)
 {
-  struct Bit *tmp;
+  struct Brick *tmp;
   while (c != NULL) {
     tmp = c;
     c = c->cdr;

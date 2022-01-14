@@ -2,11 +2,11 @@
 #define LET_LAMBDA_H
 
 #include "env.h"
-#include "bundle_unit.h"
+#include "plate_element.h"
 
 struct Lambda {
   struct Env *lambda_env;
-  struct Bundle_unit *return_expr;	/* the return statement */
+  struct Plate_element *return_expr;	/* the return statement */
 };
 
 #endif	/* LET_LAMBDA_H */
