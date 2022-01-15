@@ -5,9 +5,9 @@
 #include "plate_element.h"
 
 
-#define AST_PRINTER_PLATE_STR_TL "[Baseplate Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
-#define AST_PRINTER_PLATE_STR "[Plate Head(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
-#define AST_PRINTER_BRICK_STR "[Brick(%s) Type(%s)]\n"
+#define AST_PRINTER_PLATE_STR_TL "[BASEPLATE Brick(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
+#define AST_PRINTER_PLATE_STR "[PLATE Brick(%s) Size(%d) ENV(SZ:%d ID:%d)%p Arity(%d)]\n"
+#define AST_PRINTER_BRICK_STR "[BRICK(%s) Type(%s)]\n"
 
 void print_indent(int i)
 {
@@ -26,42 +26,44 @@ void print_code_ast(struct Plate *root, int depth) /* This is the written code p
 /* startpoint is the root block */
 {
   for (int i = 0; i < root->size; i++) {
-    switch (root->items[i].type) {
+    switch (root->elements[i].type) {
     case BRICK:
       print_indent(depth);
       printf(AST_PRINTER_BRICK_STR,
-	     root->items[i].cell_item->car.str,
-	     stringify_type(celltype(root->items[i].cell_item))
+	     root->elements[i].cell_item->token.str,
+	     stringify_type(brick_type(root->elements[i].cell_item))
 	     );
       break;
     case PLATE:
       print_indent(depth);
       printf(AST_PRINTER_PLATE_STR,
-	     root->items[i].block_item->cells[0]->car.str,
-	     root->items[i].block_item->size,
-	     /* root->items[i].b->env ? root->items[i].b->env->symcount : -1, */
-	     root->items[i].block_item->env ? -1 : -1,
-	     root->items[i].block_item->env ? root->items[i].block_item->env->id : -1,
-	     root->items[i].block_item->env ? (void *)root->items[i].block_item->env : NULL,
-	     root->items[i].block_item->islambda ? root->items[i].block_item->arity : -1
+	     root->elements[i].block_item->bricks[0]->token.str,
+	     root->elements[i].block_item->size,
+	     /* root->elements[i].b->env ? root->elements[i].b->env->symcount : -1, */
+	     root->elements[i].block_item->env ? -1 : -1,
+	     root->elements[i].block_item->env ? root->elements[i].block_item->env->id : -1,
+	     root->elements[i].block_item->env ? (void *)root->elements[i].block_item->env : NULL,
+	     root->elements[i].block_item->islambda ? root->elements[i].block_item->arity : -1
 	     );
-      print_code_ast(root->items[i].block_item, depth+1);
+      print_code_ast(root->elements[i].block_item, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("[Invalid Content %d] %s %s\n", i,root[i].cells[0]->car.str, root[i].items[0].cell_item->car.str);
+      printf("[Invalid Content %d] %s %s\n", i,root[i].bricks[0]->token.str, root[i].elements[0].cell_item->token.str);
+      break;
     }
   }
 }
+
 void print_ast(struct Plate *root)
 {
-  /* root's (the toplevel block) items is a block_item of
-     type BRICK, so when iterating over root's items this BRICK
+  /* root's (the toplevel block) elements is a block_item of
+     type BRICK, so when iterating over root's elements this BRICK
      will be printed but there will be no PLATE printed on top of that
      BRICK, thats why we are cheating here and print a PLATE-Like on
      top of the whole ast. */
   printf(AST_PRINTER_PLATE_STR_TL,
- 	 root->items->cell_item->car.str,
+ 	 root->elements->cell_item->token.str,
  	 root->size,
 	 /* root->env ? root->env->symcount : -1, */
 	 root->env ? -1 : -1,

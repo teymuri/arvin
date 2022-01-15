@@ -44,7 +44,7 @@ int __Tokid = 1;		/* id 0 is reserved for the toplevel
 /* void free_lines(char **lines, size_t count); */
 
 /* struct Token *tokenize_line__Hp */
-/* (char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum); */
+/* (char *line, size_t *line_toks_count, size_t *all_tokens_count, int line); */
 
 /* struct Token *tokenize_source__Hp(char *path, size_t *all_tokens_count); */
 
@@ -114,7 +114,8 @@ void free_lines(char **lines, size_t count)
 
 /* Generates tokens */
 struct Token *tokenize_line__Hp
-(char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum)
+(char *lnstr, size_t *line_toks_count, size_t *all_tokens_count, int ln)
+/* lnstr = line string content, ln = line number*/
 {
   regex_t re;
   int errcode;			
@@ -159,13 +160,13 @@ struct Token *tokenize_line__Hp
   /* overall size of memory allocated for tokens of the line sofar */
   size_t memsize = 0;
   /* int tokscnt = 0; */
-  while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
+  while (!regexec(&re, lnstr + offset, 1, match, REG_NOTBOL)) { /* a match found */
     /* make room for the new token */
     memsize += sizeof(struct Token);
     if ((tokptr = realloc(tokptr, memsize)) != NULL) { /* new memory allocated successfully */
       tokstrlen = match[0].rm_eo - match[0].rm_so;
       struct Token t;
-      memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
+      memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
 
       /* guess type */
@@ -185,14 +186,14 @@ struct Token *tokenize_line__Hp
       t.id = __Tokid++;
       t.column_start_idx = offset + match[0].rm_so;
       t.column_end_idx = t.column_start_idx + tokstrlen;
-      t.linum = linum;
+      t.line = ln;
       t.comment_index = 0;
       *(tokptr + *line_toks_count) = t;
       (*all_tokens_count)++;
       (*line_toks_count)++;
       offset += match[0].rm_eo;
     } else {
-      fprintf(stderr, "realloc failed while tokenizing line %d at token %s", linum, "TOKEN????");
+      fprintf(stderr, "realloc failed while tokenizing line %d at token %s", ln, "TOKEN????");
       /* just break out of executaion if haven't enough memory for the
 	 next token. leave the freeing & cleanup over for the os! */
       exit(EXIT_FAILURE);

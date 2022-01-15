@@ -17,7 +17,7 @@
 /* is external, defined in ast.c */
 bool is_bound_parameter(struct Brick *, struct Plate *);
 bool is_bound_binding(struct Brick *);
-void check_lambda_bindings(struct Plate *);
+void amend_lambda_semantics(struct Plate *);
 
 bool is_association(struct Brick *);
 
@@ -33,19 +33,19 @@ char *bound_parameter_name(char *param)
 
 bool is_define(struct Plate *b)
 {
-  return !strcmp(b->cells[0]->car.str, ASSIGNMENT_KEYWORD);
+  return !strcmp(b->bricks[0]->token.str, ASSIGNMENT_KEYWORD);
 }
 
 
 /* eval evaluiert einen Baum */
 struct Let_data *eval_bundle_unit(struct Plate_element *item,
-			 struct Env *local_env,
-			 struct Env *global_env)
+			 struct Environment *local_env,
+			 struct Environment *global_env)
 {
   struct Let_data *result = malloc(sizeof(struct Let_data)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval_bundle_unit */
   switch (item->type) {
   case BRICK:
-    switch (celltype(item->cell_item)) {
+    switch (brick_type(item->cell_item)) {
     case INTEGER:
       result->type = INTEGER;
       result->value.dataslot_int = item->cell_item->ival;
@@ -58,9 +58,9 @@ struct Let_data *eval_bundle_unit(struct Plate_element *item,
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
       {
 	struct Symbol *sym;
-	char *symname = item->cell_item->car.str;
-	/* struct Symbol *sym = g_hash_table_lookup(local_env->hash_table, item->c->car.str); */
-	struct Env *e = local_env;
+	char *symname = item->cell_item->token.str;
+	/* struct Symbol *sym = g_hash_table_lookup(local_env->hash_table, item->c->token.str); */
+	struct Environment *e = local_env;
 	while (e) {
 	  if ((sym = g_hash_table_lookup(e->hash_table, symname))) {
 	    result->type = sym->symbol_data->type;
@@ -89,7 +89,7 @@ struct Let_data *eval_bundle_unit(struct Plate_element *item,
     break;			/* break BRICK */
   case PLATE:
     /* if (is_lambda_unit(&block_head(item->block_item))) { */
-    if (!strcmp(block_head(item->block_item).car.str, LAMBDA_KW)) {
+    if (!strcmp(block_head(item->block_item).token.str, LAMBDA_KW)) {
 
       /* int lambda_IS_size = item->block_item->size - 1; /\* head is lambda word itself, cut it off *\/ */
       /* int lambda_SHOULDBE_size = item->block_item->arity + 1; */
@@ -99,41 +99,41 @@ struct Let_data *eval_bundle_unit(struct Plate_element *item,
       struct Lambda *lambda = malloc(sizeof (struct Lambda));
       lambda->lambda_env = item->block_item->env->enclosing_env;
 
-      /* item->block_item->items + 0 ist ja lambda wort selbst!!! */
+      /* item->block_item->elements + 0 ist ja lambda wort selbst!!! */
       switch (item->block_item->arity) {
       case 0:
 	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
-	/* lambda->return_expr = &(item->block_item->items[1]); */
-	lambda->return_expr = item->block_item->items + 1;
+	/* lambda->return_expr = &(item->block_item->elements[1]); */
+	lambda->return_expr = item->block_item->elements + 1;
 	result->value.dataslot_lambda = lambda;
 	/* result->value.fn = &GJ; */
 	/* result->value.fn = struct Let_data *(*)(void); */
 	break;
       }
       
-    } else if (!strcmp(block_head(item->block_item).car.str, "call")) {
-      struct Let_data *lambda_name_or_expr = eval_bundle_unit(&(item->block_item->items[1]), local_env, global_env);
-      struct Env *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env;
+    } else if (!strcmp(block_head(item->block_item).token.str, "call")) {
+      struct Let_data *lambda_name_or_expr = eval_bundle_unit(&(item->block_item->elements[1]), local_env, global_env);
+      struct Environment *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env;
       /* printf("%s", stringify_type(lambda_name_or_expr->type)); */
       result = eval_bundle_unit(lambda_name_or_expr->value.dataslot_lambda->return_expr,
 			    /* local_env, */
 			    lambda_env,
 			    global_env);
       
-    } else if (!strcmp(block_head(item->block_item).car.str, "pret")) {
-      /* struct Let_data *thing = eval_bundle_unit(&((item->block_item)->items[1]), local_env, global_env); */
+    } else if (!strcmp(block_head(item->block_item).token.str, "pret")) {
+      /* struct Let_data *thing = eval_bundle_unit(&((item->block_item)->elements[1]), local_env, global_env); */
       /* result->type = thing->type; */
       /* result->value.dataslot_int =thing->value.dataslot_int; */
       /* printf("-> %s\n", stringify_type(result->type)); */
-      result = pret(eval_bundle_unit(&((item->block_item)->items[1]), local_env, global_env));
-    } else if (!strcmp(block_head(item->block_item).car.str, "gj")) {
+      result = pret(eval_bundle_unit(&((item->block_item)->elements[1]), local_env, global_env));
+    } else if (!strcmp(block_head(item->block_item).token.str, "gj")) {
       result = GJ();
       
     } else if (is_define(item->block_item)) { /* is_assignment */
       /* don't let the name of the binding to go through eval! */
-      char *define_name = item->block_item->cells[1]->car.str; /* name of the definition */
+      char *define_name = item->block_item->bricks[1]->token.str; /* name of the definition */
       /* data can be a lambda expr or some constant or other names etc. */
-      struct Let_data *define_data = eval_bundle_unit(item->block_item->items + 2,
+      struct Let_data *define_data = eval_bundle_unit(item->block_item->elements + 2,
 					     item->block_item->env,
 					     /* local_env, */
 					     global_env);
@@ -146,25 +146,25 @@ struct Let_data *eval_bundle_unit(struct Plate_element *item,
       result->type = SYMBOL;
       result->value.dataslot_symbol = sym;
       
-    } else if (is_association(*item->block_item->cells)) { /* = &(item->block_item->cells[0]) */
+    } else if (is_association(*item->block_item->bricks)) { /* = &(item->block_item->bricks[0]) */
       /* add let parameters to it's hashtable */
       /* index 0 ist ja let selbst, fangen wir mit 1 an */
       for (int i = 1; i < item->block_item->size - 1;i++) {
-	switch (item->block_item->items[i].type) {
+	switch (item->block_item->elements[i].type) {
 	case BRICK:		/* muss ein parameter ohne Wert sein, bind to NIL */
-	  printf("in Eval bundle Unit BIT: %s %s\n",item->block_item->items[i].cell_item->car.str,
-		 stringify_cell_type(celltype(item->block_item->items[i].cell_item)));
+	  printf("in Eval bundle Unit BIT: %s %s\n",item->block_item->elements[i].cell_item->token.str,
+		 stringify_type(brick_type(item->block_item->elements[i].cell_item)));
 	  break;
 	case PLATE:		/* muss ein bound parameter sein! */
 	  {
 	    /* So kann ich voraussetzen dass diese Teile alle
 	       parameter sind und bis zum letzten Ausruck alles
 	       parameter bleibt! */
-	    assert(is_bound_binding(*item->block_item->items[i].block_item->cells));
-	    /* assert(is_bound_parameter(*item->block_item->items[i].block_item->cells, item->block_item)); */
-	    int bound_parameter_block_size = item->block_item->items[i].block_item->size;
+	    assert(is_bound_binding(*item->block_item->elements[i].block_item->bricks));
+	    /* assert(is_bound_parameter(*item->block_item->elements[i].block_item->bricks, item->block_item)); */
+	    int bound_parameter_block_size = item->block_item->elements[i].block_item->size;
 	    assert(bound_parameter_block_size == 2);
-	    char *parameter = item->block_item->items[i].block_item->cells[0]->car.str;
+	    char *parameter = item->block_item->elements[i].block_item->bricks[0]->token.str;
 
 	    /* .x */
 	    char *param_name=malloc(strlen(parameter)); /* jajaaaa VLA! */
@@ -175,7 +175,7 @@ struct Let_data *eval_bundle_unit(struct Plate_element *item,
 	    
 	    /* char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
 	    
-	    struct Let_data *parameter_data = eval_bundle_unit(&(item->block_item->items[i].block_item->items[1]),
+	    struct Let_data *parameter_data = eval_bundle_unit(&(item->block_item->elements[i].block_item->elements[1]),
 						      item->block_item->env,
 						      global_env);
 	    struct Symbol *symbol = malloc(sizeof (struct Symbol));
@@ -189,7 +189,7 @@ struct Let_data *eval_bundle_unit(struct Plate_element *item,
 
     
       }
-      result = eval_bundle_unit(item->block_item->items + (item->block_item->size - 1),
+      result = eval_bundle_unit(item->block_item->elements + (item->block_item->size - 1),
 			item->block_item->env,
 			global_env);
 	  
@@ -203,12 +203,12 @@ struct Let_data *eval_bundle_unit(struct Plate_element *item,
 }
 
 struct Let_data *eval(struct Plate *root,
-		      struct Env *local_env,
-		      struct Env *global_env)
+		      struct Environment *local_env,
+		      struct Environment *global_env)
 {
-  check_lambda_bindings(root);
+  /* amend_lambda_semantics(root); */
   for (int i = 0; i < (root->size - 1); i++) {
-    eval_bundle_unit(&(root->items[i]), local_env, global_env);
+    eval_bundle_unit(&(root->elements[i]), local_env, global_env);
   }
-  return eval_bundle_unit(&(root->items[root->size - 1]), local_env, global_env);
+  return eval_bundle_unit(&(root->elements[root->size - 1]), local_env, global_env);
 }

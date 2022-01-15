@@ -74,7 +74,7 @@
   - Lambdas
   - Lambda Parameter Namen
   - Cond Teile `IF` THEN ELSE
-2. Jeder Block-builder saugt **maximal** soviel Items (Cells oder Blocks) auf wie für ihn definiert. Es ist für Funktionen z.B. Anzahln der Argumente + 1 Return-Expression, für Lambda Parameter mit Defaultargumenten nur ein einziges Item etc. So wird eine unnötige block-artige Schreibweise vermieden, wenn es z.B. natürlicher und intuitiver erscheint wenn man etwas kurz auf eine Zeile zusammenfassen könnte. Ein Beispiel:
+2. Jeder Block-builder saugt **maximal** soviel Elements (Bricks oder Blocks) auf wie für ihn definiert. Es ist für Funktionen z.B. Anzahln der Argumente + 1 Return-Expression, für Lambda Parameter mit Defaultargumenten nur ein einziges Item etc. So wird eine unnötige block-artige Schreibweise vermieden, wenn es z.B. natürlicher und intuitiver erscheint wenn man etwas kurz auf eine Zeile zusammenfassen könnte. Ein Beispiel:
 folgender Block:
 ```
 define

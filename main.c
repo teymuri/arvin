@@ -28,7 +28,7 @@
 int main(int argc, char **argv)
 {
   /* The global environment */
-  struct Env base_plate_env = {
+  struct Environment base_plate_env = {
     .id = 0,
     /* g_hash_table_new returns a GHashTable* */
     .hash_table = g_hash_table_new(g_str_hash, g_str_equal),
@@ -40,15 +40,15 @@ int main(int argc, char **argv)
     .str = GLOBAL_TOKEN_STR,
     .column_start_idx = -1,
     .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
-    .linum = -1,
+    .line = -1,
     .id = 0
   };
-  struct Brick base_plate_brick = {				/* cells[0] toplevel cell */
-    /* car token */
-    .car = base_plate_token,
-    /* cdr cell pointer */
-    .cdr = NULL,
-    /* in block cdr */
+  struct Brick base_plate_brick = {				/* bricks[0] toplevel cell */
+    /* token token */
+    .token = base_plate_token,
+    /* next cell pointer */
+    .next = NULL,
+    /* in block next */
     .in_block_cdr = NULL,
     /* type ??? */
     .type = UNDEFINED,
@@ -63,20 +63,20 @@ int main(int argc, char **argv)
 
   struct Plate base_plate = {
     .id = 0,
-    /* .cells = &base_plate_brick, */
+    /* .bricks = &base_plate_brick, */
     /* env (Toplevel Environment) */
     .env = &base_plate_env,
     /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
-    .block_enclosing_block = NULL,
-    .items = base_plate_element,
+    .plate = NULL,
+    .elements = base_plate_element,
     .islambda = false,
     .arity = -1			/* invalid arity, because this is not a lambda block! */
   };
-  base_plate.cells = malloc(sizeof (struct Brick *));
-  *base_plate.cells = &base_plate_brick;
+  base_plate.bricks = malloc(sizeof (struct Brick *));
+  *base_plate.bricks = &base_plate_brick;
   
-  /* int linum=1; */
+  /* int line=1; */
   /* char *lines[] = { */
   /*   "pret 1" */
     
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
   
   size_t all_tokens_count = 0;
   struct Token *toks = tokenize_source__Hp(argv[1], &all_tokens_count);
-  /* struct Token *toks = tokenize_lines__Hp(lines, linum, &all_tokens_count); */
+  /* struct Token *toks = tokenize_lines__Hp(lines, line, &all_tokens_count); */
   size_t nctok_count = 0;
   struct Token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
   
@@ -99,13 +99,14 @@ int main(int argc, char **argv)
     struct Brick *c = linked_cells__Hp(nct, nctok_count);
     struct Brick *base = c;
     int blocks_count = 0;
-    struct Plate **b = parse__Hp(&base_plate, c, &blocks_count);
+    struct Plate **ast = parse__Hp(&base_plate, c, &blocks_count);
+    amend_lambda_semantics(&base_plate);
     
     print_ast(&base_plate);
     /* print(eval(&base_plate, &base_plate_env, &base_plate_env)); */
     eval(&base_plate, &base_plate_env, &base_plate_env);
 
-    free_parser_blocks(b, blocks_count);
+    free_parser_blocks(ast, blocks_count);
     free_linked_cells(base);
     free(nct);
   }

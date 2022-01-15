@@ -10,7 +10,7 @@ enum Type {
   UNDEFINED
 };
 
-char *stringify_cell_type(enum Type);
+/* char *stringify_cell_type(enum Type); */
 char *stringify_type(enum Type);
 
 

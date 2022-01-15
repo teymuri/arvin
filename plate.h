@@ -12,14 +12,14 @@ struct Brick block_head(struct Plate *b);
 struct Plate {
   int id;
   /* struct Brick cells[MAX_PLATE_SIZE]; */
-  struct Brick **cells;
+  struct Brick **bricks;
   /* nicht alle Blocks brauchen eingenes env, z.B. +  */
   /* bool needs_env; */
-  struct Env *env;
-  int size;			/* number of cells contained in this block*/
-  struct Plate_element *items;		/* content cells & child blocks */
+  struct Environment *env;
+  int size;			/* number of bricks contained in this block*/
+  struct Plate_element *elements;		/* content bricks & child blocks */
   /* the embedding block */
-  struct Plate *block_enclosing_block;
+  struct Plate *plate;
   bool islambda;
   void *(*lambda)(void *);
   int arity;			/* arity is the number of arguments

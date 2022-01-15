@@ -5,7 +5,7 @@
 #include "plate_element.h"
 
 struct Lambda {
-  struct Env *lambda_env;
+  struct Environment *lambda_env;
   struct Plate_element *return_expr;	/* the return statement */
 };
 

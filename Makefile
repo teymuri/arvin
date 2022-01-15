@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedantic -I.
+CFLAGS = -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedantic -I. #-Werror
 # DEPS = read.h unit_block.h let.h
 OBJS = ast.o brick.o core.o eval.o print.o read.o type.o main.o
 # BART = ./build_artifacts
