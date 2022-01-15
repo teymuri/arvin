@@ -225,8 +225,8 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
     /* is_binding(enclosure->bricks + 0, enclosure->plate) */
     if ((*enclosure->bricks)->type == BINDING || (*enclosure->bricks)->type == BOUND_BINDING) {
       (*enclosure->bricks)->type = BOUND_BINDING;
-      if (enclosure->max_absorption_capacity == 1)
-	enclosure->max_absorption_capacity = 0;
+      if (enclosure->max_absr_capa == 1)
+	enclosure->max_absr_capa = 0;
       else {
 	enclosure = enclosure->plate;
       }
@@ -260,9 +260,9 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
 	newblock->env = newenv;
 
 	/* set the new block's content */
-	newblock->elements = malloc(sizeof (struct Plate_element));
-	(*(newblock->elements)).type = BRICK;
-	(*(newblock->elements)).cell_item = c;
+	newblock->elts = malloc(sizeof (struct Plate_element));
+	(*(newblock->elts)).type = BRICK;
+	(*(newblock->elts)).cell_item = c;
 	
 	*(blocks + (*blocks_count)++) = newblock;
 	
@@ -282,22 +282,22 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
 
 	if (is_binding(c, enclosure) || c->type==BINDING) {
 	  /* printf("Christoph Seibert"); */
-	  newblock->max_absorption_capacity = 1;	/* ist maximal das default argument wenn vorhanden */
+	  newblock->max_absr_capa = 1;	/* ist maximal das default argument wenn vorhanden */
 	  /* enhance the type from simple SYMBOL to BOUND_BINDING */
 	  /* c->type = BOUND_BINDING; */
 	}
 		
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
-	if ((enclosure->elements = realloc(enclosure->elements, (enclosure->size+1) * sizeof(struct Plate_element))) != NULL) {
-	  (*(enclosure->elements + enclosure->size)).type = PLATE;
-	  (*(enclosure->elements + enclosure->size)).block_item = newblock;
+	if ((enclosure->elts = realloc(enclosure->elts, (enclosure->size+1) * sizeof(struct Plate_element))) != NULL) {
+	  (*(enclosure->elts + enclosure->size)).type = PLATE;
+	  (*(enclosure->elts + enclosure->size)).block_item = newblock;
 	  enclosure->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
-      if ((enclosure->elements = realloc(enclosure->elements, (enclosure->size+1) * sizeof(struct Plate_element))) != NULL) {
-	(*(enclosure->elements + enclosure->size)).type = BRICK;
-	(*(enclosure->elements + enclosure->size)).cell_item = c;
+      if ((enclosure->elts = realloc(enclosure->elts, (enclosure->size+1) * sizeof(struct Plate_element))) != NULL) {
+	(*(enclosure->elts + enclosure->size)).type = BRICK;
+	(*(enclosure->elts + enclosure->size)).cell_item = c;
       }
       c->plate = enclosure;
       /* enclosure->bricks[enclosure->size] = *c; */
@@ -313,21 +313,21 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
 void print_code_ast(struct Plate *root, int depth);
 char *stringify_block_item_type(enum Plate_element_type t);
 
-/* append elt as the last item to plt's elements */
+/* append elt as the last item to plt's elts */
 void append_element(struct Plate_element *elt, struct Plate *plt)
 {  
   /* ******************************* */
-  if ((plt->elements = realloc(plt->elements,
+  if ((plt->elts = realloc(plt->elts,
 			    (plt->size+1) * sizeof (struct Plate_element))) != NULL) {
-	(plt->elements + plt->size)->type = elt->type;
+	(plt->elts + plt->size)->type = elt->type;
 	if (elt->type == BRICK) {
-	  (plt->elements + plt->size)->cell_item = elt->cell_item;
+	  (plt->elts + plt->size)->cell_item = elt->cell_item;
 	  /* auch in bricks */
 	  if ((plt->bricks = realloc(plt->bricks, (plt->size+1)*sizeof (struct Brick *))) != NULL)
 	    *(plt->bricks + plt->size) = elt->cell_item;
 	}
 	else			/* hoffentlich PLATE!!! */
-	  (plt->elements + plt->size)->block_item = elt->block_item;
+	  (plt->elts + plt->size)->block_item = elt->block_item;
 	plt->size++;
   }
   /* ************************ */
@@ -345,18 +345,18 @@ void append_element(struct Plate_element *elt, struct Plate *plt)
 void amend_lambda_semantics(struct Plate *root)
 {
   for (int i = 0; i < root->size; i++) {
-    switch (root->elements[i].type) {
+    switch (root->elts[i].type) {
       /* a lambda can only ever be a plate */
     case BRICK: break;
     case PLATE:
-      if (brick_type(*root->elements[i].block_item->bricks) == LAMBDA) {
-	int sz = (*root->elements[i].block_item).size;
-	printf("====%p=====\n", (void *)*root->elements[i].block_item->bricks);
+      if (brick_type(*root->elts[i].block_item->bricks) == LAMBDA) {
+	int sz = (*root->elts[i].block_item).size;
+	printf("====%p=====\n", (void *)*root->elts[i].block_item->bricks);
 	/* for (int j = 1; j < sz-1; j++) { */
 	/*   /\* bestimmt plates *\/ */
-	/*   printf("->%d %s\n", j,(*root->elements[i].block_item->elements[j].block_item->bricks)->token.str); */
+	/*   printf("->%d %s\n", j,(*root->elts[i].block_item->elts[j].block_item->bricks)->token.str); */
 	/* } */
-	struct Plate_element *body = root->elements[i].block_item->elements + (sz - 1); /*  */
+	struct Plate_element *body = root->elts[i].block_item->elts + (sz - 1); /*  */
 	/* body teil */
 	switch (body->type) {
 	case BRICK: break;	/* sieht gut aus (a cell), klassen wir mal so bleiben */
@@ -368,28 +368,28 @@ void amend_lambda_semantics(struct Plate *root)
 	    exit(EXIT_FAILURE);
 	  } else if (brick_type(*body->block_item->bricks) == BOUND_BINDING) { /* .x ... */
 	    
-	    /* (root->elements[i].block_item->size)++; */
+	    /* (root->elts[i].block_item->size)++; */
 	    
 	    /* block_item hat genau 2 teile:  */
-	    struct Plate_element *retstat = body->block_item->elements + 1; /* ... */
+	    struct Plate_element *retstat = body->block_item->elts + 1; /* ... */
 	    /* struct Brick *retstat = body->block_item->bricks + 1; */
 	    if (retstat->type ==BRICK) {
 	      retstat->cell_item->plate = body->block_item->plate;
 	      /* body->block_item->size--; */
-	      body->block_item->elements->cell_item->type = BINDING;
+	      body->block_item->elts->cell_item->type = BINDING;
 	      printf("retstat %s %s %p %d %s\n", retstat->cell_item->token.str,
 		     (*retstat->cell_item->plate->bricks)->token.str,
 		     (void *)*retstat->cell_item->plate->bricks,
-		     root->elements[i].block_item->size, (*root->elements[i].block_item->bricks)->token.str
+		     root->elts[i].block_item->size, (*root->elts[i].block_item->bricks)->token.str
 		     );
 	      append_element(retstat, body->block_item->plate);
 	    }
 	  }
-	  printf("->%s\n", (*root->elements[i].block_item->elements[sz-1].block_item->bricks)->token.str);
+	  printf("->%s\n", (*root->elts[i].block_item->elts[sz-1].block_item->bricks)->token.str);
 	  break;
 	}
       }
-      amend_lambda_semantics(root->elements[i].block_item);
+      amend_lambda_semantics(root->elts[i].block_item);
       break;
     default: break;
     }
@@ -402,12 +402,12 @@ void free_parser_blocks(struct Plate **blocks, int blocks_count)
      can't free *(blocks + 0), as global_block is created on the
      stack in main(). that first pointer will be freed after the for loop. */
   for (int i = 1; i < blocks_count; i++) {
-    free((*(blocks + i))->elements);
+    free((*(blocks + i))->elts);
     free(*(blocks + i));
   }
   /* free the content of the toplevel block, since it surely
      containts something when the parsed string hasn't been an empty
      string! */
-  free((*blocks)->elements);
+  free((*blocks)->elts);
   free(blocks);
 }

@@ -17,7 +17,7 @@ struct Plate {
   /* bool needs_env; */
   struct Environment *env;
   int size;			/* number of bricks contained in this block*/
-  struct Plate_element *elements;		/* content bricks & child blocks */
+  struct Plate_element *elts;		/* content bricks & child blocks */
   /* the embedding block */
   struct Plate *plate;
   bool islambda;
@@ -26,7 +26,7 @@ struct Plate {
 				   and exists only for lambda-blocks,
 				   dont confuse it with absoption
 				   capacity which exists in ANY block!!! */
-  int max_absorption_capacity;		/* wieviel Zeug wird in diesem block
+  int max_absr_capa;		/* wieviel Zeug wird in diesem block
 				   max reingesteckt werden können?! */
 };
 

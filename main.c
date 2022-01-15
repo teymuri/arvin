@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     /* .env = NULL, */
     .size = 1,			/* this is the toplevel cell */
     .plate = NULL,
-    .elements = base_plate_element,
+    .elts = base_plate_element,
     .islambda = false,
     .arity = -1			/* invalid arity, because this is not a lambda block! */
   };
