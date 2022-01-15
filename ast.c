@@ -170,7 +170,7 @@ bool is_bound_binding(struct Brick *c)
 /* } */
 
 
-bool need_new_block(struct Brick *c, struct Plate *enclosing_block)
+bool need_new_plate(struct Brick *c, struct Plate *enclosing_block)
 {
   return isbuiltin(c)
     || !strcmp(c->token.str, ASSIGNMENT_KEYWORD)
@@ -209,9 +209,9 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
       /* enhance the type of the parameter symbol. */
       /* ACHTUNG: wir setzen den neuen Typ für bound param nicht hier,
 	 denn is_bound_parameter fragt ab ob das Cell vom Typ SYMBOL
-	 ist, was wiederum unten im need_new_block eine Rolle
+	 ist, was wiederum unten im need_new_plate eine Rolle
 	 spielt. Deshalb verschieben wir das Setzen vom Typ von SYMBOL zum
-	 BOUND_BINDING auf nach need_new_block. */
+	 BOUND_BINDING auf nach need_new_plate. */
       /* if (is_parameter(c, enclosure)) c->type = BINDING; */
       /* if (is_bound_parameter(c, enclosure)) c->type = BOUND_BINDING; */
     } else {			/* compute the enclosure anew */
@@ -243,46 +243,46 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
        decrement it's absorption capacity. */
     /* &(enclosing_block->bricks[0]) */
     
-    if (need_new_block(c, enclosure) || c->type==BINDING) {
+    if (need_new_plate(c, enclosure) || c->type==BINDING) {
       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof (struct Plate *))) != NULL) {
 
-	struct Plate *newblock = malloc(sizeof *newblock);
-	newblock->bricks=malloc(sizeof (struct Brick *));
+	struct Plate *newplt = malloc(sizeof *newplt);
+	newplt->bricks=malloc(sizeof (struct Brick *));
 	struct Environment *newenv = malloc(sizeof *newenv);
-	newblock->id = blockid++;
-	*newblock->bricks = c;
-	newblock->size = 1;
-	newblock->plate = enclosure;
+	newplt->id = blockid++;
+	*newplt->bricks = c;
+	newplt->size = 1;
+	newplt->plate = enclosure;
 	*newenv = (struct Environment){
 	  .enclosing_env = enclosure->env,
 	  .hash_table = g_hash_table_new(g_str_hash, g_str_equal)
 	};
-	newblock->env = newenv;
+	newplt->env = newenv;
 
 	/* set the new block's content */
-	newblock->elts = malloc(sizeof (struct Plate_element));
-	(*(newblock->elts)).type = BRICK;
-	(*(newblock->elts)).cell_item = c;
+	newplt->elts = malloc(sizeof (struct Plate_element));
+	(*(newplt->elts)).type = BRICK;
+	(*(newplt->elts)).brkelt = c;
 	
-	*(blocks + (*blocks_count)++) = newblock;
+	*(blocks + (*blocks_count)++) = newplt;
 	
 	/* keep an eye on this if its THE BEGINNING of a lambda */
 	if (is_lambda_head(*c)) {
-	  newblock->islambda = true; /* is a lambda-block */
-	  newblock->arity = 0; /* default is null-arity */
-	  active_binding_plate = newblock;
+	  newplt->islambda = true; /* is a lambda-block */
+	  newplt->arity = 0; /* default is null-arity */
+	  active_binding_plate = newplt;
 	  c->type=LAMBDA;
 	} else {
-	  newblock->islambda = false;
+	  newplt->islambda = false;
 	}
 	/* LET Block */
 	if (is_association(c)) {
-	  active_binding_plate = newblock;
+	  active_binding_plate = newplt;
 	}
 
 	if (is_binding(c, enclosure) || c->type==BINDING) {
 	  /* printf("Christoph Seibert"); */
-	  newblock->max_absr_capa = 1;	/* ist maximal das default argument wenn vorhanden */
+	  newplt->max_absr_capa = 1;	/* ist maximal das default argument wenn vorhanden */
 	  /* enhance the type from simple SYMBOL to BOUND_BINDING */
 	  /* c->type = BOUND_BINDING; */
 	}
@@ -290,14 +290,14 @@ struct Plate **parse__Hp(struct Plate *global_block, struct Brick *linked_cells_
 	/* das ist doppel gemoppelt, fass die beiden unten zusammen... */
 	if ((enclosure->elts = realloc(enclosure->elts, (enclosure->size+1) * sizeof(struct Plate_element))) != NULL) {
 	  (*(enclosure->elts + enclosure->size)).type = PLATE;
-	  (*(enclosure->elts + enclosure->size)).block_item = newblock;
+	  (*(enclosure->elts + enclosure->size)).pltelt = newplt;
 	  enclosure->size++;
 	}
       } else exit(EXIT_FAILURE); /* blocks realloc failed */      
     } else {			 /* no need for a new block, just a single lonely cell */
       if ((enclosure->elts = realloc(enclosure->elts, (enclosure->size+1) * sizeof(struct Plate_element))) != NULL) {
 	(*(enclosure->elts + enclosure->size)).type = BRICK;
-	(*(enclosure->elts + enclosure->size)).cell_item = c;
+	(*(enclosure->elts + enclosure->size)).brkelt = c;
       }
       c->plate = enclosure;
       /* enclosure->bricks[enclosure->size] = *c; */
@@ -321,13 +321,13 @@ void append_element(struct Plate_element *elt, struct Plate *plt)
 			    (plt->size+1) * sizeof (struct Plate_element))) != NULL) {
 	(plt->elts + plt->size)->type = elt->type;
 	if (elt->type == BRICK) {
-	  (plt->elts + plt->size)->cell_item = elt->cell_item;
+	  (plt->elts + plt->size)->brkelt = elt->brkelt;
 	  /* auch in bricks */
 	  if ((plt->bricks = realloc(plt->bricks, (plt->size+1)*sizeof (struct Brick *))) != NULL)
-	    *(plt->bricks + plt->size) = elt->cell_item;
+	    *(plt->bricks + plt->size) = elt->brkelt;
 	}
 	else			/* hoffentlich PLATE!!! */
-	  (plt->elts + plt->size)->block_item = elt->block_item;
+	  (plt->elts + plt->size)->pltelt = elt->pltelt;
 	plt->size++;
   }
   /* ************************ */
@@ -349,47 +349,47 @@ void amend_lambda_semantics(struct Plate *root)
       /* a lambda can only ever be a plate */
     case BRICK: break;
     case PLATE:
-      if (brick_type(*root->elts[i].block_item->bricks) == LAMBDA) {
-	int sz = (*root->elts[i].block_item).size;
-	printf("====%p=====\n", (void *)*root->elts[i].block_item->bricks);
+      if (brick_type(*root->elts[i].pltelt->bricks) == LAMBDA) {
+	int sz = (*root->elts[i].pltelt).size;
+	printf("====%p=====\n", (void *)*root->elts[i].pltelt->bricks);
 	/* for (int j = 1; j < sz-1; j++) { */
 	/*   /\* bestimmt plates *\/ */
-	/*   printf("->%d %s\n", j,(*root->elts[i].block_item->elts[j].block_item->bricks)->token.str); */
+	/*   printf("->%d %s\n", j,(*root->elts[i].pltelt->elts[j].pltelt->bricks)->token.str); */
 	/* } */
-	struct Plate_element *body = root->elts[i].block_item->elts + (sz - 1); /*  */
+	struct Plate_element *body = root->elts[i].pltelt->elts + (sz - 1); /*  */
 	/* body teil */
 	switch (body->type) {
 	case BRICK: break;	/* sieht gut aus (a cell), klassen wir mal so bleiben */
 	case PLATE:
-	  /* printf("??%s\n", stringify_type(brick_type(*body->block_item->bricks))); */
-	  if (brick_type(*body->block_item->bricks) == BINDING) {
+	  /* printf("??%s\n", stringify_type(brick_type(*body->pltelt->bricks))); */
+	  if (brick_type(*body->pltelt->bricks) == BINDING) {
 	    fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
-		    (*body->block_item->bricks)->token.str);
+		    (*body->pltelt->bricks)->token.str);
 	    exit(EXIT_FAILURE);
-	  } else if (brick_type(*body->block_item->bricks) == BOUND_BINDING) { /* .x ... */
+	  } else if (brick_type(*body->pltelt->bricks) == BOUND_BINDING) { /* .x ... */
 	    
-	    /* (root->elts[i].block_item->size)++; */
+	    /* (root->elts[i].pltelt->size)++; */
 	    
-	    /* block_item hat genau 2 teile:  */
-	    struct Plate_element *retstat = body->block_item->elts + 1; /* ... */
-	    /* struct Brick *retstat = body->block_item->bricks + 1; */
+	    /* pltelt hat genau 2 teile:  */
+	    struct Plate_element *retstat = body->pltelt->elts + 1; /* ... */
+	    /* struct Brick *retstat = body->pltelt->bricks + 1; */
 	    if (retstat->type ==BRICK) {
-	      retstat->cell_item->plate = body->block_item->plate;
-	      /* body->block_item->size--; */
-	      body->block_item->elts->cell_item->type = BINDING;
-	      printf("retstat %s %s %p %d %s\n", retstat->cell_item->token.str,
-		     (*retstat->cell_item->plate->bricks)->token.str,
-		     (void *)*retstat->cell_item->plate->bricks,
-		     root->elts[i].block_item->size, (*root->elts[i].block_item->bricks)->token.str
+	      retstat->brkelt->plate = body->pltelt->plate;
+	      /* body->pltelt->size--; */
+	      body->pltelt->elts->brkelt->type = BINDING;
+	      printf("retstat %s %s %p %d %s\n", retstat->brkelt->token.str,
+		     (*retstat->brkelt->plate->bricks)->token.str,
+		     (void *)*retstat->brkelt->plate->bricks,
+		     root->elts[i].pltelt->size, (*root->elts[i].pltelt->bricks)->token.str
 		     );
-	      append_element(retstat, body->block_item->plate);
+	      append_element(retstat, body->pltelt->plate);
 	    }
 	  }
-	  printf("->%s\n", (*root->elts[i].block_item->elts[sz-1].block_item->bricks)->token.str);
+	  printf("->%s\n", (*root->elts[i].pltelt->elts[sz-1].pltelt->bricks)->token.str);
 	  break;
 	}
       }
-      amend_lambda_semantics(root->elts[i].block_item);
+      amend_lambda_semantics(root->elts[i].pltelt);
       break;
     default: break;
     }

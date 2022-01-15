@@ -7,8 +7,8 @@
 enum Plate_element_type { BRICK, PLATE };
 
 struct Plate_element {
-  struct Brick *cell_item;		/* for a cell */
-  struct Plate *block_item;		/* for a block */
+  struct Brick *brkelt;		/* for a cell */
+  struct Plate *pltelt;		/* for a block */
   enum Plate_element_type type;
 };
 

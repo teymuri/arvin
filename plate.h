@@ -2,6 +2,7 @@
 #define LET_MULTIPLE_H
 
 #include <stdbool.h>
+#include <glib.h>
 #include "brick.h"
 #include "env.h"
 

@@ -30,26 +30,26 @@ void print_code_ast(struct Plate *root, int depth) /* This is the written code p
     case BRICK:
       print_indent(depth);
       printf(AST_PRINTER_BRICK_STR,
-	     root->elts[i].cell_item->token.str,
-	     stringify_type(brick_type(root->elts[i].cell_item))
+	     root->elts[i].brkelt->token.str,
+	     stringify_type(brick_type(root->elts[i].brkelt))
 	     );
       break;
     case PLATE:
       print_indent(depth);
       printf(AST_PRINTER_PLATE_STR,
-	     root->elts[i].block_item->bricks[0]->token.str,
-	     root->elts[i].block_item->size,
+	     root->elts[i].pltelt->bricks[0]->token.str,
+	     root->elts[i].pltelt->size,
 	     /* root->elts[i].b->env ? root->elts[i].b->env->symcount : -1, */
-	     root->elts[i].block_item->env ? -1 : -1,
-	     root->elts[i].block_item->env ? root->elts[i].block_item->env->id : -1,
-	     root->elts[i].block_item->env ? (void *)root->elts[i].block_item->env : NULL,
-	     root->elts[i].block_item->islambda ? root->elts[i].block_item->arity : -1
+	     root->elts[i].pltelt->env ? -1 : -1,
+	     root->elts[i].pltelt->env ? root->elts[i].pltelt->env->id : -1,
+	     root->elts[i].pltelt->env ? (void *)root->elts[i].pltelt->env : NULL,
+	     root->elts[i].pltelt->islambda ? root->elts[i].pltelt->arity : -1
 	     );
-      print_code_ast(root->elts[i].block_item, depth+1);
+      print_code_ast(root->elts[i].pltelt, depth+1);
       break;
     default:
       print_indent(depth);
-      printf("[Invalid Content %d] %s %s\n", i,root[i].bricks[0]->token.str, root[i].elts[0].cell_item->token.str);
+      printf("[Invalid Content %d] %s %s\n", i,root[i].bricks[0]->token.str, root[i].elts[0].brkelt->token.str);
       break;
     }
   }
@@ -57,13 +57,13 @@ void print_code_ast(struct Plate *root, int depth) /* This is the written code p
 
 void print_ast(struct Plate *root)
 {
-  /* root's (the toplevel block) elts is a block_item of
+  /* root's (the toplevel block) elts is a pltelt of
      type BRICK, so when iterating over root's elts this BRICK
      will be printed but there will be no PLATE printed on top of that
      BRICK, thats why we are cheating here and print a PLATE-Like on
      top of the whole ast. */
   printf(AST_PRINTER_PLATE_STR_TL,
- 	 root->elts->cell_item->token.str,
+ 	 root->elts->brkelt->token.str,
  	 root->size,
 	 /* root->env ? root->env->symcount : -1, */
 	 root->env ? -1 : -1,

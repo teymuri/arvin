@@ -59,7 +59,7 @@ int main(int argc, char **argv)
   
   struct Plate_element *base_plate_element = malloc(sizeof (struct Plate_element));
   (*base_plate_element).type = BRICK;
-  (*base_plate_element).cell_item = &base_plate_brick;
+  (*base_plate_element).brkelt = &base_plate_brick;
 
   struct Plate base_plate = {
     .id = 0,
