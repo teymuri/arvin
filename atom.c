@@ -1,14 +1,14 @@
-
+#include <glib.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include "token.h"
 #include "type.h"
-#include "brick.h"
+#include "atom.h"
 
 
 
 /* why is this any good??? */
-enum Type brick_type(struct Brick *c)
+enum Type atom_type(struct Atom *c)
 {
   switch (c->type) {
   case INTEGER: return INTEGER;
@@ -21,7 +21,7 @@ enum Type brick_type(struct Brick *c)
   }
 }
 
-void set_cell_type(struct Brick *c)
+void determine_atom_type(struct Atom *c)
 {
   switch (c->token.type) {
   case INTEGER: c->type = INTEGER; break;
@@ -31,7 +31,7 @@ void set_cell_type(struct Brick *c)
   }
 }
 
-void set_cell_value(struct Brick *c)
+void determine_atom_value(struct Atom *c)
 {
   switch (c->token.type) {
   case INTEGER:
@@ -43,18 +43,36 @@ void set_cell_value(struct Brick *c)
   default: break;
   }
 }
-char *cellstr(struct Brick *c) {return c->token.str;}
+char *cellstr(struct Atom *c) {return c->token.str;}
 
 /* 
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
-/* returns a list of linked cells made of tokens */
-struct Brick *linked_cells__Hp(struct Token tokens[], size_t count)
+GSList *units_linked_list(struct Token toks[], size_t toks_n)
 {
-  struct Brick *prev, *root;	/* store previous and first cell address */
+  GSList *sll = NULL; /* the return singly linked list */
+  struct Atom *atom = NULL;
+  for (size_t s = 0; s < toks_n; s++) {
+    /* struct Atom *atom = (struct Atom *)malloc(sizeof (struct Atom)); */
+    atom = g_new(struct Atom, 1);
+    /* uuid 0 is reserved for the toplevel atom, so start with 1 */
+    atom->uuid = s+1;
+    atom->token = toks[s];
+    determine_atom_value(atom);
+    determine_atom_type(atom);
+    sll = g_slist_prepend(sll, atom);
+  }
+  sll = g_slist_reverse(sll);
+  return sll;
+}
+
+/* returns a list of linked cells made of tokens */
+struct Atom *linked_cells__Hp(struct Token tokens[], size_t count)
+{
+  struct Atom *prev, *root;	/* store previous and first cell address */
   for (size_t i = 0; i < count; i++) {
-    struct Brick *c = malloc(sizeof (struct Brick));
+    struct Atom *c = malloc(sizeof (struct Atom));
     if (i == 0) root = c;
     
     /* guess_token_type(tokens+i);	/\* pass the pointer to the token *\/ */
@@ -64,16 +82,16 @@ struct Brick *linked_cells__Hp(struct Token tokens[], size_t count)
       prev->next = c;
     if (i == count-1)
       c->next = NULL;
-    set_cell_value(c);
-    set_cell_type(c);
+    determine_atom_value(c);
+    determine_atom_type(c);
     prev = c;
   }
   return root;
 }
 
-void free_linked_cells(struct Brick *c)
+void free_linked_cells(struct Atom *c)
 {
-  struct Brick *tmp;
+  struct Atom *tmp;
   while (c != NULL) {
     tmp = c;
     c = c->next;

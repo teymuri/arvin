@@ -20,7 +20,7 @@
 
 struct Token {
   char str[MAX_TOKLEN];	/* token's string */
-  int column_start_idx;			/* start index in line (column start index) */
+  int col_start_idx;			/* start index in line (column start index) */
   int column_end_idx;			/* end index in line (column end index) */
   int line;			/* line number */
   int id;			/* id of this token (tracked globally) */

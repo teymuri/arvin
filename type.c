@@ -1,26 +1,26 @@
 
 #include "type.h"
-#include "plate_element.h"
-#include "brick.h"
-#include "plate.h"
+/* #include "const_item.h" */
+#include "atom.h"
+#include "cons.h"
 
 
 
 
-char *stringify_block_item_type(enum Plate_element_type t)
-{
-  switch (t) {
-  case BRICK:
-    return "BRICK";
-    break;
-  case PLATE:
-    return "PLATE";
-    break;
-  default:
-    return "INVALID?????????????";
-    break;
-  }
-}
+/* char *stringify_block_item_type(enum Cons_item_type t) */
+/* { */
+/*   switch (t) { */
+/*   case ATOM: */
+/*     return "ATOM"; */
+/*     break; */
+/*   case CONS: */
+/*     return "CONS"; */
+/*     break; */
+/*   default: */
+/*     return "INVALID?????????????"; */
+/*     break; */
+/*   } */
+/* } */
 
 
 
@@ -32,7 +32,7 @@ char *stringify_block_item_type(enum Plate_element_type t)
 
 /* löschen!!!!!!!! */
 /* Type Lambda */
-/* typedef void (*lambda_t)(struct Brick *); */
+/* typedef void (*lambda_t)(struct Atom *); */
 
 
 
@@ -40,7 +40,7 @@ char *stringify_block_item_type(enum Plate_element_type t)
 
 
 
-struct Brick block_head(struct Plate *b) { return *b->bricks[0]; }
+struct Atom block_head(struct Cons *b) { return *b->bricks[0]; }
 
 
 

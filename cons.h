@@ -1,26 +1,32 @@
-#ifndef LET_MULTIPLE_H
-#define LET_MULTIPLE_H
+#ifndef LET_CONS_H
+#define LET_CONS_H
 
 #include <stdbool.h>
 #include <glib.h>
-#include "brick.h"
+#include "atom.h"
 #include "env.h"
 
-struct Brick block_head(struct Plate *b);
+
+struct Atom block_head(struct Cons *b);
 
 /* int __Blockid = 0; */
-#define MAX_PLATE_SIZE 10
-struct Plate {
+#define MAX_CONS_SIZE 10
+struct Cons {
   int id;
-  /* struct Brick cells[MAX_PLATE_SIZE]; */
-  struct Brick **bricks;
+  /* enum Unit_type unit_t;    /\* This is a CONS *\/ */
+  /* struct Atom cells[MAX_CONS_SIZE]; */
+  struct Atom **bricks;	/* cells */
+  GSList *brks;		/* cells2 */
+  GSList *atoms;
   /* nicht alle Blocks brauchen eingenes env, z.B. +  */
   /* bool needs_env; */
-  struct Environment *env;
+  struct Env *env;
   int size;			/* number of bricks contained in this block*/
-  struct Plate_element *elts;		/* content bricks & child blocks */
+  /* old name: items */
+  struct Cons_item *elts;		/* content bricks & child blocks */
+  GSList *items;
   /* the embedding block */
-  struct Plate *plate;
+  struct Cons *enclosure;
   bool islambda;
   void *(*lambda)(void *);
   int arity;			/* arity is the number of arguments
@@ -31,4 +37,4 @@ struct Plate {
 				   max reingesteckt werden können?! */
 };
 
-#endif	/* LET_MULTIPLE_H */
+#endif	/* LET_CONS_H */

@@ -1,3 +1,6 @@
+/* read.c is only concerned with generating tokens from the source */
+
+
 /*
 if using glib compile with:
 
@@ -54,10 +57,10 @@ int __Tokid = 1;		/* id 0 is reserved for the toplevel
 /* int is_comment_opening(struct Token tok); */
 /* int is_comment_closing(struct Token tok); */
 /* void index_comments(struct Token *tokens, size_t all_tokens_count); */
-/* struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count, */
+/* struct Token *polish_tokens(struct Token *toks, size_t *nctok_count, */
 /* 				  size_t all_tokens_count); */
-/* struct Brick *linked_cells__Hp(struct Token tokens[], size_t count); */
-/* void free_linked_cells(struct Brick *c); */
+/* struct Atom *linked_cells__Hp(struct Token tokens[], size_t count); */
+/* void free_linked_cells(struct Atom *c); */
 
 
 
@@ -184,8 +187,8 @@ struct Token *tokenize_line__Hp
       /* t.numtype = numtype(t.str); */
       /* t.isprim = isprim(t.str); */
       t.id = __Tokid++;
-      t.column_start_idx = offset + match[0].rm_so;
-      t.column_end_idx = t.column_start_idx + tokstrlen;
+      t.col_start_idx = offset + match[0].rm_so;
+      t.column_end_idx = t.col_start_idx + tokstrlen;
       t.line = ln;
       t.comment_index = 0;
       *(tokptr + *line_toks_count) = t;
@@ -277,7 +280,7 @@ void index_comments(struct Token *tokens, size_t all_tokens_count)
   }
 }
 
-struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count,
+struct Token *polish_tokens(struct Token *toks, size_t *nctok_count,
 				  size_t all_tokens_count) /* nct = non-comment token */
 {
   index_comments(toks, all_tokens_count);
