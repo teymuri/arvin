@@ -23,7 +23,7 @@
 /* 				   struct env *toplevel_env); */
 /* extern void free_parser_blocks(struct Cons **blocks, int blocks_count); */
 /* extern void free_linked_cells(struct Atom *c); */
-#define TOPLEVEL_TOKEN_STR "TOPLEVEL_TOKEN_STR"
+#define TOPLEVEL_TOKEN_STR "TLTOKSTR"
 #define TL_ATOM_UUID 0
 /* void pr(gpointer l, gpointer p) */
 /* { */
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     /* .symcount = 0 */
   };
 
-  struct Token gtok = {
+  struct Token tltok = {
     .str = TOPLEVEL_TOKEN_STR,
     .col_start_idx = -1,
     .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
     /* token token */
     /* .unit_t = ATOM, */
     .env = &toplevel_env,
-    .token = gtok,
+    .token = tltok,
     /* next cell pointer */
     .next = NULL,
     /* in block next */

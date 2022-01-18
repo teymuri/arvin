@@ -68,14 +68,14 @@ char *stringify_type(enum Type t)
 {
   switch (t) {
   case 0: return "Weiss net, waisch?!! vielleicht number??????";
-  case 1: return "integer";
-  case 2: return "float";
-  case 3: return "symbol";
-  case 4: return "lambda";
-  case 5: return "double";
-  case 6: return "binding";
-  case 7: return "boundbinding";
-  default: return "undefined";
+  case 1: return "Integer";
+  case 2: return "Float";
+  case 3: return "Symbol";
+  case 4: return "Lambda";
+  case 5: return "Double";
+  case 6: return "Binding";
+  case 7: return "Bound Binding";
+  default: return "Undefined";
   }
 }
 

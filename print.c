@@ -21,9 +21,17 @@ void print_indent(int i)
   s[(i*n)] = '\0';
   printf("%s", s);
 }
+
+#define AST_PRINTER_UNIT_FORMAT "[Tokstr(%s) Type(%s) Add(%p)]"
 gboolean print_node(GNode *node, gpointer data) {
   print_indent((guint)g_node_depth(node) - 1);
-  printf("[Name(%s)]\n", ((struct Atom *)node->data)->token.str);
+  printf(AST_PRINTER_UNIT_FORMAT,
+	 
+	 ((struct Atom *)node->data)->token.str,
+	 stringify_type(atom_type((struct Atom *)node->data)),
+	 node->data
+	 );
+  puts("");
   return false;
 }
 void print_ast3(GNode *root) {
