@@ -50,7 +50,7 @@ GSList *enclosures3(GSList *ulink, GSList *list) {
   for (;
        list && ((unitp_t)list->data)->uuid < ((unitp_t)ulink->data)->uuid;
        list = list->next) {
-    if (!((unitp_t)list->data)->is_infertile && is_enclosed_in3(ulink, list))
+    if (!((unitp_t)list->data)->is_atomic && is_enclosed_in3(ulink, list))
       sll = g_slist_append(sll, list->data);
   }
   return sll;
@@ -485,7 +485,7 @@ GNode *parse3(GSList *atoms)
     /* (looks_like_parameter(c) || looks_like_bound_parameter(c)) */
     if (maybe_binding3(atoms) && effective_binding_unit && is_enclosed_in4((unitp_t)atoms->data, effective_binding_unit)) { /* so its a lambda parameter */
       ((unitp_t)atoms->data)->type = BINDING;
-      ((unitp_t)atoms->data)->is_infertile = false;
+      ((unitp_t)atoms->data)->is_atomic = false;
       /* enclosure = active_binding_plate; */
       scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, effective_binding_unit);
       /* printf("%s %s %d %d\n", ((unitp_t)atoms->data)->token.str, */
@@ -538,7 +538,7 @@ GNode *parse3(GSList *atoms)
     /* need_subtree(atoms, scope) */
 
     if (need_subtree4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type ==BINDING) {
-      ((unitp_t)atoms->data)->is_infertile = false;
+      ((unitp_t)atoms->data)->is_atomic = false;
       struct Env *env = malloc(sizeof (struct Env));
       *env = (struct Env){
 	.enclosing_env = ((unitp_t)scope->data)->env,
@@ -564,7 +564,7 @@ GNode *parse3(GSList *atoms)
     }
     else
       {
-	((unitp_t)atoms->data)->is_infertile = true;
+	((unitp_t)atoms->data)->is_atomic = true;
 	g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data),
 		      -1,	/* inserted as the last child of parent. */
 		      g_node_new((unitp_t)atoms->data));
@@ -613,7 +613,8 @@ gboolean ascertain_lambda_spelling(GNode *node, gpointer data) {
   if (is_lambda_node(node)) {
     switch (g_node_n_children(node)) {
     case 0:
-      /* error */
+      fprintf(stderr, "lambda braucht mind. eine expression!\n");
+      exit(EXIT_FAILURE);
       break;
     case 1:
       /* muss die Expression sein, die fassen wir nicht an! */

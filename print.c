@@ -22,14 +22,15 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-#define AST_PRINTER_UNIT_FORMAT "[Tokstr(%s) Typ(%s) UAdd(%p) Sz(%d)]"
+#define AST_PRINTER_UNIT_FORMAT "[tokstr(%s) type(%s) uadd(%p) sz(%d) atom(%d)]"
 gboolean print_node(GNode *node, gpointer data) {
   print_indent((guint)g_node_depth(node) - 1);
   printf(AST_PRINTER_UNIT_FORMAT,	 
 	 ((struct Atom *)node->data)->token.str,
 	 stringify_type(atom_type((struct Atom *)node->data)),
 	 node->data,
-	 g_node_n_children(node)
+	 g_node_n_children(node),
+	 ((struct Atom *)node->data)->is_atomic
 	 );
   puts("");
   return false;

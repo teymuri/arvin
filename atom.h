@@ -19,7 +19,7 @@ struct Atom {
   /* enum Unit_type unit_t;	/\* This will be going to be an ATOM *\/ */
   /* /\* alternative to unit_t: *\/ */
   /* /\* ein child das selbst keine kinder haben kann *\/ */
-  bool is_infertile;
+  bool is_atomic;
   struct Env *env;
   struct Cons *enclosure;	/* embedding block of this cell */
   struct Atom *parent_unit;
