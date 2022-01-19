@@ -30,6 +30,11 @@ bool is_enclosed_in3(GSList *ulink1, GSList *ulink2) {
     return false;
   }
 }
+bool is_enclosed_in4(struct Atom *a1, struct Atom *a2) {
+  return a1->token.col_start_idx > a2->token.col_start_idx &&
+    a1->token.line >= a2->token.line;
+}
+
 int bottom_line_number3(GSList *list) {
   int line = -1;
   while (list) {
@@ -45,7 +50,7 @@ GSList *enclosures3(GSList *ulink, GSList *list) {
   for (;
        list && ((unitp_t)list->data)->uuid < ((unitp_t)ulink->data)->uuid;
        list = list->next) {
-    if (is_enclosed_in3(ulink, list))
+    if (!((unitp_t)list->data)->is_infertile && is_enclosed_in3(ulink, list))
       sll = g_slist_append(sll, list->data);
   }
   return sll;
@@ -196,6 +201,13 @@ bool is_lambda_head(struct Atom c) { return !strcmp(c.token.str, LAMBDA_KW); }
 bool is_lambda3(GSList *unit) {
   return !strcmp(((unitp_t)unit->data)->token.str, LAMBDA_KW);
 }
+
+
+bool is_lambda4(struct Atom *u) {
+  return !strcmp(u->token.str, LAMBDA_KW);
+}
+
+
 bool is_lambda_node(GNode *node) {
   return !strcmp(((unitp_t)node->data)->token.str, LAMBDA_KW);
 }
@@ -206,8 +218,16 @@ bool is_association(struct Atom *c)
 bool is_association3(GSList *link) {
   return !strcmp(((unitp_t)link->data)->token.str, ASSOCIATION_KEYWORD);
 }
+bool is_association4(struct Atom *u) {
+  return !strcmp(u->token.str, ASSOCIATION_KEYWORD);
+}
+
+
 bool is_assignment3(GSList *link) {
   return !strcmp(((unitp_t)link->data)->token.str, ASSIGNMENT_KEYWORD);
+}
+bool is_assignment4(struct Atom *u) {
+  return !strcmp(u->token.str, ASSIGNMENT_KEYWORD);
 }
 
 /* now we will be sure! */
@@ -227,6 +247,12 @@ bool maybe_binding3(GSList *link)
 {
   return atom_type((unitp_t)link->data) == SYMBOL && *((unitp_t)link->data)->token.str == '.';
 }
+bool maybe_binding4(struct Atom *u)
+{
+  return atom_type(u) == SYMBOL && *u->token.str == '.';
+}
+
+
 /* bool is_binding(struct Atom *b, struct Cons *enclosure) */
 /* { */
 /*   return maybe_binding(b) && */
@@ -236,6 +262,10 @@ bool maybe_binding3(GSList *link)
 bool is_binding3(GSList *unit, GSList *parent) {
   return maybe_binding3(unit) &&
     (is_lambda3(parent) || is_association3(unit));
+}
+bool is_binding4(struct Atom *u, GNode *scope) {
+  return maybe_binding4(u) &&
+    (is_lambda4((unitp_t)scope->data) || is_association4(u));
 }
 
 /* bool is_bound_binding(struct Atom *c) */
@@ -280,9 +310,18 @@ bool is_binding3(GSList *unit, GSList *parent) {
 bool is_call(GSList *unit) {
   return !strcmp(((unitp_t)unit->data)->token.str, "call");
 }
+bool is_call4(struct Atom *u) {
+  return !strcmp(u->token.str, "call");
+}
+
+
 bool is_pret(GSList *unit) {
   return !strcmp(((unitp_t)unit->data)->token.str, "pret");
 }
+bool is_pret4(struct Atom *u) {
+  return !strcmp(u->token.str, "pret");
+}
+
 bool need_subtree(GSList *unit, GSList *parent) {
   return is_assignment3(unit) ||
     is_association3(unit) ||
@@ -290,6 +329,16 @@ bool need_subtree(GSList *unit, GSList *parent) {
     is_binding3(unit, parent) ||
     is_call(unit) ||
     is_pret(unit)
+    ;
+}
+
+bool need_subtree4(struct Atom *u, GNode *scope) {
+  return is_assignment4(u) ||
+    is_association4(u) ||
+    is_lambda4(u) ||
+    is_binding4(u, scope) ||
+    is_call4(u) ||
+    is_pret4(u)
     ;
 }
 
@@ -423,8 +472,10 @@ GNode *parse3(GSList *atoms)
   /* struct Cons **blocks = malloc(sizeof (struct Cons *)); /\* make room for the toplevel block *\/ */
   /* *(blocks + (*blocks_count)++) = tl_cons; */
   /* struct Atom *c = linked_cells_root; */
-  GSList *enclosure = NULL;	/* the enclosing bundle */
-  GSList *active_binding_plate = NULL; /* this is the last lambda, let etc. */
+  /* GSList *enclosure = NULL;	/\* the enclosing bundle *\/ */
+  struct Atom *effective_binding_unit = NULL;
+  GNode *scope;
+  /* GSList *active_binding_plate = NULL; /\* this is the last lambda, let etc. *\/ */
   GSList *units_onset = atoms;
   atoms = atoms->next;
 
@@ -432,10 +483,18 @@ GNode *parse3(GSList *atoms)
     /* struct Atom *atom = atoms->data; */
     /* find out the DIRECT embedding block of the current cell */
     /* (looks_like_parameter(c) || looks_like_bound_parameter(c)) */
-    if (maybe_binding3(atoms) && is_enclosed_in3(atoms, active_binding_plate)) { /* so its a lambda parameter */
+    if (maybe_binding3(atoms) && effective_binding_unit && is_enclosed_in4((unitp_t)atoms->data, effective_binding_unit)) { /* so its a lambda parameter */
       ((unitp_t)atoms->data)->type = BINDING;
-      enclosure = active_binding_plate;
-      ((unitp_t)active_binding_plate->data)->arity++;
+      ((unitp_t)atoms->data)->is_infertile = false;
+      /* enclosure = active_binding_plate; */
+      scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, effective_binding_unit);
+      /* printf("%s %s %d %d\n", ((unitp_t)atoms->data)->token.str, */
+      /* 	     stringify_type(((unitp_t)atoms->data)->type), */
+      /* 	     ); */
+	    
+      /* ((unitp_t)active_binding_plate->data)->arity++; */
+      effective_binding_unit->arity++;
+      
       /* enhance the type of the parameter symbol. */
       /* ACHTUNG: wir setzen den neuen Typ für bound param nicht hier,
 	 denn is_bound_parameter fragt ab ob das Cell vom Typ SYMBOL
@@ -445,7 +504,8 @@ GNode *parse3(GSList *atoms)
       /* if (is_parameter(c, enclosure)) c->type = BINDING; */
       /* if (is_bound_parameter(c, enclosure)) c->type = BOUND_BINDING; */
     } else {			/* compute the enclosure anew */
-      enclosure = find_enclosure_link(atoms, units_onset);
+      /* enclosure = find_enclosure_link(atoms, units_onset); */
+      scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, (unitp_t)find_enclosure_link(atoms, units_onset)->data);
     }
 
     /* i.e. ist das Ding jetzt der WERT für einen Bound Parameter?
@@ -454,23 +514,17 @@ GNode *parse3(GSList *atoms)
     /* enclosure ist hier der block von bound_param */
     /* is_binding(enclosure->bricks + 0, enclosure->enclosure) */
 
-    if (((unitp_t)enclosure->data)->type == BINDING || ((unitp_t)enclosure->data)->type == BOUND_BINDING) {
-      ((unitp_t)enclosure->data)->type == BOUND_BINDING;
-      if (((unitp_t)enclosure->data)->max_absorption_capacity == 1)
-	((unitp_t)enclosure->data)->max_absorption_capacity = 0;
-      else enclosure = g_slist_find(units_onset, ((unitp_t)enclosure->data)->parent_unit);
+    if (((unitp_t)scope->data)->type == BINDING || ((unitp_t)scope->data)->type == BOUND_BINDING) {
+      ((unitp_t)scope->data)->type == BOUND_BINDING;
+      if (((unitp_t)scope->data)->max_absorption_capacity == 1) {
+	((unitp_t)scope->data)->max_absorption_capacity = 0;
+      }
+      else {
+	/* enclosure=g_slist_find(units_onset, ((unitp_t)enclosure->data)->parent_unit); */
+	/* scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, (unitp_t)enclosure->data); */
+	scope = scope->parent;
+      }
     }
-    /* if ((*enclosure->bricks)->type == BINDING || (*enclosure->bricks)->type == BOUND_BINDING) { */
-    /*   (*enclosure->bricks)->type = BOUND_BINDING; */
-    /*   if (enclosure->max_absr_capa == 1) */
-    /* 	enclosure->max_absr_capa = 0; */
-    /*   else { */
-    /* 	enclosure = enclosure->enclosure; */
-    /*   } */
-    /* } */
-
-    
-    /* enclosure->enclosure->bricks->token.str; */
     
     /* If the computed enclosing block is a lambda-parameter and it
        has no more absorption capacity then reset the enclosing block
@@ -481,111 +535,44 @@ GNode *parse3(GSList *atoms)
        default-argument) the computed enclosing block is correct, only
        decrement it's absorption capacity. */
     /* &(enclosing_block->bricks[0]) */
+    /* need_subtree(atoms, scope) */
 
-    if (need_subtree(atoms, enclosure) || ((unitp_t)atoms->data)->type ==BINDING) {
-      /* atom->is_infertile = false; */
+    if (need_subtree4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type ==BINDING) {
+      ((unitp_t)atoms->data)->is_infertile = false;
       struct Env *env = malloc(sizeof (struct Env));
       *env = (struct Env){
-	.enclosing_env = ((unitp_t)enclosure->data)->env,
+	.enclosing_env = ((unitp_t)scope->data)->env,
 	.hash_table = g_hash_table_new(g_str_hash, g_str_equal)
       };
       ((unitp_t)atoms->data)->env = env;
       if (is_lambda3(atoms)) {
 	((unitp_t)atoms->data)->arity = 0;
-	active_binding_plate = atoms;
+	/* active_binding_plate = atoms; */
+	effective_binding_unit = (unitp_t)atoms->data;
       } else {
 	((unitp_t)atoms->data)->arity = -1; /* no lambda, no valid arity! */
       }
-      if (is_association3(atoms)) {
-	active_binding_plate = atoms;
+      if (is_association4((unitp_t)atoms->data)) {
+	/* active_binding_plate = atoms; */
+	effective_binding_unit = (unitp_t)atoms->data;
       }
-      if (is_binding3(atoms, enclosure) || ((unitp_t)atoms->data)->type == BINDING) {
+      if (is_binding4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type == BINDING) {
 	((unitp_t)atoms->data)->max_absorption_capacity = 1;
       }
-      g_node_insert(g_node_find(root, G_IN_ORDER, G_TRAVERSE_ALL, enclosure->data),
+      g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data),
 		    -1, g_node_new((unitp_t)atoms->data));
     }
-    
-    /* if (need_new_cons(c, enclosure) || c->type==BINDING) { */
-    /*   if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof (struct Cons *))) != NULL) { */
-
-    /* 	struct Cons *newplt = malloc(sizeof *newplt); */
-    /* 	newplt->bricks=malloc(sizeof (struct Atom *)); */
-    /* 	struct Env *newenv = malloc(sizeof *newenv); */
-    /* 	newplt->id = blockid++; */
-    /* 	*newplt->bricks = c; */
-    /* 	newplt->size = 1; */
-    /* 	newplt->enclosure = enclosure; */
-    /* 	*newenv = (struct Env){ */
-    /* 	  .enclosing_env = enclosure->env, */
-    /* 	  .hash_table = g_hash_table_new(g_str_hash, g_str_equal) */
-    /* 	}; */
-    /* 	newplt->env = newenv; */
-
-    /* 	/\* set the new block's content *\/ */
-    /* 	newplt->elts = malloc(sizeof (struct Cons_item)); */
-    /* 	(*(newplt->elts)).type = ATOM; */
-    /* 	(*(newplt->elts)).the_unit = c; */
-	
-    /* 	*(blocks + (*blocks_count)++) = newplt; */
-	
-    /* 	/\* keep an eye on this if its THE BEGINNING of a lambda *\/ */
-    /* 	if (is_lambda_head(*c)) { */
-    /* 	  newplt->islambda = true; /\* is a lambda-block *\/ */
-    /* 	  newplt->arity = 0; /\* default is null-arity *\/ */
-    /* 	  active_binding_plate = newplt; */
-    /* 	  c->type=LAMBDA; */
-    /* 	} else { */
-    /* 	  newplt->islambda = false; */
-    /* 	} */
-    /* 	/\* LET Block *\/ */
-    /* 	if (is_association(c)) { */
-    /* 	  active_binding_plate = newplt; */
-    /* 	} */
-
-    /* 	if (is_binding(c, enclosure) || c->type==BINDING) { */
-    /* 	  /\* printf("Christoph Seibert"); *\/ */
-    /* 	  newplt->max_absr_capa = 1;	/\* ist maximal das default argument wenn vorhanden *\/ */
-    /* 	  /\* enhance the type from simple SYMBOL to BOUND_BINDING *\/ */
-    /* 	  /\* c->type = BOUND_BINDING; *\/ */
-    /* 	} */
-		
-    /* 	/\* das ist doppel gemoppelt, fass die beiden unten zusammen... *\/ */
-    /* 	if ((enclosure->elts = realloc(enclosure->elts, (enclosure->size+1) * sizeof(struct Cons_item))) != NULL) { */
-    /* 	  (*(enclosure->elts + enclosure->size)).type = CONS; */
-    /* 	  (*(enclosure->elts + enclosure->size)).the_const = newplt; */
-    /* 	  enclosure->size++; */
-    /* 	} */
-    /*   } else exit(EXIT_FAILURE); /\* blocks realloc failed *\/       */
-    /* } */
-
-
     else
       {
-	/* atom->is_infertile = true; */
-	g_node_insert(g_node_find(root, G_IN_ORDER, G_TRAVERSE_ALL, enclosure->data),
+	((unitp_t)atoms->data)->is_infertile = true;
+	g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data),
 		      -1,	/* inserted as the last child of parent. */
 		      g_node_new((unitp_t)atoms->data));
 
 	  
       }
-
-    /* {			 /\* no need for a new block, just a single lonely cell *\/ */
-    /*   if ((enclosure->elts = realloc(enclosure->elts, (enclosure->size+1) * sizeof(struct Cons_item))) != NULL) { */
-    /* 	(*(enclosure->elts + enclosure->size)).type = ATOM; */
-    /* 	(*(enclosure->elts + enclosure->size)).the_unit = c; */
-    /*   } */
-    /*   c->enclosure = enclosure; */
-    /*   /\* enclosure->bricks[enclosure->size] = *c; *\/ */
-    /*   if ((enclosure->bricks = realloc(enclosure->bricks, (enclosure->size + 1) * sizeof (struct Atom *))) != NULL) { */
-    /* 	*(enclosure->bricks + enclosure->size) = c; */
-    /*   } */
-    /*   enclosure->size++; */
-    /* } */
-    /* c = c->next; */
     atoms = atoms->next;
   }
-  /* return blocks; */
   return root;
 }
 

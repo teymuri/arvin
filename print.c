@@ -22,7 +22,7 @@ void print_indent(int i)
   printf("%s", s);
 }
 
-#define AST_PRINTER_UNIT_FORMAT "[Tokstr(%s) Typ(%s) Add(%p) Sz(%d)]"
+#define AST_PRINTER_UNIT_FORMAT "[Tokstr(%s) Typ(%s) UAdd(%p) Sz(%d)]"
 gboolean print_node(GNode *node, gpointer data) {
   print_indent((guint)g_node_depth(node) - 1);
   printf(AST_PRINTER_UNIT_FORMAT,	 
