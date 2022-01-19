@@ -10,6 +10,7 @@
 #include "cons.h"
 #include "core.h"
 #include "cons_elem.h"
+#include "print.h"
 
 #define LEAST_COL_START_IDX -2
 
@@ -194,6 +195,9 @@ bool is_lambda_unit(struct Atom *u)
 bool is_lambda_head(struct Atom c) { return !strcmp(c.token.str, LAMBDA_KW); }
 bool is_lambda3(GSList *unit) {
   return !strcmp(((unitp_t)unit->data)->token.str, LAMBDA_KW);
+}
+bool is_lambda_node(GNode *node) {
+  return !strcmp(((unitp_t)node->data)->token.str, LAMBDA_KW);
 }
 bool is_association(struct Atom *c)
 {
@@ -618,7 +622,29 @@ void append_element(struct Cons_item *elt, struct Cons *plt)
 /*   } */
 /*   return elt; */
 /* } */
-  
+gboolean ascertain_lambda_node_syntax(GNode *node, gpointer data) {
+  if (is_lambda_node(node)) {
+    switch (g_node_n_children(node)) {
+    case 0:
+      /* error */
+      break;
+    case 1:
+      /* muss die Expression sein, die fassen wir nicht an! */
+      assert(((struct Atom *)node->children->data)->type != BINDING);
+      break;
+    default:
+      /* es gibt parameterliste */
+      
+      break;
+    }
+  }
+  return false;
+}
+void ascertain_lambda_syntax(GNode *root) {
+  g_node_traverse(root, G_PRE_ORDER,
+		  G_TRAVERSE_ALL, -1,
+		  (GNodeTraverseFunc)ascertain_lambda_node_syntax, NULL);
+}
 /* testen wir mal die Semantik von Lambda expressions */
 void amend_lambda_semantics(struct Cons *root)
 {

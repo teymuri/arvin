@@ -132,6 +132,7 @@ int main(int argc, char **argv)
     atoms = g_slist_prepend(atoms, &toplevel_atom);
     /* g_slist_foreach(atoms, (GFunc)F, NULL); */
     GNode *ast3 = parse3(atoms);
+    /* ascertain_lambda_syntax(ast3); */
     print_ast3(ast3);
     
     /* amend_lambda_semantics(&tl_cons); */
