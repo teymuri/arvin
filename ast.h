@@ -1,7 +1,7 @@
 #ifndef LET_AST_H
 #define LET_AST_H
 
-void ascertain_lambda_syntax(GNode *root);
+void ascertain_all_lambda_spellings(GNode *root);
 GNode *parse3(GSList *atoms);
 struct Cons **parse__Hp(struct Cons *global_block, struct Atom *linked_cells_root, int *blocks_count);
 void amend_lambda_semantics(struct Cons *);

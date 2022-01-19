@@ -515,7 +515,7 @@ GNode *parse3(GSList *atoms)
     /* is_binding(enclosure->bricks + 0, enclosure->enclosure) */
 
     if (((unitp_t)scope->data)->type == BINDING || ((unitp_t)scope->data)->type == BOUND_BINDING) {
-      ((unitp_t)scope->data)->type == BOUND_BINDING;
+      ((unitp_t)scope->data)->type = BOUND_BINDING;
       if (((unitp_t)scope->data)->max_absorption_capacity == 1) {
 	((unitp_t)scope->data)->max_absorption_capacity = 0;
       }
@@ -609,7 +609,7 @@ void append_element(struct Cons_item *elt, struct Cons *plt)
 /*   } */
 /*   return elt; */
 /* } */
-gboolean ascertain_lambda_node_syntax(GNode *node, gpointer data) {
+gboolean ascertain_lambda_spelling(GNode *node, gpointer data) {
   if (is_lambda_node(node)) {
     switch (g_node_n_children(node)) {
     case 0:
@@ -617,7 +617,12 @@ gboolean ascertain_lambda_node_syntax(GNode *node, gpointer data) {
       break;
     case 1:
       /* muss die Expression sein, die fassen wir nicht an! */
-      assert(((struct Atom *)node->children->data)->type != BINDING);
+      /* assert(((struct Atom *)node->children->data)->type != BINDING);  */
+      if (((struct Atom *)node->children->data)->type == BINDING) {
+	fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
+		((struct Atom *)node->children->data)->token.str);
+	exit(EXIT_FAILURE);
+      }
       break;
     default:
       /* es gibt parameterliste */
@@ -627,10 +632,10 @@ gboolean ascertain_lambda_node_syntax(GNode *node, gpointer data) {
   }
   return false;
 }
-void ascertain_lambda_syntax(GNode *root) {
+void ascertain_all_lambda_spellings(GNode *root) {
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
-		  (GNodeTraverseFunc)ascertain_lambda_node_syntax, NULL);
+		  (GNodeTraverseFunc)ascertain_lambda_spelling, NULL);
 }
 /* testen wir mal die Semantik von Lambda expressions */
 void amend_lambda_semantics(struct Cons *root)
