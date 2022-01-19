@@ -616,18 +616,13 @@ gboolean ascertain_lambda_spelling(GNode *node, gpointer data) {
       fprintf(stderr, "lambda braucht mind. eine expression!\n");
       exit(EXIT_FAILURE);
       break;
-    case 1:
-      /* muss die Expression sein, die fassen wir nicht an! */
-      /* assert(((struct Atom *)node->children->data)->type != BINDING);  */
-      if (((struct Atom *)node->children->data)->type == BINDING) {
-	fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
-		((struct Atom *)node->children->data)->token.str);
-	exit(EXIT_FAILURE);
-      }
-      break;
     default:
       /* es gibt parameterliste */
-      
+      if (((struct Atom *)g_node_last_child(node))->type == BINDING) {
+	fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
+		((struct Atom *)node->children->data)->token.str);
+	exit(EXIT_FAILURE);	
+      }
       break;
     }
   }
