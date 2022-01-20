@@ -593,39 +593,34 @@ void assert_binding_node(GNode *node, GNode *last_child) {
 gboolean ascertain_lambda_spelling(GNode *node, gpointer data) {
   if (is_lambda_node(node)) {
     if (g_node_n_children(node)) {
+      GNode *last_child = g_node_last_child(node);
       /* first assert that every child node except with the last one
 	 is a binding (ie a parameter decleration) */
       g_node_children_foreach(node, G_TRAVERSE_ALL,
-			      (GNodeForeachFunc)assert_binding_node,
-			      g_node_last_child(node));
-      
+			      (GNodeForeachFunc)assert_binding_node, last_child);
+      /* if the last node is a mandatory parameter (i.e. a parameter
+	 without default value), it is an error! */
+      if (((unitp_t)last_child->data)->type == BINDING) {
+	fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
+		((unitp_t)last_child->data)->token.str);
+	exit(EXIT_FAILURE);
+	/* if the last node LOOKS LIKE a parameter with a default
+	   argument (i.e. optional argument/bound binding), we see
+	   it's default argument as the final expression of lambda */
+      } else if (atom_type((unitp_t)last_child->data) == BOUND_BINDING) {
+	GNode *bound_value = g_node_last_child(last_child);
+	g_node_unlink(bound_value);
+	g_node_insert(node, -1, bound_value);
+	((unitp_t)last_child->data)->type = BINDING;
+      }
     } else {
       fprintf(stderr, "lambda braucht mind. eine expression!\n");
       exit(EXIT_FAILURE);
     }
-    
-    switch (g_node_n_children(node)) {
-    case 0:
-      fprintf(stderr, "lambda braucht mind. eine expression!\n");
-      exit(EXIT_FAILURE);
-      break;
-    default:
-      /* es gibt parameterliste */
-      if (((struct Atom *)g_node_last_child(node)->data)->type == BINDING) {
-	fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
-		((struct Atom *)node->children->data)->token.str);
-	exit(EXIT_FAILURE);	
-      } else if (atom_type((unitp_t)g_node_last_child(node)->data) == BOUND_BINDING) {
-	GNode *bindval_node = g_node_last_child(g_node_last_child(node));
-	g_node_insert(node, -1, g_node_new((unitp_t)bindval_node->data));
-	g_node_destroy(bindval_node);
-      }
-      break;
-    }
   }
   return false;
 }
-void ascertain_all_lambda_spellings(GNode *root) {
+void ascertain_lambda_spellings(GNode *root) {
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)ascertain_lambda_spelling, NULL);
