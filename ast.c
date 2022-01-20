@@ -6,31 +6,24 @@
 #include "type.h"
 #include "env.h"
 #include "token.h"
-#include "atom.h"
-#include "cons.h"
+#include "unit.h"
+
 #include "core.h"
-#include "cons_elem.h"
+
 #include "print.h"
 
 #define LEAST_COL_START_IDX -2
 
-/* /\* is this unit directly/indirectly enclosed in this construct? *\/ */
-/* bool is_enclosed_in(struct Atom c, struct Cons b) */
-/* { */
-/*   return (c.token.col_start_idx > b.bricks[0]->token.col_start_idx) && */
-/*     (c.token.line >= b.bricks[0]->token.line); */
-/* } */
-
 bool is_enclosed_in3(GSList *ulink1, GSList *ulink2) {
   if (ulink2 != NULL) {
-    struct Atom *u1 = (unitp_t)ulink1->data, *u2 = (unitp_t)ulink2->data;
+    struct Unit *u1 = (unitp_t)ulink1->data, *u2 = (unitp_t)ulink2->data;
     return u1->token.col_start_idx > u2->token.col_start_idx &&
       u1->token.line >= u2->token.line;
   } else {
     return false;
   }
 }
-bool is_enclosed_in4(struct Atom *a1, struct Atom *a2) {
+bool is_enclosed_in4(struct Unit *a1, struct Unit *a2) {
   return a1->token.col_start_idx > a2->token.col_start_idx &&
     a1->token.line >= a2->token.line;
 }
@@ -86,124 +79,20 @@ GSList *find_enclosure_link(GSList *unit_link, GSList *units_onset) {
   return rightmost_enclosure(undermosts);
 }
 
-/* /\* all blocks in which the cell is embedded. returns a pointer which */
-/*    points to pointers to block structures, so it's return value must */
-/*    be freed (which doesn't any harm to the actual structure pointers */
-/*    it points to!) *\/ */
-/* struct Cons **enclosing_blocks__Hp(struct Atom c, struct Cons **blocks, */
-/* 				    int blocks_count, int *enblocks_count) */
-/* { */
-/*   struct Cons **enblocks = NULL; */
-/*   for (int i = 0; i < blocks_count; i++) { */
-/*     if (is_enclosed_in(c, *(blocks[i]))) { */
-/*       if ((enblocks = realloc(enblocks, (*enblocks_count + 1) * sizeof(struct Cons *))) != NULL) */
-/* 	*(enblocks + (*enblocks_count)++) = *(blocks + i); */
-/*       else exit(EXIT_FAILURE); */
-/*     } */
-/*   } */
-/*   return enblocks; */
-/* } */
-
-
-
-
-
-
-
-/* /\* returns the bottom line number *\/ */
-/* int bottom_line_number(struct Cons **enblocks, int enblocks_count) */
-/* { */
-/*   int ln = -1; */
-/*   for (int i = 0; i < enblocks_count; i++) { */
-/*     if ((*(enblocks + i))->bricks[0]->token.line > ln) */
-/*       ln = (*(enblocks + i))->bricks[0]->token.line; */
-/*   } */
-/*   return ln; */
-/* } */
-
-/* struct Cons **bottommost_blocks__Hp(struct Cons **enblocks, int enblocks_count, int *botmost_blocks_count) */
-/* { */
-/*   int bln = bottom_line_number(enblocks, enblocks_count); */
-/*   struct Cons **botmost_blocks = NULL; */
-/*   for (int i = 0; i < enblocks_count; i++) { */
-/*     if ((*(enblocks + i))->bricks[0]->token.line == bln) { */
-/*       if ((botmost_blocks = realloc(botmost_blocks, (*botmost_blocks_count + 1) * sizeof(struct Cons *))) != NULL) { */
-/* 	*(botmost_blocks + (*botmost_blocks_count)++) = *(enblocks + i); */
-/*       }	else exit(EXIT_FAILURE); */
-/*     } */
-/*   } */
-/*   /\* free the pointer to selected (i.e. embedding) block pointers *\/ */
-/*   free(enblocks); */
-/*   return botmost_blocks; */
-/* } */
-
-
-
-
-/* /\* here we test column start index of block heads to decide *\/ */
-/* struct Cons *rightmost_block(struct Cons **botmost_blocks, int botmost_blocks_count) */
-/* { */
-/*   int col_start_idx = LEAST_COL_START_IDX;			/\* start index *\/ */
-/*   struct Cons *rmost_block = NULL; */
-/*   for (int i = 0; i < botmost_blocks_count; i++) {     */
-/*     if ((*(botmost_blocks + i))->bricks[0]->token.col_start_idx > col_start_idx) { */
-/*       rmost_block = *(botmost_blocks + i); */
-/*       col_start_idx = rmost_block->bricks[0]->token.col_start_idx; */
-/*     } */
-/*   } */
-/*   free(botmost_blocks); */
-/*   return rmost_block; */
-/* } */
-
-
-/* /\* which one of the blocks is the direct embedding block of c? *\/ */
-/* struct Cons *enclosing_block(struct Atom c, struct Cons **blocks, int blocks_count) */
-/* {   */
-/*   int enblocks_count = 0; */
-/*   struct Cons **enblocks = enclosing_blocks__Hp(c, blocks, blocks_count, &enblocks_count); */
-/*   int botmost_blocks_count = 0; */
-/*   struct Cons **botmost_blocks = bottommost_blocks__Hp(enblocks, enblocks_count, &botmost_blocks_count); */
-/*   return rightmost_block(botmost_blocks, botmost_blocks_count); */
-/* } */
-
-
-
-/* whether string s1 ends with string s2? */
-int str_ends_with(char *str1, char *str2)
-{
-  size_t len1 = strlen(str1);
-  size_t len2 = strlen(str2);
-  for (size_t i = 0; i<len2;i++) {
-    if (!(str1[len1-(len2-i)] == str2[i])) {
-      return 0;
-    }
-  }
-  return 1;
-}
-
-/* bool looks_like_parameter(struct Atom *c) */
-/* { */
-/*   return atom_type(c) == SYMBOL && str_ends_with(c->token.str, ":"); */
-/* } */
-/* bool looks_like_bound_parameter(struct Atom *c) */
-/* { */
-/*   return atom_type(c) == SYMBOL && str_ends_with(c->token.str, ":="); */
-/* } */
-
 
 /* to be included also in eval */
-bool is_lambda_unit(struct Atom *u)
+bool is_lambda_unit(struct Unit *u)
 {
   return !strcmp(u->token.str, LAMBDA_KEYWORD);
 }
 
-bool is_lambda_head(struct Atom c) { return !strcmp(c.token.str, LAMBDA_KEYWORD); }
+bool is_lambda_head(struct Unit c) { return !strcmp(c.token.str, LAMBDA_KEYWORD); }
 bool is_lambda3(GSList *unit) {
   return !strcmp(((unitp_t)unit->data)->token.str, LAMBDA_KEYWORD);
 }
 
 
-bool is_lambda4(struct Atom *u) {
+bool is_lambda4(struct Unit *u) {
   return !strcmp(u->token.str, LAMBDA_KEYWORD);
 }
 
@@ -211,14 +100,14 @@ bool is_lambda4(struct Atom *u) {
 bool is_lambda_node(GNode *node) {
   return !strcmp(((unitp_t)node->data)->token.str, LAMBDA_KEYWORD);
 }
-bool is_association(struct Atom *c)
+bool is_association(struct Unit *c)
 {
   return !strcmp(c->token.str, ASSOCIATION_KEYWORD);
 }
 bool is_association3(GSList *link) {
   return !strcmp(((unitp_t)link->data)->token.str, ASSOCIATION_KEYWORD);
 }
-bool is_association4(struct Atom *u) {
+bool is_association4(struct Unit *u) {
   return !strcmp(u->token.str, ASSOCIATION_KEYWORD);
 }
 
@@ -226,12 +115,12 @@ bool is_association4(struct Atom *u) {
 bool is_assignment3(GSList *link) {
   return !strcmp(((unitp_t)link->data)->token.str, ASSIGNMENT_KEYWORD);
 }
-bool is_assignment4(struct Atom *u) {
+bool is_assignment4(struct Unit *u) {
   return !strcmp(u->token.str, ASSIGNMENT_KEYWORD);
 }
 
 /* now we will be sure! */
-/* bool is_parameter(struct Atom *c, struct Cons *enclosing_block) */
+/* bool is_parameter(struct Unit *c, struct Cons *enclosing_block) */
 /* { */
 /*   return looks_like_parameter(c) */
 /*     && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).token.str, */
@@ -239,21 +128,21 @@ bool is_assignment4(struct Atom *u) {
 /* } */
 
 
-/* bool maybe_binding(struct Atom *b) */
+/* bool maybe_binding(struct Unit *b) */
 /* { */
-/*   return atom_type(a) == SYMBOL && *a->token.str == '.'; */
+/*   return unit_type(a) == SYMBOL && *a->token.str == '.'; */
 /* } */
 bool maybe_binding3(GSList *link)
 {
-  return atom_type((unitp_t)link->data) == SYMBOL && *((unitp_t)link->data)->token.str == BINDING_PREFIX;
+  return unit_type((unitp_t)link->data) == SYMBOL && *((unitp_t)link->data)->token.str == BINDING_PREFIX;
 }
-bool maybe_binding4(struct Atom *u)
+bool maybe_binding4(struct Unit *u)
 {
-  return atom_type(u) == SYMBOL && *u->token.str == BINDING_PREFIX;
+  return unit_type(u) == SYMBOL && *u->token.str == BINDING_PREFIX;
 }
 
 
-/* bool is_binding(struct Atom *b, struct Cons *enclosure) */
+/* bool is_binding(struct Unit *b, struct Cons *enclosure) */
 /* { */
 /*   return maybe_binding(b) && */
 /*     (is_lambda_head(block_head(enclosure)) || */
@@ -263,17 +152,17 @@ bool is_binding3(GSList *unit, GSList *parent) {
   return maybe_binding3(unit) &&
     (is_lambda3(parent) || is_association3(unit));
 }
-bool is_binding4(struct Atom *u, GNode *scope) {
+bool is_binding4(struct Unit *u, GNode *scope) {
   return maybe_binding4(u) &&
     (is_lambda4((unitp_t)scope->data) || is_association4(u));
 }
 
-/* bool is_bound_binding(struct Atom *c) */
+/* bool is_bound_binding(struct Unit *c) */
 /* { */
 /*   return c->type == BOUND_BINDING; */
 /* } */
 
-/* bool is_bound_parameter(struct Atom *c, struct Cons *enclosing_block) */
+/* bool is_bound_parameter(struct Unit *c, struct Cons *enclosing_block) */
 /* { */
 /*   return looks_like_bound_parameter(c) */
 /*     && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).token.str, */
@@ -289,7 +178,7 @@ bool is_binding4(struct Atom *u, GNode *scope) {
 /* } */
 
 
-/* bool need_new_cons(struct Atom *c, struct Cons *enclosing_block) */
+/* bool need_new_cons(struct Unit *c, struct Cons *enclosing_block) */
 /* { */
 /*   return isbuiltin(c) */
 /*     || !strcmp(c->token.str, ASSIGNMENT_KEYWORD) */
@@ -310,7 +199,7 @@ bool is_binding4(struct Atom *u, GNode *scope) {
 bool is_call(GSList *unit) {
   return !strcmp(((unitp_t)unit->data)->token.str, "call");
 }
-bool is_call4(struct Atom *u) {
+bool is_call4(struct Unit *u) {
   return !strcmp(u->token.str, "call");
 }
 
@@ -318,7 +207,7 @@ bool is_call4(struct Atom *u) {
 bool is_pret(GSList *unit) {
   return !strcmp(((unitp_t)unit->data)->token.str, "pret");
 }
-bool is_pret4(struct Atom *u) {
+bool is_pret4(struct Unit *u) {
   return !strcmp(u->token.str, "pret");
 }
 
@@ -332,7 +221,7 @@ bool need_subtree(GSList *unit, GSList *parent) {
     ;
 }
 
-bool need_subtree4(struct Atom *u, GNode *scope) {
+bool need_subtree4(struct Unit *u, GNode *scope) {
   return is_assignment4(u) ||
     is_association4(u) ||
     is_lambda4(u) ||
@@ -342,157 +231,20 @@ bool need_subtree4(struct Atom *u, GNode *scope) {
     ;
 }
 
-/* struct Cons **parse__Hp(struct Cons *global_block, struct Atom *linked_cells_root, int *blocks_count) */
-/* { */
-/*   /\* this is the blocktracker in the python prototype *\/ */
-/*   struct Cons **blocks = malloc(sizeof (struct Cons *)); /\* make room for the toplevel block *\/ */
-/*   *(blocks + (*blocks_count)++) = global_block; */
-/*   struct Atom *c = linked_cells_root; */
-/*   struct Cons *enclosure;	/\* the enclosing bundle *\/ */
-/*   struct Cons *active_binding_plate; /\* this is the last lambda, let etc. *\/ */
-/*   int blockid = 1; */
-/*   while (c) { */
-    
-/*     /\* find out the DIRECT embedding block of the current cell *\/ */
-/*     /\* (looks_like_parameter(c) || looks_like_bound_parameter(c)) *\/ */
-/*     if (maybe_binding(c) && is_enclosed_in(*c, *active_binding_plate)) { /\* so its a lambda parameter *\/ */
-/*       c->type = BINDING; */
-/*       enclosure = active_binding_plate; */
-/*       active_binding_plate->arity++; */
-/*       /\* enhance the type of the parameter symbol. *\/ */
-/*       /\* ACHTUNG: wir setzen den neuen Typ für bound param nicht hier, */
-/* 	 denn is_bound_parameter fragt ab ob das Cell vom Typ SYMBOL */
-/* 	 ist, was wiederum unten im need_new_cons eine Rolle */
-/* 	 spielt. Deshalb verschieben wir das Setzen vom Typ von SYMBOL zum */
-/* 	 BOUND_BINDING auf nach need_new_cons. *\/ */
-/*       /\* if (is_parameter(c, enclosure)) c->type = BINDING; *\/ */
-/*       /\* if (is_bound_parameter(c, enclosure)) c->type = BOUND_BINDING; *\/ */
-/*     } else {			/\* compute the enclosure anew *\/ */
-/*       enclosure = enclosing_block(*c, blocks, *blocks_count); */
-/*     } */
-
-/*     /\* i.e. ist das Ding jetzt der WERT für einen Bound Parameter? */
-/*        ich frag hier ob das enclosing Zeug von einem bound param */
-/*        ist ...*\/ */
-/*     /\* enclosure ist hier der block von bound_param *\/ */
-/*     /\* is_binding(enclosure->bricks + 0, enclosure->enclosure) *\/ */
-/*     if ((*enclosure->bricks)->type == BINDING || (*enclosure->bricks)->type == BOUND_BINDING) { */
-/*       (*enclosure->bricks)->type = BOUND_BINDING; */
-/*       if (enclosure->max_absr_capa == 1) */
-/* 	enclosure->max_absr_capa = 0; */
-/*       else { */
-/* 	enclosure = enclosure->enclosure; */
-/*       } */
-/*     } */
-/*     /\* enclosure->enclosure->bricks->token.str; *\/ */
-    
-/*     /\* If the computed enclosing block is a lambda-parameter and it */
-/*        has no more absorption capacity then reset the enclosing block */
-/*        to be the enclosing block of the lambda-parameter block */
-/*        i.e. the lambda block itself (imply that the current item is */
-/*        the return-expression of the lambda-block). If the parameter */
-/*        block still has absorption capacity (i.e. it's single */
-/*        default-argument) the computed enclosing block is correct, only */
-/*        decrement it's absorption capacity. *\/ */
-/*     /\* &(enclosing_block->bricks[0]) *\/ */
-    
-/*     if (need_new_cons(c, enclosure) || c->type==BINDING) { */
-/*       if ((blocks = realloc(blocks, (*blocks_count + 1) * sizeof (struct Cons *))) != NULL) { */
-
-/* 	struct Cons *newplt = malloc(sizeof *newplt); */
-/* 	newplt->bricks=malloc(sizeof (struct Atom *)); */
-/* 	struct Env *newenv = malloc(sizeof *newenv); */
-/* 	newplt->id = blockid++; */
-/* 	*newplt->bricks = c; */
-/* 	newplt->size = 1; */
-/* 	newplt->enclosure = enclosure; */
-/* 	*newenv = (struct Env){ */
-/* 	  .enclosing_env = enclosure->env, */
-/* 	  .hash_table = g_hash_table_new(g_str_hash, g_str_equal) */
-/* 	}; */
-/* 	newplt->env = newenv; */
-
-/* 	/\* set the new block's content *\/ */
-/* 	newplt->elts = malloc(sizeof (struct Cons_item)); */
-/* 	(*(newplt->elts)).type = ATOM; */
-/* 	(*(newplt->elts)).the_unit = c; */
-	
-/* 	*(blocks + (*blocks_count)++) = newplt; */
-	
-/* 	/\* keep an eye on this if its THE BEGINNING of a lambda *\/ */
-/* 	if (is_lambda_head(*c)) { */
-/* 	  newplt->islambda = true; /\* is a lambda-block *\/ */
-/* 	  newplt->arity = 0; /\* default is null-arity *\/ */
-/* 	  active_binding_plate = newplt; */
-/* 	  c->type=LAMBDA; */
-/* 	} else { */
-/* 	  newplt->islambda = false; */
-/* 	} */
-/* 	/\* LET Block *\/ */
-/* 	if (is_association(c)) { */
-/* 	  active_binding_plate = newplt; */
-/* 	} */
-
-/* 	if (is_binding(c, enclosure) || c->type==BINDING) { */
-/* 	  /\* printf("Christoph Seibert"); *\/ */
-/* 	  newplt->max_absr_capa = 1;	/\* ist maximal das default argument wenn vorhanden *\/ */
-/* 	  /\* enhance the type from simple SYMBOL to BOUND_BINDING *\/ */
-/* 	  /\* c->type = BOUND_BINDING; *\/ */
-/* 	} */
-		
-/* 	/\* das ist doppel gemoppelt, fass die beiden unten zusammen... *\/ */
-/* 	if ((enclosure->elts = realloc(enclosure->elts, (enclosure->size+1) * sizeof(struct Cons_item))) != NULL) { */
-/* 	  (*(enclosure->elts + enclosure->size)).type = CONS; */
-/* 	  (*(enclosure->elts + enclosure->size)).the_const = newplt; */
-/* 	  enclosure->size++; */
-/* 	} */
-/*       } else exit(EXIT_FAILURE); /\* blocks realloc failed *\/       */
-/*     } else {			 /\* no need for a new block, just a single lonely cell *\/ */
-/*       if ((enclosure->elts = realloc(enclosure->elts, (enclosure->size+1) * sizeof(struct Cons_item))) != NULL) { */
-/* 	(*(enclosure->elts + enclosure->size)).type = ATOM; */
-/* 	(*(enclosure->elts + enclosure->size)).the_unit = c; */
-/*       } */
-/*       c->enclosure = enclosure; */
-/*       /\* enclosure->bricks[enclosure->size] = *c; *\/ */
-/*       if ((enclosure->bricks = realloc(enclosure->bricks, (enclosure->size + 1) * sizeof (struct Atom *))) != NULL) { */
-/* 	*(enclosure->bricks + enclosure->size) = c; */
-/*       } */
-/*       enclosure->size++; */
-/*     } */
-/*     c = c->next; */
-/*   } */
-/*   return blocks; */
-/* } */
-
 /* goes through the atoms, root will be the container with tl_cons ... */
-GNode *parse3(GSList *atoms)
-{
+GNode *parse3(GSList *atoms) {
   GNode *root = g_node_new((unitp_t)atoms->data); /* toplevel atom stattdessen */
-  /* this is the blocktracker in the python prototype */
-  /* struct Cons **blocks = malloc(sizeof (struct Cons *)); /\* make room for the toplevel block *\/ */
-  /* *(blocks + (*blocks_count)++) = tl_cons; */
-  /* struct Atom *c = linked_cells_root; */
-  /* GSList *enclosure = NULL;	/\* the enclosing bundle *\/ */
-  struct Atom *effective_binding_unit = NULL;
+  struct Unit *effective_binding_unit = NULL;
   GNode *scope;
-  /* GSList *active_binding_plate = NULL; /\* this is the last lambda, let etc. *\/ */
   GSList *units_onset = atoms;
   atoms = atoms->next;
 
   while (atoms) {
-    /* struct Atom *atom = atoms->data; */
     /* find out the DIRECT embedding block of the current cell */
-    /* (looks_like_parameter(c) || looks_like_bound_parameter(c)) */
     if (maybe_binding3(atoms) && effective_binding_unit && is_enclosed_in4((unitp_t)atoms->data, effective_binding_unit)) { /* so its a lambda parameter */
       ((unitp_t)atoms->data)->type = BINDING;
       ((unitp_t)atoms->data)->is_atomic = false;
-      /* enclosure = active_binding_plate; */
       scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, effective_binding_unit);
-      /* printf("%s %s %d %d\n", ((unitp_t)atoms->data)->token.str, */
-      /* 	     stringify_type(((unitp_t)atoms->data)->type), */
-      /* 	     ); */
-	    
-      /* ((unitp_t)active_binding_plate->data)->arity++; */
       effective_binding_unit->arity++;
       
       /* enhance the type of the parameter symbol. */
@@ -501,10 +253,7 @@ GNode *parse3(GSList *atoms)
 	 ist, was wiederum unten im need_new_cons eine Rolle
 	 spielt. Deshalb verschieben wir das Setzen vom Typ von SYMBOL zum
 	 BOUND_BINDING auf nach need_new_cons. */
-      /* if (is_parameter(c, enclosure)) c->type = BINDING; */
-      /* if (is_bound_parameter(c, enclosure)) c->type = BOUND_BINDING; */
     } else {			/* compute the enclosure anew */
-      /* enclosure = find_enclosure_link(atoms, units_onset); */
       scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, (unitp_t)find_enclosure_link(atoms, units_onset)->data);
     }
 
@@ -512,16 +261,12 @@ GNode *parse3(GSList *atoms)
        ich frag hier ob das enclosing Zeug von einem bound param
        ist ...*/
     /* enclosure ist hier der block von bound_param */
-    /* is_binding(enclosure->bricks + 0, enclosure->enclosure) */
-
     if (((unitp_t)scope->data)->type == BINDING || ((unitp_t)scope->data)->type == BOUND_BINDING) {
       ((unitp_t)scope->data)->type = BOUND_BINDING;
       if (((unitp_t)scope->data)->max_absorption_capacity == 1) {
 	((unitp_t)scope->data)->max_absorption_capacity = 0;
       }
       else {
-	/* enclosure=g_slist_find(units_onset, ((unitp_t)enclosure->data)->parent_unit); */
-	/* scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, (unitp_t)enclosure->data); */
 	scope = scope->parent;
       }
     }
@@ -534,9 +279,6 @@ GNode *parse3(GSList *atoms)
        block still has absorption capacity (i.e. it's single
        default-argument) the computed enclosing block is correct, only
        decrement it's absorption capacity. */
-    /* &(enclosing_block->bricks[0]) */
-    /* need_subtree(atoms, scope) */
-
     if (need_subtree4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type ==BINDING) {
       ((unitp_t)atoms->data)->is_atomic = false;
       struct Env *env = malloc(sizeof (struct Env));
@@ -547,13 +289,11 @@ GNode *parse3(GSList *atoms)
       ((unitp_t)atoms->data)->env = env;
       if (is_lambda3(atoms)) {
 	((unitp_t)atoms->data)->arity = 0;
-	/* active_binding_plate = atoms; */
 	effective_binding_unit = (unitp_t)atoms->data;
       } else {
 	((unitp_t)atoms->data)->arity = -1; /* no lambda, no valid arity! */
       }
       if (is_association4((unitp_t)atoms->data)) {
-	/* active_binding_plate = atoms; */
 	effective_binding_unit = (unitp_t)atoms->data;
       }
       if (is_binding4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type == BINDING) {
@@ -561,16 +301,12 @@ GNode *parse3(GSList *atoms)
       }
       g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data),
 		    -1, g_node_new((unitp_t)atoms->data));
+    } else {
+      ((unitp_t)atoms->data)->is_atomic = true;
+      g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data),
+		    -1,	/* inserted as the last child of parent. */
+		    g_node_new((unitp_t)atoms->data));
     }
-    else
-      {
-	((unitp_t)atoms->data)->is_atomic = true;
-	g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data),
-		      -1,	/* inserted as the last child of parent. */
-		      g_node_new((unitp_t)atoms->data));
-
-	  
-      }
     atoms = atoms->next;
   }
   return root;
@@ -583,8 +319,8 @@ GNode *parse3(GSList *atoms)
 void assert_binding_node(GNode *node, GNode *last_child) {
   /* e.g. a parameter or a binding in let */
   if ((node != last_child &&
-       !(atom_type((unitp_t)node->data) == BINDING ||
-	 atom_type((unitp_t)node->data) == BOUND_BINDING))) {
+       !(unit_type((unitp_t)node->data) == BINDING ||
+	 unit_type((unitp_t)node->data) == BOUND_BINDING))) {
     fprintf(stderr, "%s not a binding!\n", ((unitp_t)node->data)->token.str);
     exit(EXIT_FAILURE);
   }
@@ -607,7 +343,7 @@ gboolean ascertain_lambda_spelling(GNode *node, gpointer data) {
 	/* if the last node LOOKS LIKE a parameter with a default
 	   argument (i.e. optional argument/bound binding), we see
 	   it's default argument as the final expression of lambda */
-      } else if (atom_type((unitp_t)last_child->data) == BOUND_BINDING) {
+      } else if (unit_type((unitp_t)last_child->data) == BOUND_BINDING) {
 	GNode *bound_value = g_node_last_child(last_child);
 	g_node_unlink(bound_value);
 	g_node_insert(node, -1, bound_value);
@@ -624,20 +360,4 @@ void ascertain_lambda_spellings(GNode *root) {
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)ascertain_lambda_spelling, NULL);
-}
-
-void free_parser_blocks(struct Cons **blocks, int blocks_count)
-{
-  /* the first pointer in **blocks points to the global_block, thats why we
-     can't free *(blocks + 0), as global_block is created on the
-     stack in main(). that first pointer will be freed after the for loop. */
-  for (int i = 1; i < blocks_count; i++) {
-    free((*(blocks + i))->elts);
-    free(*(blocks + i));
-  }
-  /* free the content of the toplevel block, since it surely
-     containts something when the parsed string hasn't been an empty
-     string! */
-  free((*blocks)->elts);
-  free(blocks);
 }

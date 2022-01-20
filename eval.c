@@ -6,7 +6,7 @@
 #include "let_data.h"
 #include "token.h"
 #include "env.h"
-#include "atom.h"
+#include "unit.h"
 #include "cons.h"
 /* #include "const_item.h" */
 #include "core.h"
@@ -15,11 +15,11 @@
 
 
 /* is external, defined in ast.c */
-bool is_bound_parameter(struct Atom *, struct Cons *);
-bool is_bound_binding(struct Atom *);
+bool is_bound_parameter(struct Unit *, struct Cons *);
+bool is_bound_binding(struct Unit *);
 void amend_lambda_semantics(struct Cons *);
 
-bool is_association(struct Atom *);
+bool is_association(struct Unit *);
 
 char *bound_parameter_name(char *param)
 {
@@ -45,7 +45,7 @@ struct Let_data *eval_const_item(struct Cons_item *item,
   struct Let_data *result = malloc(sizeof(struct Let_data)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval_const_item */
   switch (item->type) {
   case ATOM:
-    switch (atom_type(item->the_unit)) {
+    switch (unit_type(item->the_unit)) {
     case INTEGER:
       result->type = INTEGER;
       result->value.dataslot_int = item->the_unit->ival;
@@ -153,7 +153,7 @@ struct Let_data *eval_const_item(struct Cons_item *item,
 	switch (item->the_const->elts[i].type) {
 	case ATOM:		/* muss ein parameter ohne Wert sein, bind to NIL */
 	  printf("in Eval bundle Unit BIT: %s %s\n",item->the_const->elts[i].the_unit->token.str,
-		 stringify_type(atom_type(item->the_const->elts[i].the_unit)));
+		 stringify_type(unit_type(item->the_const->elts[i].the_unit)));
 	  break;
 	case CONS:		/* muss ein bound parameter sein! */
 	  {

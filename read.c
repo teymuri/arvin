@@ -42,35 +42,13 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 int __Tokid = 1;		/* id 0 is reserved for the toplevel
 				   token */
 
-/* int isempty(char *s); */
-/* char **read_lines__Hp(char *path, size_t *count); */
-/* void free_lines(char **lines, size_t count); */
-
-/* struct Token *tokenize_line__Hp */
-/* (char *line, size_t *line_toks_count, size_t *all_tokens_count, int line); */
-
-/* struct Token *tokenize_source__Hp(char *path, size_t *all_tokens_count); */
-
-/* struct Token *tokenize_lines__Hp */
-/* (char **srclns, size_t lines_count, size_t *all_tokens_count); */
-
-/* int is_comment_opening(struct Token tok); */
-/* int is_comment_closing(struct Token tok); */
-/* void index_comments(struct Token *tokens, size_t all_tokens_count); */
-/* struct Token *polish_tokens(struct Token *toks, size_t *nctok_count, */
-/* 				  size_t all_tokens_count); */
-/* struct Atom *linked_cells__Hp(struct Token tokens[], size_t count); */
-/* void free_linked_cells(struct Atom *c); */
-
-
 
 
 
 
 
 /* checks if the string s consists only of blanks and/or newline */
-int isempty(char *s)
-{
+int isempty(char *s) {
   while (*s) {
     /* if char is something other than a blank or a newline, the string
        is regarded as non-empty. */

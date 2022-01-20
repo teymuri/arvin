@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include "type.h"
 #include "let_data.h"
-#include "atom.h"
+#include "unit.h"
 
 
 
@@ -45,13 +45,4 @@ char *__Builtins[] = {
 };
 int __Builtins_count = 4;
 
-
-/* is the cell c a builtin? */
-bool isbuiltin(struct Atom *c)
-{
-  for (int i = 0; i < __Builtins_count; i++)
-    if (!strcmp(cellstr(c), __Builtins[i]))
-      return true;
-  return false;
-}
 
