@@ -194,22 +194,22 @@ int str_ends_with(char *str1, char *str2)
 /* to be included also in eval */
 bool is_lambda_unit(struct Atom *u)
 {
-  return !strcmp(u->token.str, LAMBDA_KW);
+  return !strcmp(u->token.str, LAMBDA_KEYWORD);
 }
 
-bool is_lambda_head(struct Atom c) { return !strcmp(c.token.str, LAMBDA_KW); }
+bool is_lambda_head(struct Atom c) { return !strcmp(c.token.str, LAMBDA_KEYWORD); }
 bool is_lambda3(GSList *unit) {
-  return !strcmp(((unitp_t)unit->data)->token.str, LAMBDA_KW);
+  return !strcmp(((unitp_t)unit->data)->token.str, LAMBDA_KEYWORD);
 }
 
 
 bool is_lambda4(struct Atom *u) {
-  return !strcmp(u->token.str, LAMBDA_KW);
+  return !strcmp(u->token.str, LAMBDA_KEYWORD);
 }
 
 
 bool is_lambda_node(GNode *node) {
-  return !strcmp(((unitp_t)node->data)->token.str, LAMBDA_KW);
+  return !strcmp(((unitp_t)node->data)->token.str, LAMBDA_KEYWORD);
 }
 bool is_association(struct Atom *c)
 {
@@ -245,11 +245,11 @@ bool is_assignment4(struct Atom *u) {
 /* } */
 bool maybe_binding3(GSList *link)
 {
-  return atom_type((unitp_t)link->data) == SYMBOL && *((unitp_t)link->data)->token.str == '.';
+  return atom_type((unitp_t)link->data) == SYMBOL && *((unitp_t)link->data)->token.str == BINDING_PREFIX;
 }
 bool maybe_binding4(struct Atom *u)
 {
-  return atom_type(u) == SYMBOL && *u->token.str == '.';
+  return atom_type(u) == SYMBOL && *u->token.str == BINDING_PREFIX;
 }
 
 
@@ -579,38 +579,31 @@ GNode *parse3(GSList *atoms)
 
 
 
-void print_code_ast(struct Cons *root, int depth);
-char *stringify_block_item_type(enum Cons_item_type t);
 
-/* append elt as the last item to plt's elts */
-void append_element(struct Cons_item *elt, struct Cons *plt)
-{  
-  /* ******************************* */
-  if ((plt->elts = realloc(plt->elts,
-			    (plt->size+1) * sizeof (struct Cons_item))) != NULL) {
-	(plt->elts + plt->size)->type = elt->type;
-	if (elt->type == ATOM) {
-	  (plt->elts + plt->size)->the_unit = elt->the_unit;
-	  /* auch in bricks */
-	  if ((plt->bricks = realloc(plt->bricks, (plt->size+1)*sizeof (struct Atom *))) != NULL)
-	    *(plt->bricks + plt->size) = elt->the_unit;
-	}
-	else			/* hoffentlich CONS!!! */
-	  (plt->elts + plt->size)->the_const = elt->the_const;
-	plt->size++;
+void assert_binding_node(GNode *node, GNode *last_child) {
+  /* e.g. a parameter or a binding in let */
+  if ((node != last_child &&
+       !(atom_type((unitp_t)node->data) == BINDING ||
+	 atom_type((unitp_t)node->data) == BOUND_BINDING))) {
+    fprintf(stderr, "%s not a binding!\n", ((unitp_t)node->data)->token.str);
+    exit(EXIT_FAILURE);
   }
-  /* ************************ */
 }
 
-/* struct Cons *remove_element(struct Cons_item *elt, struct Cons *plt) */
-/* { */
-/*   for (int i = 0; i < plt->size; i++) { */
-    
-/*   } */
-/*   return elt; */
-/* } */
 gboolean ascertain_lambda_spelling(GNode *node, gpointer data) {
   if (is_lambda_node(node)) {
+    if (g_node_n_children(node)) {
+      /* first assert that every child node except with the last one
+	 is a binding (ie a parameter decleration) */
+      g_node_children_foreach(node, G_TRAVERSE_ALL,
+			      (GNodeForeachFunc)assert_binding_node,
+			      g_node_last_child(node));
+      
+    } else {
+      fprintf(stderr, "lambda braucht mind. eine expression!\n");
+      exit(EXIT_FAILURE);
+    }
+    
     switch (g_node_n_children(node)) {
     case 0:
       fprintf(stderr, "lambda braucht mind. eine expression!\n");
@@ -618,10 +611,14 @@ gboolean ascertain_lambda_spelling(GNode *node, gpointer data) {
       break;
     default:
       /* es gibt parameterliste */
-      if (((struct Atom *)g_node_last_child(node))->type == BINDING) {
+      if (((struct Atom *)g_node_last_child(node)->data)->type == BINDING) {
 	fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
 		((struct Atom *)node->children->data)->token.str);
 	exit(EXIT_FAILURE);	
+      } else if (atom_type((unitp_t)g_node_last_child(node)->data) == BOUND_BINDING) {
+	GNode *bindval_node = g_node_last_child(g_node_last_child(node));
+	g_node_insert(node, -1, g_node_new((unitp_t)bindval_node->data));
+	g_node_destroy(bindval_node);
       }
       break;
     }
@@ -632,60 +629,6 @@ void ascertain_all_lambda_spellings(GNode *root) {
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)ascertain_lambda_spelling, NULL);
-}
-/* testen wir mal die Semantik von Lambda expressions */
-void amend_lambda_semantics(struct Cons *root)
-{
-  for (int i = 0; i < root->size; i++) {
-    switch (root->elts[i].type) {
-      /* a lambda can only ever be a plate */
-    case ATOM: break;
-    case CONS:
-      if (atom_type(*root->elts[i].the_const->bricks) == LAMBDA) {
-	int sz = (*root->elts[i].the_const).size;
-	printf("====%p=====\n", (void *)*root->elts[i].the_const->bricks);
-	/* for (int j = 1; j < sz-1; j++) { */
-	/*   /\* bestimmt plates *\/ */
-	/*   printf("->%d %s\n", j,(*root->elts[i].the_const->elts[j].the_const->bricks)->token.str); */
-	/* } */
-	struct Cons_item *body = root->elts[i].the_const->elts + (sz - 1); /*  */
-	/* body teil */
-	switch (body->type) {
-	case ATOM: break;	/* sieht gut aus (a cell), klassen wir mal so bleiben */
-	case CONS:
-	  /* printf("??%s\n", stringify_type(atom_type(*body->the_const->bricks))); */
-	  if (atom_type(*body->the_const->bricks) == BINDING) {
-	    fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
-		    (*body->the_const->bricks)->token.str);
-	    exit(EXIT_FAILURE);
-	  } else if (atom_type(*body->the_const->bricks) == BOUND_BINDING) { /* .x ... */
-	    
-	    /* (root->elts[i].the_const->size)++; */
-	    
-	    /* the_const hat genau 2 teile:  */
-	    struct Cons_item *retstat = body->the_const->elts + 1; /* ... */
-	    /* struct Atom *retstat = body->the_const->bricks + 1; */
-	    if (retstat->type ==ATOM) {
-	      retstat->the_unit->enclosure = body->the_const->enclosure;
-	      /* body->the_const->size--; */
-	      body->the_const->elts->the_unit->type = BINDING;
-	      printf("retstat %s %s %p %d %s\n", retstat->the_unit->token.str,
-		     (*retstat->the_unit->enclosure->bricks)->token.str,
-		     (void *)*retstat->the_unit->enclosure->bricks,
-		     root->elts[i].the_const->size, (*root->elts[i].the_const->bricks)->token.str
-		     );
-	      append_element(retstat, body->the_const->enclosure);
-	    }
-	  }
-	  printf("->%s\n", (*root->elts[i].the_const->elts[sz-1].the_const->bricks)->token.str);
-	  break;
-	}
-      }
-      amend_lambda_semantics(root->elts[i].the_const);
-      break;
-    default: break;
-    }
-  }
 }
 
 void free_parser_blocks(struct Cons **blocks, int blocks_count)

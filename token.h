@@ -7,8 +7,8 @@
 /* differentiate btwn assignment and association like W. Richard Stark pg. 97*/
 #define ASSIGNMENT_KEYWORD "define"		/* used to define symbols in the global environment */
 #define ASSOCIATION_KEYWORD "let"
-#define LAMBDA_KW "lambda"
-#define BINDING_PREFIX '.'
+#define LAMBDA_KEYWORD "lambda"
+#define BINDING_PREFIX ':'
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 

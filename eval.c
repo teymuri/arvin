@@ -89,7 +89,7 @@ struct Let_data *eval_const_item(struct Cons_item *item,
     break;			/* break ATOM */
   case CONS:
     /* if (is_lambda_unit(&block_head(item->the_const))) { */
-    if (!strcmp(block_head(item->the_const).token.str, LAMBDA_KW)) {
+    if (!strcmp(block_head(item->the_const).token.str, LAMBDA_KEYWORD)) {
 
       /* int lambda_IS_size = item->the_const->size - 1; /\* head is lambda word itself, cut it off *\/ */
       /* int lambda_SHOULDBE_size = item->the_const->arity + 1; */
