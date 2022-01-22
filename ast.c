@@ -119,19 +119,6 @@ bool is_assignment4(struct Unit *u) {
   return !strcmp(u->token.str, ASSIGNMENT_KEYWORD);
 }
 
-/* now we will be sure! */
-/* bool is_parameter(struct Unit *c, struct Cons *enclosing_block) */
-/* { */
-/*   return looks_like_parameter(c) */
-/*     && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).token.str, */
-/* 						       ASSOCIATION_KEYWORD)); */
-/* } */
-
-
-/* bool maybe_binding(struct Unit *b) */
-/* { */
-/*   return unit_type(a) == SYMBOL && *a->token.str == '.'; */
-/* } */
 bool maybe_binding3(GSList *link)
 {
   return unit_type((unitp_t)link->data) == SYMBOL && *((unitp_t)link->data)->token.str == BINDING_PREFIX;
@@ -141,13 +128,6 @@ bool maybe_binding4(struct Unit *u)
   return unit_type(u) == SYMBOL && *u->token.str == BINDING_PREFIX;
 }
 
-
-/* bool is_binding(struct Unit *b, struct Cons *enclosure) */
-/* { */
-/*   return maybe_binding(b) && */
-/*     (is_lambda_head(block_head(enclosure)) || */
-/*      !strcmp((block_head(enclosure)).token.str, ASSOCIATION_KEYWORD)); */
-/* } */
 bool is_binding3(GSList *unit, GSList *parent) {
   return maybe_binding3(unit) &&
     (is_lambda3(parent) || is_association3(unit));
@@ -156,45 +136,6 @@ bool is_binding4(struct Unit *u, GNode *scope) {
   return maybe_binding4(u) &&
     (is_lambda4((unitp_t)scope->data) || is_association4(u));
 }
-
-/* bool is_bound_binding(struct Unit *c) */
-/* { */
-/*   return c->type == BOUND_BINDING; */
-/* } */
-
-/* bool is_bound_parameter(struct Unit *c, struct Cons *enclosing_block) */
-/* { */
-/*   return looks_like_bound_parameter(c) */
-/*     && (is_lambda_head(block_head(enclosing_block)) || !strcmp((block_head(enclosing_block)).token.str, */
-/* 						       ASSOCIATION_KEYWORD)); */
-/* } */
-
-
-/* is the direct enclosing block the bind keyword, ie we are about to
-   define a new name? */
-/* bool is_a_binding_name(struct Cons *b) */
-/* { */
-/*   return !strcmp(block_head(b->enclosure).token.str, ASSIGNMENT_KEYWORD); */
-/* } */
-
-
-/* bool need_new_cons(struct Unit *c, struct Cons *enclosing_block) */
-/* { */
-/*   return isbuiltin(c) */
-/*     || !strcmp(c->token.str, ASSIGNMENT_KEYWORD) */
-/*     || is_association(c) */
-/*     /\* is the symbol to be defined? *\/ */
-/*     /\* || !strcmp(block_head(enclosing_block).token.str, ASSIGNMENT_KEYWORD) *\/ */
-/*     /\* is begin of a lambda expression? *\/ */
-/*     || is_lambda_head(*c) */
-/*     /\* is a lambda parameter? *\/ */
-/*     || is_binding(c, enclosing_block) /\* hier muss enclosing_block richtig entschieden sein!!! *\/ */
-/*     /\* || is_bound_parameter(c, enclosing_block) /\\* hier muss enclosing_block richtig entschieden sein!!! *\\/ *\/ */
-/*     || !strcmp(c->token.str, "call") */
-/*     || !strcmp(c->token.str, "pret") */
-/*     || !strcmp(c->token.str, "gj") /\* geburtsjahr!!! *\/ */
-/*     ; */
-/* } */
 /* all in one is_builtin??? */
 bool is_call(GSList *unit) {
   return !strcmp(((unitp_t)unit->data)->token.str, "call");
@@ -211,15 +152,6 @@ bool is_pret4(struct Unit *u) {
   return !strcmp(u->token.str, "pret");
 }
 
-bool need_subtree(GSList *unit, GSList *parent) {
-  return is_assignment3(unit) ||
-    is_association3(unit) ||
-    is_lambda3(unit) ||
-    is_binding3(unit, parent) ||
-    is_call(unit) ||
-    is_pret(unit)
-    ;
-}
 
 bool need_subtree4(struct Unit *u, GNode *scope) {
   return is_assignment4(u) ||
