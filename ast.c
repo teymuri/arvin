@@ -159,7 +159,8 @@ bool need_subtree4(struct Unit *u, GNode *scope) {
     is_lambda4(u) ||
     is_binding4(u, scope) ||
     is_call4(u) ||
-    is_pret4(u)
+    is_pret4(u) ||
+    !strcmp(u->token.str, "block")
     ;
 }
 
@@ -292,4 +293,5 @@ void ascertain_lambda_spellings(GNode *root) {
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)ascertain_lambda_spelling, NULL);
+  puts("Lambda spellings ascertained\n---");
 }
