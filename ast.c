@@ -202,7 +202,16 @@ GNode *parse3(GSList *atoms) {
 	scope = scope->parent;
       }
     }
-    
+
+    /* remove this shit later please! */
+    if (is_pret4((unitp_t)scope->data)) {
+      if (((unitp_t)scope->data)->max_capacity == 1) {
+	((unitp_t)scope->data)->max_capacity = 0;
+      }
+      else {
+	scope = scope->parent;
+      }
+    }    
     /* If the computed enclosing block is a lambda-parameter and it
        has no more absorption capacity then reset the enclosing block
        to be the enclosing block of the lambda-parameter block
@@ -211,7 +220,7 @@ GNode *parse3(GSList *atoms) {
        block still has absorption capacity (i.e. it's single
        default-argument) the computed enclosing block is correct, only
        decrement it's absorption capacity. */
-    if (need_subtree4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type ==BINDING) {
+    if (need_subtree4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type == BINDING) {
       ((unitp_t)atoms->data)->is_atomic = false;
       struct Env *env = malloc(sizeof (struct Env));
       *env = (struct Env){
@@ -219,6 +228,7 @@ GNode *parse3(GSList *atoms) {
 	.hash_table = g_hash_table_new(g_str_hash, g_str_equal)
       };
       ((unitp_t)atoms->data)->env = env;
+      
       if (is_lambda3(atoms)) {
 	/* we know at this point not much about the number of
 	   parameters of this lambda, so set it to 0 (default arity

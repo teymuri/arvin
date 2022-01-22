@@ -11,10 +11,10 @@
 struct Unit {
   size_t uuid;
   /* arity is unsigned int for lambdas, and -1 otherwise (invalid
-     arity) */
+     arity if not a lambda) */
   int arity;
   /* don't use unsigned for max absorption, since we need -1 for
-     undefined capacity (or very big capacities!) */
+     undefined/unlimited capacity */
   int max_capacity;
   struct Token token;
   enum Type type;
