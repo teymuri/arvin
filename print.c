@@ -14,16 +14,17 @@ void print_indent(int i) {
   printf("%s", s);
 }
 
-#define AST_PRINTER_UNIT_FORMAT "[tokstr(%s) type(%s) nadd(%p) uadd(%p) sz(%d) atom(%d) maxcap(%d)]"
+#define UNIT_FORMAT "[tokstr(%s) type(%s) nadd(%p) uadd(%p) sz(%d) atom(%d) arity(%d) maxcap(%d)]"
 gboolean print_node(GNode *node, gpointer data) {
   print_indent((guint)g_node_depth(node) - 1);
-  printf(AST_PRINTER_UNIT_FORMAT,	 
+  printf(UNIT_FORMAT,	 
 	 ((struct Unit *)node->data)->token.str,
 	 stringify_type(unit_type((struct Unit *)node->data)),
 	 (gpointer)node,
 	 (gpointer)node->data,
 	 g_node_n_children(node),
 	 ((struct Unit *)node->data)->is_atomic,
+	 ((struct Unit *)node->data)->arity,
 	 ((struct Unit *)node->data)->max_capacity
 	 );
   puts("");

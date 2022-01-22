@@ -152,7 +152,6 @@ bool is_pret4(struct Unit *u) {
   return !strcmp(u->token.str, "pret");
 }
 
-
 bool need_subtree4(struct Unit *u, GNode *scope) {
   return is_assignment4(u) ||
     is_association4(u) ||
@@ -221,14 +220,22 @@ GNode *parse3(GSList *atoms) {
       };
       ((unitp_t)atoms->data)->env = env;
       if (is_lambda3(atoms)) {
+	/* we know at this point not much about the number of
+	   parameters of this lambda, so set it to 0 (default arity
+	   for lambda is 0 parameters). this can change as we go on
+	   with parsing and detect it's parameter declerations. */
 	((unitp_t)atoms->data)->arity = 0;
 	effective_binding_unit = (unitp_t)atoms->data;
-      } else {
-	((unitp_t)atoms->data)->arity = -1; /* no lambda, no valid arity! */
       }
+      
       if (is_association4((unitp_t)atoms->data)) {
 	effective_binding_unit = (unitp_t)atoms->data;
       }
+      if (is_pret4((unitp_t)atoms->data)) {
+	((unitp_t)atoms->data)->max_capacity = 1;
+	((unitp_t)atoms->data)->arity = 1;
+      }
+	
       if (is_binding4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type == BINDING) {
 	((unitp_t)atoms->data)->max_capacity = 1;
       }
@@ -260,7 +267,7 @@ void assert_binding_node(GNode *node, GNode *last_child) {
   }
 }
 
-gboolean ascertain_lambda_spelling(GNode *node, gpointer data) {
+gboolean sanify_lambda(GNode *node, gpointer data) {
   if (is_lambda_node(node)) {
     if (g_node_n_children(node)) {
       GNode *last_child = g_node_last_child(node);
@@ -290,9 +297,9 @@ gboolean ascertain_lambda_spelling(GNode *node, gpointer data) {
   }
   return false;
 }
-void ascertain_lambda_spellings(GNode *root) {
+void sanify_lambdas(GNode *root) {
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
-		  (GNodeTraverseFunc)ascertain_lambda_spelling, NULL);
-  puts("Lambda spellings ascertained");
+		  (GNodeTraverseFunc)sanify_lambda, NULL);
+  puts("Lambda sanified");
 }

@@ -35,8 +35,7 @@ int main(int argc, char **argv) {
   struct Unit toplevel_unit = {				/* bricks[0] toplevel cell */
     .uuid = TL_ATOM_UUID,					/*  */
     .max_capacity = -1,
-    /* token token */
-    /* .unit_t = ATOM, */
+    .arity = -1,
     .env = &toplevel_env,
     .token = toplevel_token,
     /* type ??? */
@@ -58,7 +57,7 @@ int main(int argc, char **argv) {
     GSList *atoms = units_linked_list(polished_tokens, polished_tokens_count);
     atoms = g_slist_prepend(atoms, &toplevel_unit);
     GNode *ast3 = parse3(atoms);
-    ascertain_lambda_spellings(ast3);
+    sanify_lambdas(ast3);
     print_ast3(ast3);    
   }
   exit(EXIT_SUCCESS);

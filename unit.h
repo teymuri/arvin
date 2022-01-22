@@ -10,7 +10,9 @@
 
 struct Unit {
   size_t uuid;
-  size_t arity;			/* falls ein lambda... */
+  /* arity is unsigned int for lambdas, and -1 otherwise (invalid
+     arity) */
+  int arity;
   /* don't use unsigned for max absorption, since we need -1 for
      undefined capacity (or very big capacities!) */
   int max_capacity;

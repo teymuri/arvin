@@ -64,6 +64,9 @@ GSList *units_linked_list(struct Token toks[], size_t toks_n)
        different unsigned integers for different types (e.g. parameter
        bindings will get 1 etc.)*/
     atom->max_capacity = -1;
+    /* arity will be set by the parser to either 0 or more for lambdas
+       and remains -1 for everything else */
+    atom->arity = -1;
     determine_unit_value(atom);
     determine_unit_type(atom);
     sll = g_slist_prepend(sll, atom);
