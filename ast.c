@@ -162,15 +162,16 @@ bool need_subtree4(struct Unit *u, GNode *scope) {
     !strcmp(u->token.str, "block")
     ;
 }
+
 /* statt scope das jetzige atom selbst */
-GNode *nearest_parent_with_capa(GNode *scope) {
+GNode *find_parent_with_capa(GNode *scope) {
   while (scope) {
     if (((unitp_t)scope->data)->max_capacity)
       return scope;
     else
       scope = scope->parent;
   }
-  return scope;		/* nothing found! */
+  return NULL;		/* nothing found! */
 }
 
 /* goes through the atoms, root will be the container with tl_cons ... */
@@ -209,7 +210,7 @@ GNode *parse3(GSList *atoms) {
 	((unitp_t)scope->data)->max_capacity = 0;
       } else {
 	/* scope = scope->parent; */
-	scope = nearest_parent_with_capa(scope);
+	scope = find_parent_with_capa(scope);
       }
     }
 
@@ -220,7 +221,7 @@ GNode *parse3(GSList *atoms) {
       }
       else {
 	/* scope = scope->parent; */
-	scope = nearest_parent_with_capa(scope);
+	scope = find_parent_with_capa(scope);
       }
     }    
     /* If the computed enclosing block is a lambda-parameter and it

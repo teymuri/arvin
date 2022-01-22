@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
     GSList *atoms = units_linked_list(polished_tokens, polished_tokens_count);
     atoms = g_slist_prepend(atoms, &toplevel_unit);
     GNode *ast3 = parse3(atoms);
-    /* sanify_lambdas(ast3); */
+    sanify_lambdas(ast3);
     print_ast3(ast3);    
   }
   exit(EXIT_SUCCESS);
