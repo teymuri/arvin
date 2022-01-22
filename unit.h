@@ -11,7 +11,9 @@
 struct Unit {
   size_t uuid;
   size_t arity;			/* falls ein lambda... */
-  size_t max_absorption_capacity;
+  /* don't use unsigned for max absorption, since we need -1 for
+     undefined capacity (or very big capacities!) */
+  int max_capacity;
   struct Token token;
   enum Type type;
   bool is_atomic;

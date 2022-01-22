@@ -196,8 +196,8 @@ GNode *parse3(GSList *atoms) {
     /* enclosure ist hier der block von bound_param */
     if (((unitp_t)scope->data)->type == BINDING || ((unitp_t)scope->data)->type == BOUND_BINDING) {
       ((unitp_t)scope->data)->type = BOUND_BINDING;
-      if (((unitp_t)scope->data)->max_absorption_capacity == 1) {
-	((unitp_t)scope->data)->max_absorption_capacity = 0;
+      if (((unitp_t)scope->data)->max_capacity == 1) {
+	((unitp_t)scope->data)->max_capacity = 0;
       }
       else {
 	scope = scope->parent;
@@ -230,12 +230,13 @@ GNode *parse3(GSList *atoms) {
 	effective_binding_unit = (unitp_t)atoms->data;
       }
       if (is_binding4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type == BINDING) {
-	((unitp_t)atoms->data)->max_absorption_capacity = 1;
+	((unitp_t)atoms->data)->max_capacity = 1;
       }
       g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data),
 		    -1, g_node_new((unitp_t)atoms->data));
-    } else {
+    } else {			/* it is an atomic unit */
       ((unitp_t)atoms->data)->is_atomic = true;
+      ((unitp_t)atoms->data)->max_capacity = 0;
       g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data),
 		    -1,	/* inserted as the last child of parent. */
 		    g_node_new((unitp_t)atoms->data));
@@ -293,5 +294,5 @@ void ascertain_lambda_spellings(GNode *root) {
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)ascertain_lambda_spelling, NULL);
-  puts("Lambda spellings ascertained\n---");
+  puts("Lambda spellings ascertained");
 }
