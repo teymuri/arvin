@@ -1,33 +1,23 @@
 /* cell = Single, block = Multiple */
 
-
+#include <stdio.h>
 #include <glib.h>
 #include "read.h"
-#include "bundle_unit.h"
-#include "bit.h"
+/* #include "const_item.h" */
+#include "unit.h"
 #include "env.h"
 #include "ast.h"
 #include "token.h"
 #include "eval.h"
-#include "bundle.h"
-/* extern struct Token *tokenize_lines__Hp(char **srclns, size_t lines_count, */
-/* 					size_t *all_tokens_count); */
-/* extern struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count, */
-/* 					 size_t all_tokens_count); */
-/* extern struct Bit *linked_cells__Hp(struct Token tokens[], size_t count); */
-/* extern struct Bundle **parse__Hp(struct Bundle *global_block, struct Bit *linked_cells_root, int *blocks_count); */
-/* extern struct letdata *global_eval(struct Bundle *root, */
-/* 			    struct env *local_env, */
-/* 				   struct env *global_env); */
-/* extern void free_parser_blocks(struct Bundle **blocks, int blocks_count); */
-/* extern void free_linked_cells(struct Bit *c); */
-#define GLOBAL_TOKEN_STR "GLOBAL_TOKEN_STR"
+#include "print.h"
+
+#define TOPLEVEL_TOKEN_STRING "_TLTS_"
+#define TL_ATOM_UUID 0
 
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
   /* The global environment */
-  struct Env global_env = {
+  struct Env toplevel_env = {
     .id = 0,
     /* g_hash_table_new returns a GHashTable* */
     .hash_table = g_hash_table_new(g_str_hash, g_str_equal),
@@ -35,90 +25,40 @@ int main(int argc, char **argv)
     /* .symcount = 0 */
   };
 
-  struct Token global_token = {
-    .str = GLOBAL_TOKEN_STR,
-    .column_start_idx = -1,
+  struct Token tltok = {
+    .str = TOPLEVEL_TOKEN_STRING,
+    .col_start_idx = -1,
     .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
-    .linum = -1,
+    .line = -1,
     .id = 0
   };
-  struct Bit global_cell = {				/* cells[0] toplevel cell */
-    /* car token */
-    .car = global_token,
-    /* cdr cell pointer */
-    .cdr = NULL,
-    /* in block cdr */
-    .in_block_cdr = NULL,
+  struct Unit tlunit = {				/* bricks[0] toplevel cell */
+    .uuid = TL_ATOM_UUID,					/*  */
+    /* token token */
+    /* .unit_t = ATOM, */
+    .env = &toplevel_env,
+    .token = tltok,
     /* type ??? */
     .type = UNDEFINED,
-    .linker = NULL,			/* linker */
     .ival = 0,			/* ival */
     .fval = 0.0			/* fval */
   };
   
-  struct BundleUnit *global_item = malloc(sizeof (struct BundleUnit));
-  (*global_item).type = CELL;
-  (*global_item).cell_item = &global_cell;
-
-  struct Bundle global_block = {
-    .id = 0,
-    .cells = { global_cell },
-    /* env (Toplevel Environment) */
-    .env = &global_env,
-    /* .env = NULL, */
-    .size = 1,			/* this is the toplevel cell */
-    .block_enclosing_block = NULL,
-    .items = global_item,
-    .islambda = false,
-    .arity = -1			/* invalid arity, because this is not a lambda block! */
-  };
-  
-  /* int linum=1; */
-  /* char *lines[] = { */
-  /*   "pret 1" */
-    
-  /*   /\* "let jahr:= 2022 define f1 lambda jahr", *\/ */
-  /*   /\* "define f2 lambda call f1", *\/ */
-  /*   /\* "pret call f1", *\/ */
-  /*   /\* "pret call f2" *\/ */
-  /* }; */
-  
   size_t all_tokens_count = 0;
   struct Token *toks = tokenize_source__Hp(argv[1], &all_tokens_count);
-  /* struct Token *toks = tokenize_lines__Hp(lines, linum, &all_tokens_count); */
-  size_t nctok_count = 0;
-  struct Token *nct = remove_comments__Hp(toks, &nctok_count, all_tokens_count);
+  /* struct Token *toks = tokenize_lines__Hp(lines, line, &all_tokens_count); */
+  size_t polished_tokens_count = 0;	/*  */
+  struct Token *polished_tokens = polish_tokens(toks, &polished_tokens_count, all_tokens_count);
   
   /* fortfahren nur wenn vom Quelcode nach dem Entfernen von
      Kommentaren was übrig geblieben ist */
   
-  if (nctok_count) {
-    struct Bit *c = linked_cells__Hp(nct, nctok_count);
-    struct Bit *base = c;
-    int blocks_count = 0;
-    struct Bundle **b = parse__Hp(&global_block, c, &blocks_count);
-    
-    /* print_ast(&global_block); */
-    /* print(global_eval(&global_block, &global_env, &global_env)); */
-    global_eval(&global_block, &global_env, &global_env);
-
-    free_parser_blocks(b, blocks_count);
-    free_linked_cells(base);
-    free(nct);
+  if (polished_tokens_count) {
+    GSList *atoms = units_linked_list(polished_tokens, polished_tokens_count);
+    atoms = g_slist_prepend(atoms, &tlunit);
+    GNode *ast3 = parse3(atoms);
+    ascertain_lambda_spellings(ast3);
+    print_ast3(ast3);    
   }
-  
-  /* struct Bit *c = linked_cells__Hp(nct, nctok_count); */
-  /* struct Bit *base = c; */
-  /* int blocks_count = 0; */
-
-  /* struct Bundle **b = parse__Hp(&global_block, c, &blocks_count); */
-  /* print_ast(&global_block); */
-  /* /\* print(global_eval(&global_block, &global_env, &global_env)); *\/ */
-  /* /\* global_eval(&global_block, &global_env, &global_env); *\/ */
-
-  /* free_parser_blocks(b, blocks_count); */
-  /* free_linked_cells(base); */
-  /* free(nct); */
-
   exit(EXIT_SUCCESS);
 }

@@ -1,3 +1,6 @@
+/* read.c is only concerned with generating tokens from the source */
+
+
 /*
 if using glib compile with:
 
@@ -39,35 +42,13 @@ gcc -O0 `pkg-config --cflags --libs glib-2.0` -g -Wall -Wextra -std=c11 -pedanti
 int __Tokid = 1;		/* id 0 is reserved for the toplevel
 				   token */
 
-/* int isempty(char *s); */
-/* char **read_lines__Hp(char *path, size_t *count); */
-/* void free_lines(char **lines, size_t count); */
-
-/* struct Token *tokenize_line__Hp */
-/* (char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum); */
-
-/* struct Token *tokenize_source__Hp(char *path, size_t *all_tokens_count); */
-
-/* struct Token *tokenize_lines__Hp */
-/* (char **srclns, size_t lines_count, size_t *all_tokens_count); */
-
-/* int is_comment_opening(struct Token tok); */
-/* int is_comment_closing(struct Token tok); */
-/* void index_comments(struct Token *tokens, size_t all_tokens_count); */
-/* struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count, */
-/* 				  size_t all_tokens_count); */
-/* struct Bit *linked_cells__Hp(struct Token tokens[], size_t count); */
-/* void free_linked_cells(struct Bit *c); */
-
-
 
 
 
 
 
 /* checks if the string s consists only of blanks and/or newline */
-int isempty(char *s)
-{
+int isempty(char *s) {
   while (*s) {
     /* if char is something other than a blank or a newline, the string
        is regarded as non-empty. */
@@ -114,7 +95,8 @@ void free_lines(char **lines, size_t count)
 
 /* Generates tokens */
 struct Token *tokenize_line__Hp
-(char *line, size_t *line_toks_count, size_t *all_tokens_count, int linum)
+(char *lnstr, size_t *line_toks_count, size_t *all_tokens_count, int ln)
+/* lnstr = line string content, ln = line number*/
 {
   regex_t re;
   int errcode;			
@@ -159,13 +141,13 @@ struct Token *tokenize_line__Hp
   /* overall size of memory allocated for tokens of the line sofar */
   size_t memsize = 0;
   /* int tokscnt = 0; */
-  while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
+  while (!regexec(&re, lnstr + offset, 1, match, REG_NOTBOL)) { /* a match found */
     /* make room for the new token */
     memsize += sizeof(struct Token);
     if ((tokptr = realloc(tokptr, memsize)) != NULL) { /* new memory allocated successfully */
       tokstrlen = match[0].rm_eo - match[0].rm_so;
       struct Token t;
-      memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
+      memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen);
       t.str[tokstrlen] = '\0';
 
       /* guess type */
@@ -183,16 +165,16 @@ struct Token *tokenize_line__Hp
       /* t.numtype = numtype(t.str); */
       /* t.isprim = isprim(t.str); */
       t.id = __Tokid++;
-      t.column_start_idx = offset + match[0].rm_so;
-      t.column_end_idx = t.column_start_idx + tokstrlen;
-      t.linum = linum;
+      t.col_start_idx = offset + match[0].rm_so;
+      t.column_end_idx = t.col_start_idx + tokstrlen;
+      t.line = ln;
       t.comment_index = 0;
       *(tokptr + *line_toks_count) = t;
       (*all_tokens_count)++;
       (*line_toks_count)++;
       offset += match[0].rm_eo;
     } else {
-      fprintf(stderr, "realloc failed while tokenizing line %d at token %s", linum, "TOKEN????");
+      fprintf(stderr, "realloc failed while tokenizing line %d at token %s", ln, "TOKEN????");
       /* just break out of executaion if haven't enough memory for the
 	 next token. leave the freeing & cleanup over for the os! */
       exit(EXIT_FAILURE);
@@ -276,7 +258,7 @@ void index_comments(struct Token *tokens, size_t all_tokens_count)
   }
 }
 
-struct Token *remove_comments__Hp(struct Token *toks, size_t *nctok_count,
+struct Token *polish_tokens(struct Token *toks, size_t *nctok_count,
 				  size_t all_tokens_count) /* nct = non-comment token */
 {
   index_comments(toks, all_tokens_count);

@@ -6,18 +6,20 @@
 #include "let_data.h"
 #include "token.h"
 #include "env.h"
-#include "bit.h"
-#include "bundle.h"
-#include "bundle_unit.h"
+#include "unit.h"
+#include "cons.h"
+/* #include "const_item.h" */
 #include "core.h"
 #include "symbol.h"
 #include "lambda.h"
 
 
 /* is external, defined in ast.c */
-bool is_bound_parameter(struct Bit *, struct Bundle *);
+bool is_bound_parameter(struct Unit *, struct Cons *);
+bool is_bound_binding(struct Unit *);
+void amend_lambda_semantics(struct Cons *);
 
-bool is_association(struct Bit *);
+bool is_association(struct Unit *);
 
 char *bound_parameter_name(char *param)
 {
@@ -29,35 +31,35 @@ char *bound_parameter_name(char *param)
   return name;
 }
 
-bool is_define(struct Bundle *b)
+bool is_define(struct Cons *b)
 {
-  return !strcmp(b->cells[0].car.str, ASSIGNMENT_KEYWORD);
+  return !strcmp(b->bricks[0]->token.str, ASSIGNMENT_KEYWORD);
 }
 
 
 /* eval evaluiert einen Baum */
-struct LetData *eval__dynmem(struct BundleUnit *item,
+struct Let_data *eval_const_item(struct Cons_item *item,
 			 struct Env *local_env,
 			 struct Env *global_env)
 {
-  struct LetData *result = malloc(sizeof(struct LetData)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval__dynmem */
+  struct Let_data *result = malloc(sizeof(struct Let_data)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval_const_item */
   switch (item->type) {
-  case CELL:
-    switch (celltype(item->cell_item)) {
+  case ATOM:
+    switch (unit_type(item->the_unit)) {
     case INTEGER:
       result->type = INTEGER;
-      result->value.dataslot_int = item->cell_item->ival;
+      result->value.dataslot_int = item->the_unit->ival;
       break;
     case FLOAT:
       result->type = FLOAT;
-      result->value.dataslot_float = item->cell_item->fval;
+      result->value.dataslot_float = item->the_unit->fval;
       break;
     case SYMBOL:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
       {
 	struct Symbol *sym;
-	char *symname = item->cell_item->car.str;
-	/* struct Symbol *sym = g_hash_table_lookup(local_env->hash_table, item->c->car.str); */
+	char *symname = item->the_unit->token.str;
+	/* struct Symbol *sym = g_hash_table_lookup(local_env->hash_table, item->c->token.str); */
 	struct Env *e = local_env;
 	while (e) {
 	  if ((sym = g_hash_table_lookup(e->hash_table, symname))) {
@@ -84,48 +86,55 @@ struct LetData *eval__dynmem(struct BundleUnit *item,
       break;
     default: break;
     }
-    break;			/* break CELL */
-  case BLOCK:
-    /* if (is_lambda_unit(&block_head(item->block_item))) { */
-    if (!strcmp(block_head(item->block_item).car.str, LAMBDA_KW)) {
+    break;			/* break ATOM */
+  case CONS:
+    /* if (is_lambda_unit(&block_head(item->the_const))) { */
+    if (!strcmp(block_head(item->the_const).token.str, LAMBDA_KEYWORD)) {
+
+      /* int lambda_IS_size = item->the_const->size - 1; /\* head is lambda word itself, cut it off *\/ */
+      /* int lambda_SHOULDBE_size = item->the_const->arity + 1; */
+      /* printf("%d %d\n", lambda_IS_size, lambda_SHOULDBE_size); */
+      /* assert(lambda_IS_size == lambda_SHOULDBE_size); */
       result->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
       struct Lambda *lambda = malloc(sizeof (struct Lambda));
-      lambda->lambda_env = item->block_item->env->enclosing_env;
-      switch (item->block_item->arity) {
+      lambda->lambda_env = item->the_const->env->enclosing_env;
+
+      /* item->the_const->elts + 0 ist ja lambda wort selbst!!! */
+      switch (item->the_const->arity) {
       case 0:
 	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
-	/* lambda->return_expr = &(item->block_item->items[1]); */
-	lambda->return_expr = item->block_item->items + 1;
+	/* lambda->return_expr = &(item->the_const->elts[1]); */
+	lambda->return_expr = item->the_const->elts + 1;
 	result->value.dataslot_lambda = lambda;
 	/* result->value.fn = &GJ; */
-	/* result->value.fn = struct LetData *(*)(void); */
+	/* result->value.fn = struct Let_data *(*)(void); */
 	break;
       }
       
-    } else if (!strcmp(block_head(item->block_item).car.str, "call")) {
-      struct LetData *lambda_name_or_expr = eval__dynmem(&(item->block_item->items[1]), local_env, global_env);
+    } else if (!strcmp(block_head(item->the_const).token.str, "call")) {
+      struct Let_data *lambda_name_or_expr = eval_const_item(&(item->the_const->elts[1]), local_env, global_env);
       struct Env *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env;
       /* printf("%s", stringify_type(lambda_name_or_expr->type)); */
-      result = eval__dynmem(lambda_name_or_expr->value.dataslot_lambda->return_expr,
+      result = eval_const_item(lambda_name_or_expr->value.dataslot_lambda->return_expr,
 			    /* local_env, */
 			    lambda_env,
 			    global_env);
       
-    } else if (!strcmp(block_head(item->block_item).car.str, "pret")) {
-      /* struct LetData *thing = eval__dynmem(&((item->block_item)->items[1]), local_env, global_env); */
+    } else if (!strcmp(block_head(item->the_const).token.str, "pret")) {
+      /* struct Let_data *thing = eval_const_item(&((item->the_const)->elts[1]), local_env, global_env); */
       /* result->type = thing->type; */
       /* result->value.dataslot_int =thing->value.dataslot_int; */
       /* printf("-> %s\n", stringify_type(result->type)); */
-      result = pret(eval__dynmem(&((item->block_item)->items[1]), local_env, global_env));
-    } else if (!strcmp(block_head(item->block_item).car.str, "gj")) {
+      result = pret(eval_const_item(&((item->the_const)->elts[1]), local_env, global_env));
+    } else if (!strcmp(block_head(item->the_const).token.str, "gj")) {
       result = GJ();
       
-    } else if (is_define(item->block_item)) { /* is_assignment */
+    } else if (is_define(item->the_const)) { /* is_assignment */
       /* don't let the name of the binding to go through eval! */
-      char *define_name = item->block_item->cells[1].car.str; /* name of the definition */
+      char *define_name = item->the_const->bricks[1]->token.str; /* name of the definition */
       /* data can be a lambda expr or some constant or other names etc. */
-      struct LetData *define_data = eval__dynmem(item->block_item->items + 2,
-					     item->block_item->env,
+      struct Let_data *define_data = eval_const_item(item->the_const->elts + 2,
+					     item->the_const->env,
 					     /* local_env, */
 					     global_env);
       struct Symbol *sym= malloc(sizeof (struct Symbol));
@@ -137,94 +146,69 @@ struct LetData *eval__dynmem(struct BundleUnit *item,
       result->type = SYMBOL;
       result->value.dataslot_symbol = sym;
       
-    } else if (is_association(item->block_item->cells)) { /* = &(item->block_item->cells[0]) */
+    } else if (is_association(*item->the_const->bricks)) { /* = &(item->the_const->bricks[0]) */
       /* add let parameters to it's hashtable */
       /* index 0 ist ja let selbst, fangen wir mit 1 an */
-      for (int i = 1; i < item->block_item->size - 1;i++) {
-	switch (item->block_item->items[i].type) {
-	case CELL:		/* muss ein parameter ohne Wert sein, bind to NIL */
-	  printf("%s %s\n",item->block_item->items[i].cell_item->car.str,
-		 stringify_cell_type(celltype(item->block_item->items[i].cell_item)));
+      for (int i = 1; i < item->the_const->size - 1;i++) {
+	switch (item->the_const->elts[i].type) {
+	case ATOM:		/* muss ein parameter ohne Wert sein, bind to NIL */
+	  printf("in Eval bundle Unit BIT: %s %s\n",item->the_const->elts[i].the_unit->token.str,
+		 stringify_type(unit_type(item->the_const->elts[i].the_unit)));
 	  break;
-	case BLOCK:		/* muss ein bound parameter sein! */
+	case CONS:		/* muss ein bound parameter sein! */
 	  {
 	    /* So kann ich voraussetzen dass diese Teile alle
 	       parameter sind und bis zum letzten Ausruck alles
 	       parameter bleibt! */
-	    assert(is_bound_parameter(item->block_item->items[i].block_item->cells,
-				      item->block_item));
-	    int bound_parameter_block_size = item->block_item->items[i].block_item->size;
+	    assert(is_bound_binding(*item->the_const->elts[i].the_const->bricks));
+	    /* assert(is_bound_parameter(*item->the_const->elts[i].the_const->bricks, item->the_const)); */
+	    int bound_parameter_block_size = item->the_const->elts[i].the_const->size;
 	    assert(bound_parameter_block_size == 2);
-	    char *parameter = item->block_item->items[i].block_item->cells[0].car.str;
-	    /* char parameter_name[strlen(parameter)-1]; /\* jajaaaa VLA! *\/ */
-	    /* /\* memset(parameter_name, '\0', sizeof (parameter_name)); *\/ */
-	    /* strncpy(parameter_name, parameter, strlen(parameter)-2); */
-	    /* /\* memcpy(parameter_name, parameter, strlen(parameter)-2); *\/ */
-	    /* parameter_name[strlen(parameter)-2]='\0'; */
-	    /* char *parameter_name = "x"; */
-	    char *param_name = bound_parameter_name(parameter); /* problem mit strncpy */
-	    struct LetData *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]),
-						      item->block_item->env,
+	    char *parameter = item->the_const->elts[i].the_const->bricks[0]->token.str;
+
+	    /* .x */
+	    char *param_name=malloc(strlen(parameter)); /* jajaaaa VLA! */
+	    strncpy(param_name, parameter + 1, strlen(parameter));
+	    /* memcpy(param_name, parameter, strlen(parameter)-2); */
+	    /* param_name[strlen(parameter)-2]='\0'; */
+	    /* char *param_name = "x"; */
+	    
+	    /* char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
+	    
+	    struct Let_data *parameter_data = eval_const_item(&(item->the_const->elts[i].the_const->elts[1]),
+						      item->the_const->env,
 						      global_env);
 	    struct Symbol *symbol = malloc(sizeof (struct Symbol));
 	    symbol->symbol_name = param_name;
 	    symbol->symbol_data = parameter_data;	    
-	    g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol);
+	    g_hash_table_insert(item->the_const->env->hash_table, param_name, symbol);
+	    /* printf("%s %d\n", param_name, g_hash_table_contains(item->the_const->env->hash_table, param_name)); */
 	    break;
 	  }
-	  
-	  /* { */
-	  /*   if (i==item->block_item->size-1){ */
-	  /*     result = eval__dynmem(item->block_item->items + i, */
-	  /* 			item->block_item->env, */
-	  /* 			global_env); */
-	  /*     break; */
-	  /*   } else { */
-	  /*     int bound_parameter_block_size = item->block_item->items[i].block_item->size; */
-	  /*     assert(bound_parameter_block_size == 2); */
-	  /*     char *parameter = item->block_item->items[i].block_item->cells[0].car.str; */
-	  /*     /\* char parameter_name[strlen(parameter)-1]; /\\* jajaaaa VLA! *\\/ *\/ */
-	  /*     /\* /\\* memset(parameter_name, '\0', sizeof (parameter_name)); *\\/ *\/ */
-	  /*     /\* strncpy(parameter_name, parameter, strlen(parameter)-2); *\/ */
-	  /*     /\* /\\* memcpy(parameter_name, parameter, strlen(parameter)-2); *\\/ *\/ */
-	  /*     /\* parameter_name[strlen(parameter)-2]='\0'; *\/ */
-	  /*     /\* char *parameter_name = "x"; *\/ */
-	  /*     char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
-	  /*     struct LetData *parameter_data = eval__dynmem(&(item->block_item->items[i].block_item->items[1]), */
-	  /* 						item->block_item->env, */
-	  /* 						global_env); */
-	  /*     struct Symbol *symbol = malloc(sizeof (struct Symbol)); */
-	  /*     symbol->symbol_name = param_name; */
-	  /*     symbol->symbol_data = parameter_data; */
-	    
-	  /*     g_hash_table_insert(item->block_item->env->hash_table, param_name, symbol); */
-	  /*     break; */
-	  /*   } */
-	  /* } */
-	  
 	}
 
     
       }
-      result = eval__dynmem(item->block_item->items + (item->block_item->size - 1),
-			item->block_item->env,
+      result = eval_const_item(item->the_const->elts + (item->the_const->size - 1),
+			item->the_const->env,
 			global_env);
 	  
 
       
     }
-    break;			/* break BLOCK */
+    break;			/* break CONS */
   default: break;
   }
   return result;
 }
 
-struct LetData *global_eval(struct Bundle *root,
-			    struct Env *local_env,
-			    struct Env *global_env)
+struct Let_data *eval(struct Cons *root,
+		      struct Env *local_env,
+		      struct Env *global_env)
 {
+  /* amend_lambda_semantics(root); */
   for (int i = 0; i < (root->size - 1); i++) {
-    eval__dynmem(&(root->items[i]), local_env, global_env);
+    eval_const_item(&(root->elts[i]), local_env, global_env);
   }
-  return eval__dynmem(&(root->items[root->size - 1]), local_env, global_env);
+  return eval_const_item(&(root->elts[root->size - 1]), local_env, global_env);
 }

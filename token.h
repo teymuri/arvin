@@ -7,8 +7,8 @@
 /* differentiate btwn assignment and association like W. Richard Stark pg. 97*/
 #define ASSIGNMENT_KEYWORD "define"		/* used to define symbols in the global environment */
 #define ASSOCIATION_KEYWORD "let"
-#define LAMBDA_KW "lambda"
-/* #define PARAM_PREFIX '.' */
+#define LAMBDA_KEYWORD "lambda"
+#define BINDING_PREFIX ':'
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 
@@ -20,9 +20,9 @@
 
 struct Token {
   char str[MAX_TOKLEN];	/* token's string */
-  int column_start_idx;			/* start index in line (column start index) */
+  int col_start_idx;			/* start index in line (column start index) */
   int column_end_idx;			/* end index in line (column end index) */
-  int linum;			/* line number */
+  int line;			/* line number */
   int id;			/* id of this token (tracked globally) */
   int comment_index;			/* comment indices: 0 = (, 1 = ) */
   enum Type type;		/* guessed types at token-generation time */

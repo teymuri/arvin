@@ -4,11 +4,11 @@
 
 #include "let_data.h"
 
-struct LetData *pret(struct LetData *);
-struct LetData *GJ(void);
-/* bool is_define(struct Bundle *); */
-/* extern bool is_association(struct Bit *); */
-/* extern bool is_bound_parameter(struct Bit *, struct Bundle *); */
-extern bool isbuiltin(struct Bit *);
+struct Let_data *pret(struct Let_data *);
+struct Let_data *GJ(void);
+/* bool is_define(struct Cons *); */
+/* extern bool is_association(struct Unit *); */
+/* extern bool is_bound_parameter(struct Unit *, struct Cons *); */
+extern bool isbuiltin(struct Unit *);
 
 #endif	/* LET_CORE_H */
