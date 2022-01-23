@@ -25,19 +25,19 @@ int main(int argc, char **argv) {
     /* .symcount = 0 */
   };
 
-  struct Token tltok = {
+  struct Token toplevel_token = {
     .str = TOPLEVEL_TOKEN_STRING,
     .col_start_idx = -1,
     .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
     .line = -1,
     .id = 0
   };
-  struct Unit tlunit = {				/* bricks[0] toplevel cell */
+  struct Unit toplevel_unit = {				/* bricks[0] toplevel cell */
     .uuid = TL_ATOM_UUID,					/*  */
-    /* token token */
-    /* .unit_t = ATOM, */
+    .max_capacity = -1,
+    .arity = -1,
     .env = &toplevel_env,
-    .token = tltok,
+    .token = toplevel_token,
     /* type ??? */
     .type = UNDEFINED,
     .ival = 0,			/* ival */
@@ -55,9 +55,9 @@ int main(int argc, char **argv) {
   
   if (polished_tokens_count) {
     GSList *atoms = units_linked_list(polished_tokens, polished_tokens_count);
-    atoms = g_slist_prepend(atoms, &tlunit);
+    atoms = g_slist_prepend(atoms, &toplevel_unit);
     GNode *ast3 = parse3(atoms);
-    ascertain_lambda_spellings(ast3);
+    sanify_lambdas(ast3);
     print_ast3(ast3);    
   }
   exit(EXIT_SUCCESS);

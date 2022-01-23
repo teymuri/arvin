@@ -57,8 +57,16 @@ GSList *units_linked_list(struct Token toks[], size_t toks_n)
     /* struct Unit *atom = (struct Unit *)malloc(sizeof (struct Unit)); */
     atom = g_new(struct Unit, 1);
     /* uuid 0 is reserved for the toplevel atom, so start with 1 */
-    atom->uuid = s+1;
+    atom->uuid = s + 1;
     atom->token = toks[s];
+    /* maximum absorption of -1 means undefined, i.e. can take as much
+       as you want. This will be reset later in parser to possinly
+       different unsigned integers for different types (e.g. parameter
+       bindings will get 1 etc.)*/
+    atom->max_capacity = -1;
+    /* arity will be set by the parser to either 0 or more for lambdas
+       and remains -1 for everything else */
+    atom->arity = -1;
     determine_unit_value(atom);
     determine_unit_type(atom);
     sll = g_slist_prepend(sll, atom);
