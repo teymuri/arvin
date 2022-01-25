@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <string.h>
 #include "type.h"
-#include "env.h"
 #include "token.h"
 #include "unit.h"
 
@@ -13,6 +12,8 @@
 #include "print.h"
 
 #define LEAST_COL_START_IDX -2
+#define ASSIGN_MAXCAP 2
+#define BIND_MAXCAP 1
 
 bool is_enclosed_in3(GSList *ulink1, GSList *ulink2) {
   if (ulink2 != NULL) {
@@ -107,6 +108,7 @@ bool is_association(struct Unit *c)
 bool is_association3(GSList *link) {
   return !strcmp(((unitp_t)link->data)->token.str, ASSOCIATION_KEYWORD);
 }
+
 bool is_association4(struct Unit *u) {
   return !strcmp(u->token.str, ASSOCIATION_KEYWORD);
 }
@@ -115,26 +117,27 @@ bool is_association4(struct Unit *u) {
 bool is_assignment3(GSList *link) {
   return !strcmp(((unitp_t)link->data)->token.str, ASSIGNMENT_KEYWORD);
 }
-bool is_assignment4(struct Unit *u) {
+bool is_assignment4(struct Unit *u)
+{
   return !strcmp(u->token.str, ASSIGNMENT_KEYWORD);
 }
-
+bool is_funcall(struct Unit *u) {
+  return !strcmp(u->token.str, FUNCALL_KEYWORD);
+}
 bool maybe_binding3(GSList *link)
 {
-  return unit_type((unitp_t)link->data) == SYMBOL && *((unitp_t)link->data)->token.str == BINDING_PREFIX;
+  return unit_type((unitp_t)link->data) == NAME && *((unitp_t)link->data)->token.str == BINDING_PREFIX;
 }
 bool maybe_binding4(struct Unit *u)
 {
-  return unit_type(u) == SYMBOL && *u->token.str == BINDING_PREFIX;
+  return unit_type(u) == NAME && *u->token.str == BINDING_PREFIX;
 }
 
-bool is_binding3(GSList *unit, GSList *parent) {
-  return maybe_binding3(unit) &&
-    (is_lambda3(parent) || is_association3(unit));
-}
 bool is_binding4(struct Unit *u, GNode *scope) {
   return maybe_binding4(u) &&
-    (is_lambda4((unitp_t)scope->data) || is_association4(u));
+    (is_lambda4((unitp_t)scope->data) ||
+     is_association4(u) ||
+     is_funcall((unitp_t)scope->data));
 }
 /* all in one is_builtin??? */
 bool is_call(GSList *unit) {
@@ -159,7 +162,7 @@ bool need_subtree4(struct Unit *u, GNode *scope) {
     is_binding4(u, scope) ||
     is_call4(u) ||
     is_pret4(u) ||
-    !strcmp(u->token.str, "block")
+    is_funcall(u)
     ;
 }
 
@@ -184,17 +187,21 @@ GNode *parse3(GSList *atoms) {
 
   while (atoms) {
     /* find out the DIRECT embedding block of the current cell */
-    if (maybe_binding3(atoms) && effective_binding_unit && is_enclosed_in4((unitp_t)atoms->data, effective_binding_unit)) { /* so its a lambda parameter */
+    if (maybe_binding3(atoms) &&
+	effective_binding_unit &&
+	is_enclosed_in4((unitp_t)atoms->data, effective_binding_unit)) { /* so its a lambda parameter */
       ((unitp_t)atoms->data)->type = BINDING;
       ((unitp_t)atoms->data)->is_atomic = false;
       scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, effective_binding_unit);
-      effective_binding_unit->arity++;
+      /* funcalls have no arity! */
+      if (!is_funcall(effective_binding_unit))
+	effective_binding_unit->arity++;
       
       /* enhance the type of the parameter symbol. */
       /* ACHTUNG: wir setzen den neuen Typ für bound param nicht hier,
-	 denn is_bound_parameter fragt ab ob das Cell vom Typ SYMBOL
+	 denn is_bound_parameter fragt ab ob das Cell vom Typ NAME
 	 ist, was wiederum unten im need_new_cons eine Rolle
-	 spielt. Deshalb verschieben wir das Setzen vom Typ von SYMBOL zum
+	 spielt. Deshalb verschieben wir das Setzen vom Typ von NAME zum
 	 BOUND_BINDING auf nach need_new_cons. */
     } else {			/* compute the enclosure anew */
       scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, (unitp_t)find_enclosure_link(atoms, units_onset)->data);
@@ -212,6 +219,11 @@ GNode *parse3(GSList *atoms) {
 	/* scope = scope->parent; */
 	scope = find_parent_with_capa(scope);
       }
+    } else if (is_assignment4((unitp_t)scope->data)) {
+      if (((unitp_t)scope->data)->max_capacity)
+	((unitp_t)scope->data)->max_capacity--;
+      else
+	scope = find_parent_with_capa(scope);
     }
 
     /* remove this shit later please! */
@@ -234,33 +246,41 @@ GNode *parse3(GSList *atoms) {
        decrement it's absorption capacity. */
     if (need_subtree4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type == BINDING) {
       ((unitp_t)atoms->data)->is_atomic = false;
-      struct Env *env = malloc(sizeof (struct Env));
-      *env = (struct Env){
-	.enclosing_env = ((unitp_t)scope->data)->env,
-	.hash_table = g_hash_table_new(g_str_hash, g_str_equal)
-      };
-      ((unitp_t)atoms->data)->env = env;
-      
-      if (is_lambda3(atoms)) {
+      ((unitp_t)atoms->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
+      /* struct Env *env = malloc(sizeof (struct Env)); */
+      /* *env = (struct Env){ */
+      /* 	/\* .enclosing_env = ((unitp_t)scope->data)->env, *\/ */
+      /* 	.hash_table = g_hash_table_new(g_str_hash, g_str_equal) */
+      /* }; */
+      /* ((unitp_t)atoms->data)->env = env; */
+
+      /* set the effective binding unit */
+      if (is_lambda4((unitp_t)atoms->data) ||
+	  is_funcall((unitp_t)atoms->data) ||
+	  is_association4((unitp_t)atoms->data))
+	effective_binding_unit = (unitp_t)atoms->data;
+
+      /* set the arity for lambda */
+      if (is_lambda4((unitp_t)atoms->data))
 	/* we know at this point not much about the number of
 	   parameters of this lambda, so set it to 0 (default arity
 	   for lambda is 0 parameters). this can change as we go on
 	   with parsing and detect it's parameter declerations. */
 	((unitp_t)atoms->data)->arity = 0;
-	effective_binding_unit = (unitp_t)atoms->data;
-      }
+
       
-      if (is_association4((unitp_t)atoms->data)) {
-	effective_binding_unit = (unitp_t)atoms->data;
-      }
       if (is_pret4((unitp_t)atoms->data)) {
 	((unitp_t)atoms->data)->max_capacity = 1;
 	((unitp_t)atoms->data)->arity = 1;
       }
-	
-      if (is_binding4((unitp_t)atoms->data, scope) || ((unitp_t)atoms->data)->type == BINDING) {
-	((unitp_t)atoms->data)->max_capacity = 1;
+      /* set the maximum absorption capacity */
+      if (is_binding4((unitp_t)atoms->data, scope) ||
+	  ((unitp_t)atoms->data)->type == BINDING) {
+	((unitp_t)atoms->data)->max_capacity = BIND_MAXCAP;
+      } else if (is_assignment4((unitp_t)atoms->data)) {
+	((unitp_t)atoms->data)->max_capacity = ASSIGN_MAXCAP;
       }
+      
       g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data),
 		    -1, g_node_new((unitp_t)atoms->data));
     } else {			/* it is an atomic unit */
@@ -313,15 +333,97 @@ gboolean sanify_lambda(GNode *node, gpointer data) {
 	((unitp_t)last_child->data)->type = BINDING;
       }
     } else {
-      fprintf(stderr, "lambda braucht mind. eine expression!\n");
+      fprintf(stderr, "malformed lambda\n");
+      print_node(node, NULL);
+      fprintf(stderr, "missing expression\n");
       exit(EXIT_FAILURE);
     }
   }
   return false;
 }
+
 void sanify_lambdas(GNode *root) {
+  puts("sanifying lambdas...");
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)sanify_lambda, NULL);
-  puts("Lambda sanified");
+  puts("lambdas sanified");
+}
+
+/* schmelz die 2 zusammen mit der obigen */
+void assert_bound_binding_node(GNode *node, GNode *last_child) {
+  /* e.g. a parameter or a binding in let */
+  if ((node != last_child && unit_type((unitp_t)node->data) == BINDING)) {
+    fprintf(stderr, "malformed binding\n");
+    print_node(node, NULL);
+    fprintf(stderr, "not bound\n");
+    exit(EXIT_FAILURE);
+  }
+}
+
+gboolean check_funcall(GNode *node, gpointer data) {
+  if (is_funcall((unitp_t)node->data)) {
+    if (g_node_n_children(node)) {
+      GNode *last_child = g_node_last_child(node);
+      /* first assert that every child node except with the last one
+	 is a binding (ie a parameter decleration) */
+      g_node_children_foreach(node, G_TRAVERSE_ALL,
+			      (GNodeForeachFunc)assert_bound_binding_node,
+			      last_child);
+      if (unit_type((unitp_t)g_node_last_child(node)->data) != NAME) {
+	fprintf(stderr, "funcall check failed: %s can't be a function\n",
+		((unitp_t)g_node_last_child(node)->data)->token.str);
+	exit(EXIT_FAILURE);
+      }
+    } else {
+      fprintf(stderr, "pass braucht mind. eine expression: func!\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  return false;
+}
+
+void check_funcalls(GNode *root) {
+  puts("checking funcalls...");
+  g_node_traverse(root, G_PRE_ORDER,
+		  G_TRAVERSE_ALL, -1,
+		  (GNodeTraverseFunc)check_funcall, NULL);
+  puts("funcalls checked");
+}
+gboolean check_assoc(GNode *node, gpointer data) {
+  if (is_association4((unitp_t)node->data)) {
+    if (g_node_n_children(node)) {
+      GNode *last_child = g_node_last_child(node);
+      /* first assert that every child node except with the last one
+	 is a binding (ie a parameter decleration) */
+      g_node_children_foreach(node, G_TRAVERSE_ALL,
+			      (GNodeForeachFunc)assert_bound_binding_node,
+			      last_child);
+      if (unit_type((unitp_t)last_child->data) == BINDING) {
+	fprintf(stderr, "malformed association\n");
+	print_node(last_child, NULL);
+	fprintf(stderr, "not bound\n");
+	exit(EXIT_FAILURE);
+      } else if (unit_type((unitp_t)last_child->data) == BOUND_BINDING) {
+	fprintf(stderr, "malformed association\n");
+	print_node(node, NULL);
+	fprintf(stderr, "expression missing\n");
+	exit(EXIT_FAILURE);
+      }
+    } else {
+      fprintf(stderr, "malformed association\n");
+      print_node(node, NULL);
+      fprintf(stderr, "missing expression\n");
+      exit(EXIT_FAILURE);
+    }
+  }
+  return false;
+}
+
+void check_assocs(GNode *root) {
+  puts("checking assocs...");
+  g_node_traverse(root, G_PRE_ORDER,
+		  G_TRAVERSE_ALL, -1,
+		  (GNodeTraverseFunc)check_assoc, NULL);
+  puts("assocs checked");
 }

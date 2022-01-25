@@ -156,7 +156,7 @@ struct Token *tokenize_line__Hp
       } else if (!regexec(&refloat, t.str, 0, NULL, 0)) {
 	t.type = FLOAT;
       } else if (!regexec(&resym, t.str, 0, NULL, 0)) {
-	t.type = SYMBOL;
+	t.type = NAME;
       } else {
 	/* fprintf(stderr, "couldn't guess type of token %s", t.str); */
 	/* exit(EXIT_FAILURE); */

@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -5,210 +6,132 @@
 #include "type.h"
 #include "let_data.h"
 #include "token.h"
-#include "env.h"
 #include "unit.h"
-#include "cons.h"
-/* #include "const_item.h" */
 #include "core.h"
-#include "symbol.h"
-#include "lambda.h"
+#include "ast.h"
 
-
-/* is external, defined in ast.c */
-bool is_bound_parameter(struct Unit *, struct Cons *);
-bool is_bound_binding(struct Unit *);
-void amend_lambda_semantics(struct Cons *);
-
-bool is_association(struct Unit *);
-
-char *bound_parameter_name(char *param)
-{
-  char *name = malloc(strlen(param) - 1);
-  for (size_t i = 0; i < (strlen(param) - 2); i++) {
-    name[i] = param[i];
-  }
-  name[strlen(param) - 2] = '\0';
+char *binding_name(char *b) {
+  /* semicolon removed from the head */
+  char *name = (char *)malloc(strlen(b));
+  strncpy(name, b + 1, strlen(b));
   return name;
 }
+struct Let_data *eval3(GNode *, GHashTable *);
 
-bool is_define(struct Cons *b)
-{
-  return !strcmp(b->bricks[0]->token.str, ASSIGNMENT_KEYWORD);
+void eval_pret(struct Let_data **result, GNode *root, GHashTable *env) {
+  *result = pret(eval3(root->children, env));
 }
 
+void eval_lambda(struct Let_data **result, GNode *root, GHashTable *env) {
+  (*result)->type = LAMBDA;
+  ((unitp_t)root->data)->lambda_expr = g_node_last_child(root);
+  ((unitp_t)root->data)->lambda_env = env;
+  ((unitp_t)root->data)->type = LAMBDA; /* braucht nicht mehr????? */
+  /* add parameters to env */
+  for (guint i = 0; i < g_node_n_children(root) - 1; i++) {
+    GNode *binding = g_node_nth_child(root, i);
+    char *bind_name = ((unitp_t)binding->data)->token.str;
+    char *name = binding_name(bind_name);
+    if (unit_type((unitp_t)binding->data) == BOUND_BINDING)
+      g_hash_table_insert(((unitp_t)root->data)->env, name,
+			  eval3(binding->children, ((unitp_t)root->data)->env));
+  }
+  (*result)->value.lambda_slot = g_node_last_child(root);
+}
 
-/* eval evaluiert einen Baum */
-struct Let_data *eval_const_item(struct Cons_item *item,
-			 struct Env *local_env,
-			 struct Env *global_env)
-{
-  struct Let_data *result = malloc(sizeof(struct Let_data)); /* !!!!!!!!!! FREE!!!!!!!!!!!eval_const_item */
-  switch (item->type) {
-  case ATOM:
-    switch (unit_type(item->the_unit)) {
+void eval_assoc(struct Let_data **result, GNode *root, GHashTable *env) {
+  for (guint i = 0; i < g_node_n_children(root) - 1; i++) {
+    GNode *binding = g_node_nth_child(root, i);
+    char *bind_name = ((unitp_t)binding->data)->token.str;
+    char *name = binding_name(bind_name);
+    g_hash_table_insert(((unitp_t)root->data)->env, name,
+			eval3(binding->children, ((unitp_t)root->data)->env));
+  }
+  (*result) = eval3(g_node_last_child(root), ((unitp_t)root->data)->env);
+}
+
+void eval_assign(struct Let_data **result, GNode *root, GHashTable *env) {
+  char *name = ((unitp_t)g_node_nth_child(root, 0)->data)->token.str;
+  struct Let_data *data = eval3(g_node_nth_child(root, 1), env);
+  /* definitions are always saved in the global environment, no
+     matter in which environment we are currently */
+  g_hash_table_insert(((unitp_t)g_node_get_root(root)->data)->env, name, data);
+  (*result)->type = data->type;
+				/* achtung!!!!!!!!!!!!!!!!!!!!!!!!!!!!11 */
+  (*result)->value.dataslot_int = data->value.dataslot_int;
+}
+
+void eval_funcall(struct Let_data **result, GNode *root, GHashTable *env) {
+  struct Let_data *name_or_expr = eval3(g_node_last_child(root), ((unitp_t)root->data)->env);
+  *result = eval3(name_or_expr->value.lambda_slot,
+		  ((unitp_t)g_node_last_child(root)->data)->lambda_env);
+}
+
+void eval_toplevel(struct Let_data **result, GNode *root) {
+  guint size = g_node_n_children(root);
+  for (guint i = 0; i < size - 1; i++)
+    eval3(g_node_nth_child(root, i), ((unitp_t)root->data)->env);
+  *result = eval3(g_node_nth_child(root, size - 1), ((unitp_t)root->data)->env);
+}
+
+struct Let_data *eval3(GNode *root, GHashTable *env) {
+  struct Let_data *result = malloc(sizeof (struct Let_data));
+  if (((unitp_t)root->data)->is_atomic) {
+    switch (unit_type(((unitp_t)root->data))) {
     case INTEGER:
       result->type = INTEGER;
-      result->value.dataslot_int = item->the_unit->ival;
+      result->value.dataslot_int = ((unitp_t)root->data)->ival;
       break;
     case FLOAT:
       result->type = FLOAT;
-      result->value.dataslot_float = item->the_unit->fval;
+      result->value.dataslot_float = ((unitp_t)root->data)->fval;
       break;
-    case SYMBOL:
+    case NAME:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
       {
-	struct Symbol *sym;
-	char *symname = item->the_unit->token.str;
-	/* struct Symbol *sym = g_hash_table_lookup(local_env->hash_table, item->c->token.str); */
-	struct Env *e = local_env;
-	while (e) {
-	  if ((sym = g_hash_table_lookup(e->hash_table, symname))) {
-	    result->type = sym->symbol_data->type;
+	char *tokstr = ((unitp_t)root->data)->token.str;
+	/* symbols are evaluated in the envs of their enclosing units */
+	GNode *parent = root->parent;
+	struct Let_data *data;
+	while (parent) {
+	  if ((data = g_hash_table_lookup(((unitp_t)parent->data)->env, tokstr))) {
+	    result->type = data->type;
 	    switch (result->type) {
 	    case INTEGER:
-	      result->value.dataslot_int = sym->symbol_data->value.dataslot_int; break;
+	      result->value.dataslot_int = data->value.dataslot_int; break;
 	    case FLOAT:
-	      result->value.dataslot_float = sym->symbol_data->value.dataslot_float; break;
+	      result->value.dataslot_float = data->value.dataslot_float; break;
 	    case LAMBDA:
-	      result->value.dataslot_lambda = sym->symbol_data->value.dataslot_lambda; break;
+	      result->value.lambda_slot = data->value.lambda_slot; break;
 	    default: break;
 	    }
 	    break;
 	  } else {
-	    e = e->enclosing_env;
+	    parent = parent->parent;
 	  }
 	}
-	if (!e) {		/* wir sind schon beim parent von global env angekommen */
-	  fprintf(stderr, "unbound '%s'\n", symname);
+	if (!parent) {		/* wir sind schon beim parent von global env angekommen */
+	  fprintf(stderr, "unbound '%s'\n", tokstr);
 	  exit(EXIT_FAILURE);
 	}
       }
       break;
-    default: break;
+    default: break;		/* undefined */
     }
-    break;			/* break ATOM */
-  case CONS:
-    /* if (is_lambda_unit(&block_head(item->the_const))) { */
-    if (!strcmp(block_head(item->the_const).token.str, LAMBDA_KEYWORD)) {
-
-      /* int lambda_IS_size = item->the_const->size - 1; /\* head is lambda word itself, cut it off *\/ */
-      /* int lambda_SHOULDBE_size = item->the_const->arity + 1; */
-      /* printf("%d %d\n", lambda_IS_size, lambda_SHOULDBE_size); */
-      /* assert(lambda_IS_size == lambda_SHOULDBE_size); */
-      result->type = LAMBDA; /* lambda objekte werden nicht in parse time generiert */
-      struct Lambda *lambda = malloc(sizeof (struct Lambda));
-      lambda->lambda_env = item->the_const->env->enclosing_env;
-
-      /* item->the_const->elts + 0 ist ja lambda wort selbst!!! */
-      switch (item->the_const->arity) {
-      case 0:
-	/* wenn arity 0 ist, dann ist das nächste item gleich das return expression */
-	/* lambda->return_expr = &(item->the_const->elts[1]); */
-	lambda->return_expr = item->the_const->elts + 1;
-	result->value.dataslot_lambda = lambda;
-	/* result->value.fn = &GJ; */
-	/* result->value.fn = struct Let_data *(*)(void); */
-	break;
-      }
-      
-    } else if (!strcmp(block_head(item->the_const).token.str, "call")) {
-      struct Let_data *lambda_name_or_expr = eval_const_item(&(item->the_const->elts[1]), local_env, global_env);
-      struct Env *lambda_env = lambda_name_or_expr->value.dataslot_lambda->lambda_env;
-      /* printf("%s", stringify_type(lambda_name_or_expr->type)); */
-      result = eval_const_item(lambda_name_or_expr->value.dataslot_lambda->return_expr,
-			    /* local_env, */
-			    lambda_env,
-			    global_env);
-      
-    } else if (!strcmp(block_head(item->the_const).token.str, "pret")) {
-      /* struct Let_data *thing = eval_const_item(&((item->the_const)->elts[1]), local_env, global_env); */
-      /* result->type = thing->type; */
-      /* result->value.dataslot_int =thing->value.dataslot_int; */
-      /* printf("-> %s\n", stringify_type(result->type)); */
-      result = pret(eval_const_item(&((item->the_const)->elts[1]), local_env, global_env));
-    } else if (!strcmp(block_head(item->the_const).token.str, "gj")) {
-      result = GJ();
-      
-    } else if (is_define(item->the_const)) { /* is_assignment */
-      /* don't let the name of the binding to go through eval! */
-      char *define_name = item->the_const->bricks[1]->token.str; /* name of the definition */
-      /* data can be a lambda expr or some constant or other names etc. */
-      struct Let_data *define_data = eval_const_item(item->the_const->elts + 2,
-					     item->the_const->env,
-					     /* local_env, */
-					     global_env);
-      struct Symbol *sym= malloc(sizeof (struct Symbol));
-      sym->symbol_name = define_name;
-      sym->symbol_data = define_data;
-      /* definitions are always saved in the global environment, no
-	 matter in which environment we are currently */
-      g_hash_table_insert(global_env->hash_table, define_name, sym);
-      result->type = SYMBOL;
-      result->value.dataslot_symbol = sym;
-      
-    } else if (is_association(*item->the_const->bricks)) { /* = &(item->the_const->bricks[0]) */
-      /* add let parameters to it's hashtable */
-      /* index 0 ist ja let selbst, fangen wir mit 1 an */
-      for (int i = 1; i < item->the_const->size - 1;i++) {
-	switch (item->the_const->elts[i].type) {
-	case ATOM:		/* muss ein parameter ohne Wert sein, bind to NIL */
-	  printf("in Eval bundle Unit BIT: %s %s\n",item->the_const->elts[i].the_unit->token.str,
-		 stringify_type(unit_type(item->the_const->elts[i].the_unit)));
-	  break;
-	case CONS:		/* muss ein bound parameter sein! */
-	  {
-	    /* So kann ich voraussetzen dass diese Teile alle
-	       parameter sind und bis zum letzten Ausruck alles
-	       parameter bleibt! */
-	    assert(is_bound_binding(*item->the_const->elts[i].the_const->bricks));
-	    /* assert(is_bound_parameter(*item->the_const->elts[i].the_const->bricks, item->the_const)); */
-	    int bound_parameter_block_size = item->the_const->elts[i].the_const->size;
-	    assert(bound_parameter_block_size == 2);
-	    char *parameter = item->the_const->elts[i].the_const->bricks[0]->token.str;
-
-	    /* .x */
-	    char *param_name=malloc(strlen(parameter)); /* jajaaaa VLA! */
-	    strncpy(param_name, parameter + 1, strlen(parameter));
-	    /* memcpy(param_name, parameter, strlen(parameter)-2); */
-	    /* param_name[strlen(parameter)-2]='\0'; */
-	    /* char *param_name = "x"; */
-	    
-	    /* char *param_name = bound_parameter_name(parameter); /\* problem mit strncpy *\/ */
-	    
-	    struct Let_data *parameter_data = eval_const_item(&(item->the_const->elts[i].the_const->elts[1]),
-						      item->the_const->env,
-						      global_env);
-	    struct Symbol *symbol = malloc(sizeof (struct Symbol));
-	    symbol->symbol_name = param_name;
-	    symbol->symbol_data = parameter_data;	    
-	    g_hash_table_insert(item->the_const->env->hash_table, param_name, symbol);
-	    /* printf("%s %d\n", param_name, g_hash_table_contains(item->the_const->env->hash_table, param_name)); */
-	    break;
-	  }
-	}
-
-    
-      }
-      result = eval_const_item(item->the_const->elts + (item->the_const->size - 1),
-			item->the_const->env,
-			global_env);
-	  
-
-      
+  } else {			/* block/function */
+    if ((((unitp_t)root->data)->uuid == 0)) {
+      eval_toplevel(&result, root);
+    } else if (is_pret4((unitp_t)root->data)) {
+      eval_pret(&result, root, env);
+    } else if (is_lambda4((unitp_t)root->data)) {
+      eval_lambda(&result, root, env);
+    } else if (is_assignment4((unitp_t)root->data)) { /* define */
+      eval_assign(&result, root, ((unitp_t)root->data)->env);
+    } else if (is_funcall((unitp_t)root->data)) {
+      eval_funcall(&result, root, env);
+    } else if (is_association4((unitp_t)root->data)) {
+      eval_assoc(&result, root, ((unitp_t)root->data)->env);
     }
-    break;			/* break CONS */
-  default: break;
   }
   return result;
-}
-
-struct Let_data *eval(struct Cons *root,
-		      struct Env *local_env,
-		      struct Env *global_env)
-{
-  /* amend_lambda_semantics(root); */
-  for (int i = 0; i < (root->size - 1); i++) {
-    eval_const_item(&(root->elts[i]), local_env, global_env);
-  }
-  return eval_const_item(&(root->elts[root->size - 1]), local_env, global_env);
 }

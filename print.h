@@ -4,6 +4,6 @@
 
 void print(struct Let_data *);
 void print_ast3(GNode *);
-gboolean print_node(GNode *node, gpointer data);
+gboolean print_node(GNode *, gpointer);
 
 #endif	/* LET_PRINT_H */
