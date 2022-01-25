@@ -3,7 +3,7 @@
 
 enum Type {
   NUMBER = 0, INTEGER = 1, FLOAT = 2,
-  SYMBOL = 3, LAMBDA = 4,
+  NAME = 3, LAMBDA = 4,
   DOUBLE = 5,
   BINDING=6,
   BOUND_BINDING=7,	/* parameter with default argument */

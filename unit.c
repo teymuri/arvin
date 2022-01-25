@@ -8,12 +8,11 @@
 
 
 /* why is this any good??? */
-enum Type unit_type(struct Unit *c)
-{
-  switch (c->type) {
+enum Type unit_type(struct Unit *u) {
+  switch (u->type) {
   case INTEGER: return INTEGER;
   case FLOAT: return FLOAT;
-  case SYMBOL: return SYMBOL;
+  case NAME: return NAME;
   case LAMBDA: return LAMBDA;
   case BINDING: return BINDING;
   case BOUND_BINDING: return BOUND_BINDING;
@@ -26,7 +25,7 @@ void determine_unit_type(struct Unit *c)
   switch (c->token.type) {
   case INTEGER: c->type = INTEGER; break;
   case FLOAT: c->type = FLOAT; break;
-  case SYMBOL: c->type = SYMBOL; break;
+  case NAME: c->type = NAME; break;
   default: break;
   }
 }
@@ -54,8 +53,8 @@ GSList *units_linked_list(struct Token toks[], size_t toks_n)
   GSList *sll = NULL; /* the return singly linked list */
   struct Unit *atom = NULL;
   for (size_t s = 0; s < toks_n; s++) {
-    /* struct Unit *atom = (struct Unit *)malloc(sizeof (struct Unit)); */
     atom = g_new(struct Unit, 1);
+    atom->env = NULL;
     /* uuid 0 is reserved for the toplevel atom, so start with 1 */
     atom->uuid = s + 1;
     atom->token = toks[s];

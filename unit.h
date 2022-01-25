@@ -6,24 +6,28 @@
 #include <stddef.h>
 #include "type.h"
 #include "token.h"
-#include "env.h"
+
+#define UNIT_FORMAT "[tokstr(%s) id(%zu) type(%s) nadd(%p) uadd(%p) sz(%d) atom(%d) arity(%d) maxcap(%d)]"
 
 struct Unit {
   size_t uuid;
   /* arity is unsigned int for lambdas, and -1 otherwise (invalid
      arity if not a lambda) */
   int arity;
+  GNode *lambda_expr;
+  GHashTable *lambda_env;
   /* don't use unsigned for max absorption, since we need -1 for
      undefined/unlimited capacity */
   int max_capacity;
   struct Token token;
   enum Type type;
   bool is_atomic;
-  struct Env *env;
+  GHashTable *env;	/* unit's environment */
   /* here will supported Let-types be stored as evaluating */
   int ival;
   float fval;
 };
+
 
 
 enum Type unit_type(struct Unit *);

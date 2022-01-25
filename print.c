@@ -14,11 +14,12 @@ void print_indent(int i) {
   printf("%s", s);
 }
 
-#define UNIT_FORMAT "[tokstr(%s) type(%s) nadd(%p) uadd(%p) sz(%d) atom(%d) arity(%d) maxcap(%d)]"
+
 gboolean print_node(GNode *node, gpointer data) {
   print_indent((guint)g_node_depth(node) - 1);
-  printf(UNIT_FORMAT,	 
+  printf(UNIT_FORMAT,
 	 ((struct Unit *)node->data)->token.str,
+	 ((unitp_t)node->data)->uuid,
 	 stringify_type(unit_type((struct Unit *)node->data)),
 	 (gpointer)node,
 	 (gpointer)node->data,
