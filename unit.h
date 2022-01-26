@@ -15,6 +15,7 @@ struct Unit {
      arity if not a lambda) */
   int arity;
   GNode *lambda_expr;
+  /* lambda env is different from normal env in that */
   GHashTable *lambda_env;
   /* don't use unsigned for max absorption, since we need -1 for
      undefined/unlimited capacity */

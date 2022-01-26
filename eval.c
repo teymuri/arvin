@@ -26,14 +26,17 @@ void eval_lambda(struct Let_data **result, GNode *root, GHashTable *env) {
   (*result)->type = LAMBDA;
   ((unitp_t)root->data)->lambda_expr = g_node_last_child(root);
   ((unitp_t)root->data)->lambda_env = env;
-  ((unitp_t)root->data)->type = LAMBDA; /* braucht nicht mehr????? */
+  /* need type of the unit anymore? we already have the result type
+     above... */
+  ((unitp_t)root->data)->type = LAMBDA;
   /* add parameters to env */
   for (guint i = 0; i < g_node_n_children(root) - 1; i++) {
     GNode *binding = g_node_nth_child(root, i);
     char *bind_name = ((unitp_t)binding->data)->token.str;
     char *name = binding_name(bind_name);
+    /* if it is an optional parameter save it's value */
     if (unit_type((unitp_t)binding->data) == BOUND_BINDING)
-      g_hash_table_insert(((unitp_t)root->data)->env, name,
+      g_hash_table_insert(((unitp_t)root->data)->lambda_env, name,
 			  eval3(binding->children, ((unitp_t)root->data)->env));
   }
   (*result)->data.lambda_slot = g_node_last_child(root);
@@ -70,10 +73,12 @@ void eval_assign(struct Let_data **result, GNode *root, GHashTable *env) {
 }
 
 void eval_funcall(struct Let_data **result, GNode *root, GHashTable *env) {
-  struct Let_data *name_or_expr = eval3(g_node_last_child(root),
-					((unitp_t)root->data)->env);
+  GNode *lambda_node = g_node_last_child(root);
+  /* copy all parameter units of the function */
+  GSList *param_list = NULL;
+  struct Let_data *name_or_expr = eval3(lambda_node, ((unitp_t)root->data)->env);
   *result = eval3(name_or_expr->data.lambda_slot,
-		  ((unitp_t)g_node_last_child(root)->data)->lambda_env);
+		  ((unitp_t)lambda_node->data)->lambda_env);
 }
 
 void eval_toplevel(struct Let_data **result, GNode *root) {
