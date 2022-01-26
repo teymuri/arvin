@@ -36,7 +36,7 @@ void eval_lambda(struct Let_data **result, GNode *root, GHashTable *env) {
       g_hash_table_insert(((unitp_t)root->data)->env, name,
 			  eval3(binding->children, ((unitp_t)root->data)->env));
   }
-  (*result)->value.lambda_slot = g_node_last_child(root);
+  (*result)->data.lambda_slot = g_node_last_child(root);
 }
 
 void eval_assoc(struct Let_data **result, GNode *root, GHashTable *env) {
@@ -57,13 +57,22 @@ void eval_assign(struct Let_data **result, GNode *root, GHashTable *env) {
      matter in which environment we are currently */
   g_hash_table_insert(((unitp_t)g_node_get_root(root)->data)->env, name, data);
   (*result)->type = data->type;
-				/* achtung!!!!!!!!!!!!!!!!!!!!!!!!!!!!11 */
-  (*result)->value.dataslot_int = data->value.dataslot_int;
+  /* which data slot to set */
+  switch (data->type) {
+  case INTEGER:
+    (*result)->data.int_slot = data->data.int_slot; break;
+  case FLOAT:
+    (*result)->data.float_slot = data->data.float_slot; break;
+  case LAMBDA:
+    (*result)->data.lambda_slot = data->data.lambda_slot; break;
+  default: break;
+  }
 }
 
 void eval_funcall(struct Let_data **result, GNode *root, GHashTable *env) {
-  struct Let_data *name_or_expr = eval3(g_node_last_child(root), ((unitp_t)root->data)->env);
-  *result = eval3(name_or_expr->value.lambda_slot,
+  struct Let_data *name_or_expr = eval3(g_node_last_child(root),
+					((unitp_t)root->data)->env);
+  *result = eval3(name_or_expr->data.lambda_slot,
 		  ((unitp_t)g_node_last_child(root)->data)->lambda_env);
 }
 
@@ -80,11 +89,11 @@ struct Let_data *eval3(GNode *root, GHashTable *env) {
     switch (unit_type(((unitp_t)root->data))) {
     case INTEGER:
       result->type = INTEGER;
-      result->value.dataslot_int = ((unitp_t)root->data)->ival;
+      result->data.int_slot = ((unitp_t)root->data)->ival;
       break;
     case FLOAT:
       result->type = FLOAT;
-      result->value.dataslot_float = ((unitp_t)root->data)->fval;
+      result->data.float_slot = ((unitp_t)root->data)->fval;
       break;
     case NAME:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
@@ -98,11 +107,11 @@ struct Let_data *eval3(GNode *root, GHashTable *env) {
 	    result->type = data->type;
 	    switch (result->type) {
 	    case INTEGER:
-	      result->value.dataslot_int = data->value.dataslot_int; break;
+	      result->data.int_slot = data->data.int_slot; break;
 	    case FLOAT:
-	      result->value.dataslot_float = data->value.dataslot_float; break;
+	      result->data.float_slot = data->data.float_slot; break;
 	    case LAMBDA:
-	      result->value.lambda_slot = data->value.lambda_slot; break;
+	      result->data.lambda_slot = data->data.lambda_slot; break;
 	    default: break;
 	    }
 	    break;

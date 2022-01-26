@@ -41,10 +41,10 @@ void print(struct Let_data *data)
 {
   switch (data->type) {
   case INTEGER:
-    printf("%d", data->value.dataslot_int);
+    printf("%d", data->data.int_slot);
     break;
   case FLOAT:
-    printf("%f", data->value.dataslot_float);
+    printf("%f", data->data.float_slot);
     break;
   case LAMBDA:
     printf("lambda...");
