@@ -280,12 +280,15 @@ GNode *parse3(GList *unit_link) {
       node = g_node_new((unitp_t)unit_link->data);
       g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data), -1, node);
     }
-    /* when the unit's scope is a lambda, and the unit is not a
-       binding, the unit is the final expression of lambda
-       (i.e. lambda will be closed!) */
-    if ((is_lambda4((unitp_t)scope->data) &&
+    /* when the unit's scope is a lambda, the unit is the first item
+       of lambda and not a binding form, the unit is the final
+       expression of lambda (i.e. lambda will be closed!) */
+    if (((is_lambda4((unitp_t)scope->data) ||
+	  is_association4((unitp_t)scope->data) ||
+	  is_funcall((unitp_t)scope->data)) &&
 	 unit_type((unitp_t)unit_link->data) != BINDING &&
-	 unit_type((unitp_t)unit_link->data) != BOUND_BINDING)) {
+	 unit_type((unitp_t)unit_link->data) != BOUND_BINDING &&
+	 g_node_child_index(scope, (unitp_t)unit_link->data) == 0)) {
       ((unitp_t)scope->data)->max_capacity = 0;
       effective_binding_unit = find_last_binding_unit(unit_link);
     }
@@ -302,8 +305,8 @@ GNode *parse3(GList *unit_link) {
 void assert_binding_node(GNode *node, GNode *last_child) {
   /* e.g. a parameter or a binding in let */
   if ((node != last_child &&
-       !(unit_type((unitp_t)node->data) == BINDING ||
-	 unit_type((unitp_t)node->data) == BOUND_BINDING))) {
+       (unit_type((unitp_t)node->data) != BINDING ||
+	unit_type((unitp_t)node->data) != BOUND_BINDING))) {
     fprintf(stderr, "%s not a binding!\n", ((unitp_t)node->data)->token.str);
     exit(EXIT_FAILURE);
   }
@@ -316,7 +319,8 @@ gboolean sanify_lambda(GNode *node, gpointer data) {
       /* first assert that every child node except with the last one
 	 is a binding (ie a parameter decleration) */
       g_node_children_foreach(node, G_TRAVERSE_ALL,
-			      (GNodeForeachFunc)assert_binding_node, last_child);
+			      (GNodeForeachFunc)assert_binding_node,
+			      last_child);
       /* if the last node is a mandatory parameter (i.e. a parameter
 	 without default value), it is an error! */
       if (((unitp_t)last_child->data)->type == BINDING) {
@@ -353,7 +357,7 @@ void sanify_lambdas(GNode *root) {
 /* schmelz die 2 zusammen mit der obigen */
 void assert_bound_binding_node(GNode *node, GNode *last_child) {
   /* e.g. a parameter or a binding in let */
-  if ((node != last_child && unit_type((unitp_t)node->data) == BINDING)) {
+  if ((node != last_child && unit_type((unitp_t)node->data) != BOUND_BINDING)) {
     fprintf(stderr, "malformed binding\n");
     print_node(node, NULL);
     fprintf(stderr, "not bound\n");
@@ -361,12 +365,15 @@ void assert_bound_binding_node(GNode *node, GNode *last_child) {
   }
 }
 
+
+/* just remove assert binding nodes from funcall!!! */
 gboolean check_funcall(GNode *node, gpointer data) {
   if (is_funcall((unitp_t)node->data)) {
     if (g_node_n_children(node)) {
       GNode *last_child = g_node_last_child(node);
       /* first assert that every child node except with the last one
-	 is a binding (ie a parameter decleration) */
+	 is a either a binding or a bound binding (mandatory or
+	 optional argument) */
       g_node_children_foreach(node, G_TRAVERSE_ALL,
 			      (GNodeForeachFunc)assert_bound_binding_node,
 			      last_child);
@@ -396,7 +403,7 @@ gboolean check_assoc(GNode *node, gpointer data) {
     if (g_node_n_children(node)) {
       GNode *last_child = g_node_last_child(node);
       /* first assert that every child node except with the last one
-	 is a binding (ie a parameter decleration) */
+	 is a bound binding */
       g_node_children_foreach(node, G_TRAVERSE_ALL,
 			      (GNodeForeachFunc)assert_bound_binding_node,
 			      last_child);
