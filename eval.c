@@ -75,7 +75,7 @@ void eval_assign(struct Let_data **result, GNode *root, GHashTable *env) {
 void eval_funcall(struct Let_data **result, GNode *root, GHashTable *env) {
   GNode *lambda_node = g_node_last_child(root);
   /* copy all parameter units of the function */
-  GSList *param_list = NULL;
+  GList *param_list = NULL;
   struct Let_data *name_or_expr = eval3(lambda_node, ((unitp_t)root->data)->env);
   *result = eval3(name_or_expr->data.lambda_slot,
 		  ((unitp_t)lambda_node->data)->lambda_env);

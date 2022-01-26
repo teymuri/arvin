@@ -33,7 +33,7 @@ struct Unit {
 
 enum Type unit_type(struct Unit *);
 
-GSList *brick_slist(struct Token tokens[], size_t count);
-GSList *units_linked_list(struct Token toks[], size_t toks_n);
+GList *brick_slist(struct Token tokens[], size_t count);
+GList *unit_linked_list(struct Token toks[], size_t toks_n);
 typedef struct Unit * unitp_t;
 #endif	/* LET_UNIT_H */

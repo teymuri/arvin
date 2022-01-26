@@ -48,29 +48,29 @@ void determine_unit_value(struct Unit *c)
 valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
-GSList *units_linked_list(struct Token toks[], size_t toks_n)
+GList *unit_linked_list(struct Token toks[], size_t toks_n)
 {
-  GSList *sll = NULL; /* the return singly linked list */
-  struct Unit *atom = NULL;
+  GList *link = NULL; /* the return singly linked list */
+  struct Unit *unit = NULL;
   for (size_t s = 0; s < toks_n; s++) {
-    atom = g_new(struct Unit, 1);
-    atom->env = NULL;
-    /* uuid 0 is reserved for the toplevel atom, so start with 1 */
-    atom->uuid = s + 1;
-    atom->token = toks[s];
+    unit = g_new(struct Unit, 1);
+    unit->env = NULL;
+    /* uuid 0 is reserved for the toplevel unit, so start with 1 */
+    unit->uuid = s + 1;
+    unit->token = toks[s];
     /* maximum absorption of -1 means undefined, i.e. can take as much
        as you want. This will be reset later in parser to possinly
        different unsigned integers for different types (e.g. parameter
        bindings will get 1 etc.)*/
-    atom->max_capacity = -1;
+    unit->max_capacity = -1;
     /* arity will be set by the parser to either 0 or more for lambdas
        and remains -1 for everything else */
-    atom->arity = -1;
-    determine_unit_value(atom);
-    determine_unit_type(atom);
-    sll = g_slist_prepend(sll, atom);
+    unit->arity = -1;
+    determine_unit_value(unit);
+    determine_unit_type(unit);
+    link = g_list_prepend(link, unit);
   }
-  sll = g_slist_reverse(sll);
-  return sll;
+  link = g_list_reverse(link);
+  return link;
 }
 
