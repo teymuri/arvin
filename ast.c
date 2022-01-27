@@ -328,7 +328,7 @@ gboolean sanify_lambda(GNode *node, gpointer data) {
 		((unitp_t)last_child->data)->token.str);
 	exit(EXIT_FAILURE);
 	/* if the last node LOOKS LIKE a parameter with a default
-	   argument (i.e. optional argument/bound binding), we see
+	   argument (i.e. optional argument/bound binding), we treat
 	   it's default argument as the final expression of lambda */
       } else if (unit_type((unitp_t)last_child->data) == BOUND_BINDING) {
 	GNode *bound_value = g_node_last_child(last_child);
