@@ -23,6 +23,9 @@ void eval_pret(struct Let_data **result, GNode *root, GHashTable *env) {
 }
 
 void eval_lambda(struct Let_data **result, GNode *root, GHashTable *env) {
+  struct Lambda *lambda = malloc(sizeof (struct Lambda));
+  lambda->expr = g_node_last_child(root);
+  lambda->env = env;
   (*result)->type = LAMBDA;
   ((unitp_t)root->data)->lambda_expr = g_node_last_child(root);
   ((unitp_t)root->data)->lambda_env = env;
@@ -35,11 +38,15 @@ void eval_lambda(struct Let_data **result, GNode *root, GHashTable *env) {
     char *bind_name = ((unitp_t)binding->data)->token.str;
     char *name = binding_name(bind_name);
     /* if it is an optional parameter save it's value */
-    if (unit_type((unitp_t)binding->data) == BOUND_BINDING)
+    if (unit_type((unitp_t)binding->data) == BOUND_BINDING) {
       g_hash_table_insert(((unitp_t)root->data)->lambda_env, name,
 			  eval3(binding->children, ((unitp_t)root->data)->env));
+      g_hash_table_insert(lambda->env, name,
+			  eval3(binding->children, lambda->env));
+	}
   }
   (*result)->data.lambda_slot = g_node_last_child(root);
+  (*result)->data._lambda_slot = lambda;
 }
 
 void eval_assoc(struct Let_data **result, GNode *root, GHashTable *env) {
@@ -67,7 +74,9 @@ void eval_assign(struct Let_data **result, GNode *root, GHashTable *env) {
   case FLOAT:
     (*result)->data.float_slot = data->data.float_slot; break;
   case LAMBDA:
-    (*result)->data.lambda_slot = data->data.lambda_slot; break;
+    (*result)->data.lambda_slot = data->data.lambda_slot;
+    (*result)->data._lambda_slot = data->data._lambda_slot;
+    break;
   default: break;
   }
 }
@@ -76,49 +85,40 @@ void copy_hash_table_entry(gpointer key, gpointer val, gpointer ht) {
   g_hash_table_insert(ht, key, val);
 }
 
-void eval_funcall_lambda(struct Let_data **result, GNode *pass) {
-  GNode *lambda_node = g_node_last_child(pass);
+void eval_funcall(struct Let_data **result, GNode *root, GHashTable *env) {
+  GNode *lambda_node = g_node_last_child(root);
   /* populate lambda environment */
-  eval3(lambda_node, ((unitp_t)pass->data)->env);
-    /* make a copy of the lambda env */
+  struct Let_data *x = eval3(lambda_node, ((unitp_t)root->data)->env);
+  /* make a copy of the lambda env */
   GHashTable *calltime_env = g_hash_table_new(g_str_hash, g_str_equal);
-  g_hash_table_foreach(((unitp_t)lambda_node->data)->lambda_env, (GHFunc)copy_hash_table_entry, calltime_env);
+  /* g_hash_table_foreach(((unitp_t)lambda_node->data)->lambda_env, (GHFunc)copy_hash_table_entry, calltime_env); */
+  g_hash_table_foreach(x->data._lambda_slot->env, (GHFunc)copy_hash_table_entry, calltime_env);
   /* iterate over passed arguments */
   gint idx = 0;			/* gint because of g_node_child_index update later */
-  for (; idx < (gint)g_node_n_children(pass) - 1; idx++) {
-    if (unit_type((unitp_t)g_node_nth_child(pass, idx)->data) == BOUND_BINDING) {
+  for (; idx < (gint)g_node_n_children(root) - 1; idx++) {
+    if (unit_type((unitp_t)g_node_nth_child(root, idx)->data) == BOUND_BINDING) {
       g_hash_table_insert(calltime_env,
-			  binding_name(((unitp_t)g_node_nth_child(pass, idx)->data)->token.str),
-			  eval3(g_node_nth_child(pass, idx)->children, ((unitp_t)pass->data)->env));
+			  binding_name(((unitp_t)g_node_nth_child(root, idx)->data)->token.str),
+			  eval3(g_node_nth_child(root, idx)->children, ((unitp_t)root->data)->env));
       /* update the index to reflect the position of current passed
 	 argument in the parameter list of the lambda */
+      /* gint in_lambda_idx = g_node_child_index(lambda_node, */
+      /* 					      g_hash_table_lookup(((unitp_t)lambda_node->data)->lambda_env, */
+      /* 								  binding_name(((unitp_t)g_node_nth_child(root, idx)->data)->token.str))); */
       gint in_lambda_idx = g_node_child_index(lambda_node,
-					      g_hash_table_lookup(((unitp_t)lambda_node->data)->lambda_env,
-								  binding_name(((unitp_t)g_node_nth_child(pass, idx)->data)->token.str)));
+					      g_hash_table_lookup(x->data._lambda_slot->env,
+								  binding_name(((unitp_t)g_node_nth_child(root, idx)->data)->token.str)));
+
       if (in_lambda_idx == idx) idx++;
+      else idx = in_lambda_idx;
     } else {			/* just an expression, not a binding (para->arg) */
       char *bname =binding_name(((unitp_t)g_node_nth_child(lambda_node, idx)->data)->token.str);
       g_hash_table_insert(calltime_env, bname,
-			  eval3(g_node_nth_child(pass, idx), ((unitp_t)pass->data)->env));
+			  eval3(g_node_nth_child(root, idx), ((unitp_t)root->data)->env));
     }
   }
-  *result = eval3(g_node_last_child(lambda_node), calltime_env);
-}
-
-void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
-  if (is_lambda4((unitp_t)g_node_last_child(pass)->data)) {
-    eval_funcall_lambda(result, pass);
-  } else {			/* i.e. the name of some lambda */
-    
-  }
-
-  /* if (is_lambda4((unitp_t)lambda_node->data)) */
-    
-  /* else { */
-  /*   printf("asdjkl"); */
-  /*   *result = eval3(lambda_node, calltime_env); */
-  /* } */				/*  */
-    
+  /* *result = eval3(g_node_last_child(lambda_node), calltime_env); */
+  *result = eval3(x->data._lambda_slot->expr, calltime_env);
 }
 
 void eval_toplevel(struct Let_data **result, GNode *root) {
@@ -154,7 +154,9 @@ struct Let_data *eval3(GNode *root, GHashTable *env) {
 	    case FLOAT:
 	      result->data.float_slot = data->data.float_slot; break;
 	    case LAMBDA:
-	      result->data.lambda_slot = data->data.lambda_slot; break;
+	      result->data.lambda_slot = data->data.lambda_slot;
+	      result->data._lambda_slot = data->data._lambda_slot;
+	      break;
 	    default: break;
 	    }
 	    break;
@@ -169,7 +171,9 @@ struct Let_data *eval3(GNode *root, GHashTable *env) {
 	      case FLOAT:
 		result->data.float_slot = data->data.float_slot; break;
 	      case LAMBDA:
-		result->data.lambda_slot = data->data.lambda_slot; break;
+		result->data.lambda_slot = data->data.lambda_slot;
+		result->data._lambda_slot = data->data._lambda_slot;
+		break;
 	      default: break;
 	      }
 	      break;

@@ -17,6 +17,7 @@ struct Let_data {
     int int_slot;
     float float_slot;
     GNode *lambda_slot;
+    struct Lambda *_lambda_slot;
   } data;
 };
 
