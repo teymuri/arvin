@@ -51,6 +51,7 @@ int main(int argc, char **argv) {
     sanify_lambdas(ast3);
     check_funcalls(ast3);
     check_assocs(ast3);
+    print_ast3(ast3);
     struct Let_data *e = eval3(ast3, toplevel_unit.env);
     /* print(e); */
   }

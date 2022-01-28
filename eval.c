@@ -76,33 +76,49 @@ void copy_hash_table_entry(gpointer key, gpointer val, gpointer ht) {
   g_hash_table_insert(ht, key, val);
 }
 
-void eval_funcall(struct Let_data **result, GNode *root, GHashTable *env) {
-  GNode *lambda_node = g_node_last_child(root);
-  /* make a copy of the lambda env */
-  GHashTable *call_time_env = g_hash_table_new(g_str_hash, g_str_equal);
-  g_hash_table_foreach(((unitp_t)lambda_node->data)->lambda_env, (GHFunc)copy_hash_table_entry, call_time_env);
+void eval_funcall_lambda(struct Let_data **result, GNode *pass) {
+  GNode *lambda_node = g_node_last_child(pass);
+  /* populate lambda environment */
+  eval3(lambda_node, ((unitp_t)pass->data)->env);
+    /* make a copy of the lambda env */
+  GHashTable *calltime_env = g_hash_table_new(g_str_hash, g_str_equal);
+  g_hash_table_foreach(((unitp_t)lambda_node->data)->lambda_env, (GHFunc)copy_hash_table_entry, calltime_env);
   /* iterate over passed arguments */
   gint idx = 0;			/* gint because of g_node_child_index update later */
-  for (; idx < g_node_n_children(root) - 1; idx++) {
-    if (unit_type((unitp_t)g_node_nth_child(root, idx)->data) == BOUND_BINDING) {
-      g_hash_table_insert(call_time_env,
-			  binding_name(((unitp_t)g_node_nth_child(root, idx)->data)->token.str),
-			  eval3(g_node_nth_child(root, idx)->children, env));
+  for (; idx < (gint)g_node_n_children(pass) - 1; idx++) {
+    if (unit_type((unitp_t)g_node_nth_child(pass, idx)->data) == BOUND_BINDING) {
+      g_hash_table_insert(calltime_env,
+			  binding_name(((unitp_t)g_node_nth_child(pass, idx)->data)->token.str),
+			  eval3(g_node_nth_child(pass, idx)->children, ((unitp_t)pass->data)->env));
       /* update the index to reflect the position of current passed
 	 argument in the parameter list of the lambda */
       gint in_lambda_idx = g_node_child_index(lambda_node,
 					      g_hash_table_lookup(((unitp_t)lambda_node->data)->lambda_env,
-								  binding_name(((unitp_t)g_node_nth_child(root, idx)->data)->token.str)));
+								  binding_name(((unitp_t)g_node_nth_child(pass, idx)->data)->token.str)));
       if (in_lambda_idx == idx) idx++;
-      
     } else {			/* just an expression, not a binding (para->arg) */
-      g_hash_table_insert(call_time_env,
-			  binding_name(((unitp_t)g_node_nth_child(lambda_node, idx)->data)->token.str),
-			  eval3(g_node_nth_child(root, idx), env));
+      char *bname =binding_name(((unitp_t)g_node_nth_child(lambda_node, idx)->data)->token.str);
+      g_hash_table_insert(calltime_env, bname,
+			  eval3(g_node_nth_child(pass, idx), ((unitp_t)pass->data)->env));
     }
   }
-  struct Let_data *name_or_expr = eval3(lambda_node, ((unitp_t)root->data)->env);
-  *result = eval3(name_or_expr->data.lambda_slot, call_time_env);
+  *result = eval3(g_node_last_child(lambda_node), calltime_env);
+}
+
+void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
+  if (is_lambda4((unitp_t)g_node_last_child(pass)->data)) {
+    eval_funcall_lambda(result, pass);
+  } else {			/* i.e. the name of some lambda */
+    
+  }
+
+  /* if (is_lambda4((unitp_t)lambda_node->data)) */
+    
+  /* else { */
+  /*   printf("asdjkl"); */
+  /*   *result = eval3(lambda_node, calltime_env); */
+  /* } */				/*  */
+    
 }
 
 void eval_toplevel(struct Let_data **result, GNode *root) {
@@ -126,13 +142,11 @@ struct Let_data *eval3(GNode *root, GHashTable *env) {
       break;
     case NAME:
       /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
-      {
+      {	  
 	char *tokstr = ((unitp_t)root->data)->token.str;
 	/* symbols are evaluated in the envs of their enclosing units */
-	GNode *parent = root->parent;
 	struct Let_data *data;
-	while (parent) {
-	  if ((data = g_hash_table_lookup(((unitp_t)parent->data)->env, tokstr))) {
+	if ((data = g_hash_table_lookup(env, tokstr))) {
 	    result->type = data->type;
 	    switch (result->type) {
 	    case INTEGER:
@@ -144,13 +158,29 @@ struct Let_data *eval3(GNode *root, GHashTable *env) {
 	    default: break;
 	    }
 	    break;
-	  } else {
-	    parent = parent->parent;
+	} else {
+	  GNode *parent = root->parent;
+	  while (parent) {		  
+	    if ((data = g_hash_table_lookup(((unitp_t)parent->data)->env, tokstr))) {
+	      result->type = data->type;
+	      switch (result->type) {
+	      case INTEGER:
+		result->data.int_slot = data->data.int_slot; break;
+	      case FLOAT:
+		result->data.float_slot = data->data.float_slot; break;
+	      case LAMBDA:
+		result->data.lambda_slot = data->data.lambda_slot; break;
+	      default: break;
+	      }
+	      break;
+	    } else {
+	      parent = parent->parent;
+	    }
 	  }
-	}
-	if (!parent) {		/* wir sind schon beim parent von global env angekommen */
-	  fprintf(stderr, "unbound '%s'\n", tokstr);
-	  exit(EXIT_FAILURE);
+	  if (!parent) {		/* wir sind schon beim parent von global env angekommen */
+	    fprintf(stderr, "unbound '%s'\n", tokstr);
+	    exit(EXIT_FAILURE);
+	  }
 	}
       }
       break;

@@ -81,15 +81,6 @@ GList *find_enclosure_link(GList *unit_link, GList *units_onset) {
 }
 
 
-/* to be included also in eval */
-bool is_lambda_unit(struct Unit *u)
-{
-  return !strcmp(u->token.str, LAMBDA_KEYWORD);
-}
-
-bool is_lambda_head(struct Unit c) { return !strcmp(c.token.str, LAMBDA_KEYWORD); }
-
-
 bool is_lambda4(struct Unit *u) {
   return !strcmp(u->token.str, LAMBDA_KEYWORD);
 }
@@ -284,8 +275,7 @@ GNode *parse3(GList *unit_link) {
        of lambda and not a binding form, the unit is the final
        expression of lambda (i.e. lambda will be closed!) */
     if (((is_lambda4((unitp_t)scope->data) ||
-	  is_association4((unitp_t)scope->data) ||
-	  is_funcall((unitp_t)scope->data)) &&
+	  is_association4((unitp_t)scope->data)) &&
 	 unit_type((unitp_t)unit_link->data) != BINDING &&
 	 unit_type((unitp_t)unit_link->data) != BOUND_BINDING &&
 	 g_node_child_index(scope, (unitp_t)unit_link->data) == 0)) {
@@ -305,8 +295,8 @@ GNode *parse3(GList *unit_link) {
 void assert_binding_node(GNode *node, GNode *last_child) {
   /* e.g. a parameter or a binding in let */
   if ((node != last_child &&
-       (unit_type((unitp_t)node->data) != BINDING ||
-	unit_type((unitp_t)node->data) != BOUND_BINDING))) {
+       unit_type((unitp_t)node->data) != BINDING &&
+       unit_type((unitp_t)node->data) != BOUND_BINDING)) {
     fprintf(stderr, "%s not a binding!\n", ((unitp_t)node->data)->token.str);
     exit(EXIT_FAILURE);
   }
@@ -347,7 +337,7 @@ gboolean sanify_lambda(GNode *node, gpointer data) {
 }
 
 void sanify_lambdas(GNode *root) {
-  puts("sanifying lambdas...");
+  puts("parse-time lambda sanifying...");
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)sanify_lambda, NULL);
@@ -365,21 +355,23 @@ void assert_bound_binding_node(GNode *node, GNode *last_child) {
   }
 }
 
+void assert_argument(GNode *node, GNode *last_child) {
+  if ((node != last_child && unit_type((unitp_t)node->data) == BINDING)) {
+    fprintf(stderr, "malformed argument passed:\n");
+    print_node(node, NULL);
+    exit(EXIT_FAILURE);
+  }
+}
 
-/* just remove assert binding nodes from funcall!!! */
 gboolean check_funcall(GNode *node, gpointer data) {
   if (is_funcall((unitp_t)node->data)) {
     if (g_node_n_children(node)) {
       GNode *last_child = g_node_last_child(node);
-      /* first assert that every child node except with the last one
-	 is a either a binding or a bound binding (mandatory or
-	 optional argument) */
       g_node_children_foreach(node, G_TRAVERSE_ALL,
-			      (GNodeForeachFunc)assert_bound_binding_node,
-			      last_child);
-      if (unit_type((unitp_t)g_node_last_child(node)->data) != NAME) {
+			      (GNodeForeachFunc)assert_argument, last_child);
+      if (unit_type((unitp_t)last_child->data) != NAME) {
 	fprintf(stderr, "malformed pass\n");
-	print_node(g_node_last_child(node), NULL);
+	print_node(last_child, NULL);
 	fprintf(stderr, "is not a lambda\n");
 	exit(EXIT_FAILURE);
       }
@@ -392,11 +384,11 @@ gboolean check_funcall(GNode *node, gpointer data) {
 }
 
 void check_funcalls(GNode *root) {
-  puts("checking funcalls...");
+  puts("parse-time pass check...");
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)check_funcall, NULL);
-  puts("funcalls checked");
+  puts("pass checked");
 }
 gboolean check_assoc(GNode *node, gpointer data) {
   if (is_association4((unitp_t)node->data)) {
