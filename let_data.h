@@ -7,6 +7,7 @@
 /* data structures of the landuage */
 
 struct Lambda {
+  GList *param_list;
   /* lambda environment is used at definition time  */
   GHashTable *env;
   GNode *node;			/* the lambda code */

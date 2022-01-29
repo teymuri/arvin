@@ -345,6 +345,7 @@ void sanify_lambdas(GNode *root) {
   puts("lambdas sanified");
 }
 
+
 /* schmelz die 2 zusammen mit der obigen */
 void assert_bound_binding_node(GNode *node, GNode *last_child) {
   /* e.g. a parameter or a binding in let */
@@ -355,11 +356,11 @@ void assert_bound_binding_node(GNode *node, GNode *last_child) {
     exit(EXIT_FAILURE);
   }
 }
-
-void assert_argument(GNode *node, GNode *last_child) {
-  if ((node != last_child && unit_type((unitp_t)node->data) == BINDING)) {
-    fprintf(stderr, "malformed argument passed:\n");
-    print_node(node, NULL);
+void assert_pass_binding(GNode *binding, GNode *lambda) {
+  if ((binding != lambda && unit_type((unitp_t)binding->data) == BINDING)) {
+    fprintf(stderr, "malformed argument passed\n");
+    print_node(binding, NULL);
+    fprintf(stderr, "is not bound\n");
     exit(EXIT_FAILURE);
   }
 }
@@ -367,12 +368,12 @@ void assert_argument(GNode *node, GNode *last_child) {
 gboolean check_funcall(GNode *node, gpointer data) {
   if (is_funcall((unitp_t)node->data)) {
     if (g_node_n_children(node)) {
-      GNode *last_child = g_node_last_child(node);
+      GNode *lambda_node = g_node_last_child(node);
       g_node_children_foreach(node, G_TRAVERSE_ALL,
-			      (GNodeForeachFunc)assert_argument, last_child);
-      if (unit_type((unitp_t)last_child->data) != NAME) {
+			      (GNodeForeachFunc)assert_pass_binding, lambda_node);
+      if (unit_type((unitp_t)lambda_node->data) != NAME) {
 	fprintf(stderr, "malformed pass\n");
-	print_node(last_child, NULL);
+	print_node(lambda_node, NULL);
 	fprintf(stderr, "is not a lambda\n");
 	exit(EXIT_FAILURE);
       }
