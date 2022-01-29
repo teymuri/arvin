@@ -9,6 +9,7 @@
 #include "unit.h"
 #include "core.h"
 #include "ast.h"
+#include "print.h"
 
 char *binding_name(char *b) {
   /* semicolon removed from the head */
@@ -92,7 +93,6 @@ gint get_param_index(GList *list, char *str) {
   if (found) return idx;
   else return -1;
 }
-
 void eval_funcall(struct Let_data **result, GNode *node, GHashTable *env) {
   GNode *lambda_node = g_node_last_child(node);
   /* populate lambda environment */
@@ -102,7 +102,7 @@ void eval_funcall(struct Let_data **result, GNode *node, GHashTable *env) {
   g_hash_table_foreach(x->data.slot_lambda->env, (GHFunc)copy_hash_table_entry, calltime_env);
   /* iterate over passed arguments */
   gint idx = 0;			/* gint because of g_node_child_index update later */
-  for (; idx < (gint)g_node_n_children(node)-1; idx++) {
+  while (idx < (gint)g_node_n_children(node) - 1) {
     if (unit_type((unitp_t)g_node_nth_child(node, idx)->data) == BOUND_BINDING) {
       g_hash_table_insert(calltime_env,
 			  binding_name(((unitp_t)g_node_nth_child(node, idx)->data)->token.str),
@@ -111,13 +111,16 @@ void eval_funcall(struct Let_data **result, GNode *node, GHashTable *env) {
 	 argument in the parameter list of the lambda */
       gint in_lambda_idx = get_param_index(x->data.slot_lambda->param_list,
 					   ((unitp_t)g_node_nth_child(node, idx)->data)->token.str);
-      /* if (in_lambda_idx == idx) idx++; */
-      if (in_lambda_idx != idx) idx = in_lambda_idx;
-      /* if (in_lambda_idx > idx) idx = in_lambda_idx; */
-      /* else if(in_lambda_idx < idx) fprintf(stderr, "%d %d %s %s\n", */
-      /* 		   in_lambda_idx, idx, */
-      /* 		   ((unitp_t)g_node_nth_child(node, idx)->data)->token.str, */
-      /* 		   binding_name(((unitp_t)g_node_nth_child(node, idx)->data)->token.str)); */
+      if (in_lambda_idx == -1) {
+	fprintf(stderr, "unknown parameter\n");
+	print_node(g_node_nth_child(node, idx), NULL);
+	fprintf(stderr, "passed to\n");
+	print_node(lambda_node, NULL);
+	exit(EXIT_FAILURE);
+      } else if (in_lambda_idx > idx)
+	idx = in_lambda_idx;
+      else
+	idx++;
     } else {			/* just an expression, not a binding (para->arg) */
       char *bname = binding_name(((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx)->data)->token.str);
       g_hash_table_insert(calltime_env, bname,
