@@ -281,7 +281,7 @@ GNode *parse3(GList *unit_link) {
 	 unit_type((unitp_t)unit_link->data) != BOUND_BINDING &&
 	 g_node_child_index(scope, (unitp_t)unit_link->data) == 0)) {
       ((unitp_t)scope->data)->max_capacity = 0;
-      effective_binding_unit = find_prev_binding_unit(unit_link);
+      effective_binding_unit = find_prev_binding_unit(unit_link->prev);
     }
     /* process next unit */
     unit_link = unit_link->next;
