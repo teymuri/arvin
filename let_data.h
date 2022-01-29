@@ -7,8 +7,9 @@
 /* data structures of the landuage */
 
 struct Lambda {
-  GNode *expr;
+  /* lambda environment is used at definition time  */
   GHashTable *env;
+  GNode *node;			/* the lambda code */
 };
 
 struct Let_data {
@@ -16,7 +17,7 @@ struct Let_data {
   union {
     int int_slot;
     float float_slot;
-    GNode *lambda_slot;
+    struct Lambda *slot_lambda;
   } data;
 };
 

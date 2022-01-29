@@ -166,6 +166,7 @@ struct Unit *find_prev_binding_unit(GList *unit_link) {
   return NULL;
 }
 
+
 /* goes through the atoms, root will be the container with tl_cons ... */
 GNode *parse3(GList *unit_link) {
   GNode *root = g_node_new((unitp_t)unit_link->data); /* toplevel atom stattdessen */
@@ -280,7 +281,7 @@ GNode *parse3(GList *unit_link) {
 	 unit_type((unitp_t)unit_link->data) != BOUND_BINDING &&
 	 g_node_child_index(scope, (unitp_t)unit_link->data) == 0)) {
       ((unitp_t)scope->data)->max_capacity = 0;
-      effective_binding_unit = find_prev_binding_unit(unit_link->prev);
+      effective_binding_unit = find_prev_binding_unit(unit_link);
     }
     /* process next unit */
     unit_link = unit_link->next;
