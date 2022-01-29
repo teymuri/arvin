@@ -55,7 +55,7 @@ GList *unit_linked_list(struct Token toks[], size_t toks_n)
   for (size_t s = 0; s < toks_n; s++) {
     unit = g_new(struct Unit, 1);
     unit->env = NULL;
-    unit->lambda_env = g_hash_table_new(g_str_hash, g_str_equal);
+    /* unit->lambda_env = g_hash_table_new(g_str_hash, g_str_equal); */
     /* uuid 0 is reserved for the toplevel unit, so start with 1 */
     unit->uuid = s + 1;
     unit->token = toks[s];
