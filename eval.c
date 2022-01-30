@@ -93,34 +93,34 @@ gint get_param_index(GList *list, char *str) {
   if (found) return idx;
   else return -1;
 }
-void eval_funcall(struct Let_data **result, GNode *node, GHashTable *env) {
-  GNode *lambda_node = g_node_last_child(node);
+
+void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
+  GNode *lambda_node = g_node_last_child(pass);
   /* populate lambda environment */
-  struct Let_data *x = eval3(lambda_node, ((unitp_t)node->data)->env);
+  /* struct Let_data *x = eval3(lambda_node, ((unitp_t)node->data)->env); */
+  struct Let_data *x = eval3(lambda_node, env);
   /* make a copy of the lambda env */
   GHashTable *calltime_env = g_hash_table_new(g_str_hash, g_str_equal);
   g_hash_table_foreach(x->data.slot_lambda->env, (GHFunc)copy_hash_table_entry, calltime_env);
   /* iterate over passed arguments */
   gint idx = 0;			/* gint because of g_node_child_index update later */
-  while (idx < (gint)g_node_n_children(node) - 1) {
-    if (unit_type((unitp_t)g_node_nth_child(node, idx)->data) == BOUND_BINDING) {
+  while (idx < (gint)g_node_n_children(pass) - 1) {
+    if (unit_type((unitp_t)g_node_nth_child(pass, idx)->data) == BOUND_BINDING) {
       g_hash_table_insert(calltime_env,
-			  binding_name(((unitp_t)g_node_nth_child(node, idx)->data)->token.str),
-			  eval3(g_node_nth_child(node, idx)->children, ((unitp_t)node->data)->env));
+			  binding_name(((unitp_t)g_node_nth_child(pass, idx)->data)->token.str),
+			  eval3(g_node_nth_child(pass, idx)->children, ((unitp_t)pass->data)->env));
       /* update the index to reflect the position of current passed
 	 argument in the parameter list of the lambda */
       gint in_lambda_idx = get_param_index(x->data.slot_lambda->param_list,
-					   ((unitp_t)g_node_nth_child(node, idx)->data)->token.str);
-      printf("%s %d %d\n", ((unitp_t)g_node_nth_child(node, idx)->data)->token.str,
-	     idx, in_lambda_idx);
+					   ((unitp_t)g_node_nth_child(pass, idx)->data)->token.str);;
       if (in_lambda_idx == -1) {
 	fprintf(stderr, "unknown parameter\n");
-	print_node(g_node_nth_child(node, idx), NULL);
+	print_node(g_node_nth_child(pass, idx), NULL);
 	fprintf(stderr, "passed to\n");
 	print_node(lambda_node, NULL);
 	exit(EXIT_FAILURE);
       } else if (in_lambda_idx > idx) {
-	if (unit_type((unitp_t)g_node_nth_child(node, idx+1)->data) == BOUND_BINDING) {
+	if (unit_type((unitp_t)g_node_nth_child(pass, idx+1)->data) == BOUND_BINDING) {
 	  idx++;
 	} else 	idx = in_lambda_idx;
       }
@@ -129,7 +129,7 @@ void eval_funcall(struct Let_data **result, GNode *node, GHashTable *env) {
     } else {			/* just an expression, not a binding (para->arg) */
       char *bname = binding_name(((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx)->data)->token.str);
       g_hash_table_insert(calltime_env, bname,
-			  eval3(g_node_nth_child(node, idx), ((unitp_t)node->data)->env));
+			  eval3(g_node_nth_child(pass, idx), ((unitp_t)pass->data)->env));
       idx++;
     }
   }
@@ -211,11 +211,13 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
     } else if (is_lambda4((unitp_t)node->data)) {
       eval_lambda(&result, node, env);
     } else if (is_assignment4((unitp_t)node->data)) { /* define */
-      eval_assign(&result, node, ((unitp_t)node->data)->env);
+      /* eval_assign(&result, node, ((unitp_t)node->data)->env); */
+      eval_assign(&result, node, env);
     } else if (is_funcall((unitp_t)node->data)) {
       eval_funcall(&result, node, env);
     } else if (is_association4((unitp_t)node->data)) {
-      eval_assoc(&result, node, ((unitp_t)node->data)->env);
+      /* eval_assoc(&result, node, ((unitp_t)node->data)->env); */
+      eval_assoc(&result, node, env);
     }
   }
   return result;
