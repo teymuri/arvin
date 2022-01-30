@@ -111,20 +111,26 @@ void eval_funcall(struct Let_data **result, GNode *node, GHashTable *env) {
 	 argument in the parameter list of the lambda */
       gint in_lambda_idx = get_param_index(x->data.slot_lambda->param_list,
 					   ((unitp_t)g_node_nth_child(node, idx)->data)->token.str);
+      printf("%s %d %d\n", ((unitp_t)g_node_nth_child(node, idx)->data)->token.str,
+	     idx, in_lambda_idx);
       if (in_lambda_idx == -1) {
 	fprintf(stderr, "unknown parameter\n");
 	print_node(g_node_nth_child(node, idx), NULL);
 	fprintf(stderr, "passed to\n");
 	print_node(lambda_node, NULL);
 	exit(EXIT_FAILURE);
-      } else if (in_lambda_idx > idx)
-	idx = in_lambda_idx;
+      } else if (in_lambda_idx > idx) {
+	if (unit_type((unitp_t)g_node_nth_child(node, idx+1)->data) == BOUND_BINDING) {
+	  idx++;
+	} else 	idx = in_lambda_idx;
+      }
       else
 	idx++;
     } else {			/* just an expression, not a binding (para->arg) */
       char *bname = binding_name(((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx)->data)->token.str);
       g_hash_table_insert(calltime_env, bname,
 			  eval3(g_node_nth_child(node, idx), ((unitp_t)node->data)->env));
+      idx++;
     }
   }
   *result = eval3(g_node_last_child(x->data.slot_lambda->node), calltime_env);
