@@ -121,7 +121,8 @@ bool maybe_binding4(struct Unit *u)
 bool is_binding4(struct Unit *u, GNode *scope) {
   return maybe_binding4(u) &&
     (is_lambda4((unitp_t)scope->data) ||
-     is_association4(u) ||
+     is_association4(u) ||	/* ????? */
+     is_association4((unitp_t)scope->data) ||
      is_funcall((unitp_t)scope->data));
 }
 
@@ -179,9 +180,10 @@ GNode *parse3(GList *unit_link) {
   GNode *node;
   while (unit_link) {
     /* find out the DIRECT embedding block of the current cell */
+    /* Scope */
     if (maybe_binding3(unit_link) &&
-	effective_binding_unit &&
-	is_enclosed_in4((unitp_t)unit_link->data, effective_binding_unit)) { /* so its a lambda parameter */
+	((effective_binding_unit &&
+	  is_enclosed_in4((unitp_t)unit_link->data, effective_binding_unit)))) { /* so its a lambda parameter */
       ((unitp_t)unit_link->data)->type = BINDING;
       ((unitp_t)unit_link->data)->is_atomic = false;
       scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, effective_binding_unit);
@@ -197,6 +199,15 @@ GNode *parse3(GList *unit_link) {
 	 BOUND_BINDING auf nach need_new_cons. */
     } else {			/* compute the enclosure anew */
       scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, (unitp_t)find_enclosure_link(unit_link, units_onset)->data);
+    }
+    
+    /* make a binding based on scope, oben ist nur EBU bedingt! */
+    if (maybe_binding3(unit_link) &&
+	(is_association4((unitp_t)scope->data) ||
+	 is_lambda4((unitp_t)scope->data) ||
+	 is_funcall((unitp_t)scope->data))) {
+      ((unitp_t)unit_link->data)->type = BINDING;
+      ((unitp_t)unit_link->data)->is_atomic = false;
     }
 
     /* i.e. ist das Ding jetzt der WERT für einen Bound Parameter?
