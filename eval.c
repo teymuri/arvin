@@ -26,7 +26,7 @@ void eval_pret(struct Let_data **result, GNode *root, GHashTable *env) {
 void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
   (*result)->type = LAMBDA;
   struct Lambda *lambda = malloc(sizeof (struct Lambda));
-  lambda->env = env;
+  lambda->env = env;		/* make a hashtable copy */
   lambda->node = node;
   lambda->param_list = NULL;
   /* add parameters to env */
@@ -117,7 +117,7 @@ void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
 	fprintf(stderr, "unknown parameter\n");
 	print_node(g_node_nth_child(pass, idx), NULL);
 	fprintf(stderr, "passed to\n");
-	print_node(lambda_node, NULL);
+	print_node(x->data.slot_lambda->node, NULL);
 	exit(EXIT_FAILURE);
       } else if (in_lambda_idx > idx) {
 	if (unit_type((unitp_t)g_node_nth_child(pass, idx+1)->data) == BOUND_BINDING) {
