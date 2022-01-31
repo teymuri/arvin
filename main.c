@@ -44,13 +44,14 @@ int main(int argc, char **argv) {
      Kommentaren was übrig geblieben ist */
   
   if (polished_tokens_count) {
-    GSList *unitsll = units_linked_list(polished_tokens, polished_tokens_count);
-    unitsll = g_slist_prepend(unitsll, &toplevel_unit);
-    GNode *ast3 = parse3(unitsll);
+    GList *unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
+    unit_link = g_list_prepend(unit_link, &toplevel_unit);
+    GNode *ast3 = parse3(unit_link);
     print_ast3(ast3);
     sanify_lambdas(ast3);
     check_funcalls(ast3);
     check_assocs(ast3);
+    print_ast3(ast3);
     struct Let_data *e = eval3(ast3, toplevel_unit.env);
     /* print(e); */
   }
