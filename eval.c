@@ -46,6 +46,7 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
 }
 
 void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env) {
+  ((unitp_t)node->data)->env = env; /* make an own env with contents of passed env (a copy of env) */
   for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
     GNode *binding = g_node_nth_child(node, i);
     char *bind_name = ((unitp_t)binding->data)->token.str;
