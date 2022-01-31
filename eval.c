@@ -195,7 +195,8 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
 	    }
 	  }
 	  if (!parent) {		/* wir sind schon beim parent von global env angekommen */
-	    fprintf(stderr, "unbound '%s'\n", tokstr);
+	    fprintf(stderr, "lookup failed for\n");
+	    print_node(node, NULL);
 	    exit(EXIT_FAILURE);
 	  }
 	}
