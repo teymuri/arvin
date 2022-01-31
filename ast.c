@@ -24,6 +24,7 @@ bool is_enclosed_in3(GList *ulink1, GList *ulink2) {
     return false;
   }
 }
+
 bool is_enclosed_in4(struct Unit *a1, struct Unit *a2) {
   return a1->token.col_start_idx > a2->token.col_start_idx &&
     a1->token.line >= a2->token.line;
@@ -173,7 +174,7 @@ GNode *parse3(GList *unit_link) {
   GNode *root = g_node_new((unitp_t)unit_link->data); /* toplevel atom stattdessen */
   /* effective binding units are units which introduce bindings,
      e.g. lambda, let, pass */
-  struct Unit *effective_binding_unit = NULL;
+  struct Unit *current_binding_unit = NULL;
   GNode *scope;
   GList *units_onset = unit_link;
   unit_link = unit_link->next;
@@ -182,14 +183,16 @@ GNode *parse3(GList *unit_link) {
     /* find out the DIRECT embedding block of the current cell */
     /* Scope */
     if (maybe_binding3(unit_link) &&
-	((effective_binding_unit &&
-	  is_enclosed_in4((unitp_t)unit_link->data, effective_binding_unit)))) { /* so its a lambda parameter */
-      ((unitp_t)unit_link->data)->type = BINDING;
-      ((unitp_t)unit_link->data)->is_atomic = false;
-      scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, effective_binding_unit);
+	current_binding_unit &&
+	is_enclosed_in4((unitp_t)unit_link->data, current_binding_unit)) {
+      /* printf("%s %s %p\n", ((unitp_t)unit_link->data)->token.str, current_binding_unit->token.str, (void *)current_binding_unit); */
+      /* ((unitp_t)unit_link->data)->type = BINDING; */
+      /* ((unitp_t)unit_link->data)->is_atomic = false; */
+      /* the scope will be the current binding unit */
+      scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, current_binding_unit);
       /* funcalls have no arity! */
-      if (!is_funcall(effective_binding_unit))
-	effective_binding_unit->arity++;
+      if (!is_funcall(current_binding_unit))
+	current_binding_unit->arity++;
       
       /* enhance the type of the parameter symbol. */
       /* ACHTUNG: wir setzen den neuen Typ für bound param nicht hier,
@@ -253,7 +256,7 @@ GNode *parse3(GList *unit_link) {
       if (is_lambda4((unitp_t)unit_link->data) ||
 	  is_funcall((unitp_t)unit_link->data) ||
 	  is_association4((unitp_t)unit_link->data))
-	effective_binding_unit = (unitp_t)unit_link->data;
+	current_binding_unit = (unitp_t)unit_link->data;
 
       /* set the arity for lambda */
       if (is_lambda4((unitp_t)unit_link->data))
@@ -290,9 +293,11 @@ GNode *parse3(GList *unit_link) {
 	  is_association4((unitp_t)scope->data)) &&
 	 unit_type((unitp_t)unit_link->data) != BINDING &&
 	 unit_type((unitp_t)unit_link->data) != BOUND_BINDING &&
+	 /* is the first element? */
 	 g_node_child_index(scope, (unitp_t)unit_link->data) == 0)) {
       ((unitp_t)scope->data)->max_capacity = 0;
-      effective_binding_unit = find_prev_binding_unit(unit_link->prev);
+      /* current_binding_unit = find_prev_binding_unit(unit_link->prev); */
+      current_binding_unit=NULL;
     }
     /* process next unit */
     unit_link = unit_link->next;
