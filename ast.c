@@ -283,7 +283,7 @@ GNode *parse3(GList *unit_link) {
       node = g_node_new((unitp_t)unit_link->data);
       g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data), -1, node);
     }
-    /* when the unit's scope is a lambda, the unit is the first item
+    /* when the unit's scope is a lambda/let, the unit is the first item
        of lambda and not a binding form, the unit is the final
        expression of lambda (i.e. lambda will be closed!) */
     if (((is_lambda4((unitp_t)scope->data) ||
@@ -309,7 +309,8 @@ void assert_binding_node(GNode *node, GNode *last_child) {
   if ((node != last_child &&
        unit_type((unitp_t)node->data) != BINDING &&
        unit_type((unitp_t)node->data) != BOUND_BINDING)) {
-    fprintf(stderr, "%s not a binding!\n", ((unitp_t)node->data)->token.str);
+    fprintf(stderr, "invalid expression in place of binding\n");
+    print_node(node, NULL);
     exit(EXIT_FAILURE);
   }
 }
@@ -349,11 +350,11 @@ gboolean sanify_lambda(GNode *node, gpointer data) {
 }
 
 void sanify_lambdas(GNode *root) {
-  puts("parse-time lambda sanifying...");
+  puts("parse-time lambda sanify");
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)sanify_lambda, NULL);
-  puts("lambdas sanified");
+  puts("  lambdas sanified");
 }
 
 
@@ -397,11 +398,11 @@ gboolean check_funcall(GNode *node, gpointer data) {
 }
 
 void check_funcalls(GNode *root) {
-  puts("parse-time pass check...");
+  puts("parse-time pass check");
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)check_funcall, NULL);
-  puts("pass checked");
+  puts("  pass checked");
 }
 gboolean check_assoc(GNode *node, gpointer data) {
   if (is_association4((unitp_t)node->data)) {
@@ -434,9 +435,9 @@ gboolean check_assoc(GNode *node, gpointer data) {
 }
 
 void check_assocs(GNode *root) {
-  puts("checking assocs...");
+  puts("parse-time assocs check");
   g_node_traverse(root, G_PRE_ORDER,
 		  G_TRAVERSE_ALL, -1,
 		  (GNodeTraverseFunc)check_assoc, NULL);
-  puts("assocs checked");
+  puts("  assocs checked");
 }

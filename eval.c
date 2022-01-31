@@ -22,6 +22,7 @@ char *binding_name(char *b) {
 void put_hash_table_entry(gpointer key, gpointer val, gpointer ht) {
   g_hash_table_insert(ht, key, val);
 }
+
 GHashTable *clone_hash_table(GHashTable *ht) {
   GHashTable *new = g_hash_table_new(g_str_hash, g_str_equal);
   g_hash_table_foreach(ht, (GHFunc)put_hash_table_entry, new);
@@ -37,7 +38,6 @@ void eval_pret(struct Let_data **result, GNode *root, GHashTable *env) {
 void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
   (*result)->type = LAMBDA;
   struct Lambda *lambda = malloc(sizeof (struct Lambda));
-  /* lambda->env = env;		/\* make a hashtable copy *\/ */
   lambda->env = clone_hash_table(env);
   lambda->node = node;
   lambda->param_list = NULL;
@@ -58,7 +58,6 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
 }
 
 void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env) {
-  /* ((unitp_t)node->data)->env = env; /\* make an own env with contents of passed env (a copy of env) *\/ */
   ((unitp_t)node->data)->env = clone_hash_table(env);
   for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
     GNode *binding = g_node_nth_child(node, i);
@@ -110,14 +109,12 @@ void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
   /* struct Let_data *x = eval3(lambda_node, ((unitp_t)node->data)->env); */
   struct Let_data *x = eval3(lambda_node, env);
   /* make a copy of the lambda env */
-  /* GHashTable *calltime_env = g_hash_table_new(g_str_hash, g_str_equal); */
-  /* g_hash_table_foreach(x->data.slot_lambda->env, (GHFunc)put_hash_table_entry, calltime_env); */
-  GHashTable *calltime_env = clone_hash_table(x->data.slot_lambda->env);
+  GHashTable *call_time_env = clone_hash_table(x->data.slot_lambda->env);
   /* iterate over passed arguments */
   gint idx = 0;			/* gint because of g_node_child_index update later */
   while (idx < (gint)g_node_n_children(pass) - 1) {
     if (unit_type((unitp_t)g_node_nth_child(pass, idx)->data) == BOUND_BINDING) {
-      g_hash_table_insert(calltime_env,
+      g_hash_table_insert(call_time_env,
 			  binding_name(((unitp_t)g_node_nth_child(pass, idx)->data)->token.str),
 			  eval3(g_node_nth_child(pass, idx)->children, env));
       /* update the index to reflect the position of current passed
@@ -139,18 +136,18 @@ void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
 	idx++;
     } else {			/* just an expression, not a binding (para->arg) */
       char *bname = binding_name(((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx)->data)->token.str);
-      g_hash_table_insert(calltime_env, bname,
+      g_hash_table_insert(call_time_env, bname,
 			  eval3(g_node_nth_child(pass, idx), env));
       idx++;
     }
   }
-  *result = eval3(g_node_last_child(x->data.slot_lambda->node), calltime_env);
+  *result = eval3(g_node_last_child(x->data.slot_lambda->node), call_time_env);
 }
 
 void eval_toplevel(struct Let_data **result, GNode *root) {
   guint size = g_node_n_children(root);
   for (guint i = 0; i < size - 1; i++)
-    /* every other part of code inherits the environment of the toplevel */
+    /* every other toplevel part of code inherits the environment of the toplevel */
     eval3(g_node_nth_child(root, i), ((unitp_t)root->data)->env);
   *result = eval3(g_node_nth_child(root, size - 1), ((unitp_t)root->data)->env);
 }
