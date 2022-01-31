@@ -108,7 +108,7 @@ void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
     if (unit_type((unitp_t)g_node_nth_child(pass, idx)->data) == BOUND_BINDING) {
       g_hash_table_insert(calltime_env,
 			  binding_name(((unitp_t)g_node_nth_child(pass, idx)->data)->token.str),
-			  eval3(g_node_nth_child(pass, idx)->children, ((unitp_t)pass->data)->env));
+			  eval3(g_node_nth_child(pass, idx)->children, env));
       /* update the index to reflect the position of current passed
 	 argument in the parameter list of the lambda */
       gint in_lambda_idx = get_param_index(x->data.slot_lambda->param_list,
@@ -129,7 +129,7 @@ void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
     } else {			/* just an expression, not a binding (para->arg) */
       char *bname = binding_name(((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx)->data)->token.str);
       g_hash_table_insert(calltime_env, bname,
-			  eval3(g_node_nth_child(pass, idx), ((unitp_t)pass->data)->env));
+			  eval3(g_node_nth_child(pass, idx), env));
       idx++;
     }
   }
@@ -139,6 +139,7 @@ void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
 void eval_toplevel(struct Let_data **result, GNode *root) {
   guint size = g_node_n_children(root);
   for (guint i = 0; i < size - 1; i++)
+    /* every other part of code inherits the environment of the toplevel */
     eval3(g_node_nth_child(root, i), ((unitp_t)root->data)->env);
   *result = eval3(g_node_nth_child(root, size - 1), ((unitp_t)root->data)->env);
 }
@@ -206,7 +207,7 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
     }
   } else {			/* block/function */
     if ((((unitp_t)node->data)->uuid == 0)) {
-      eval_toplevel(&result, node);
+      eval_toplevel(&result, node); /* toplevel uses it's own environment */
     } else if (is_pret4((unitp_t)node->data)) {
       eval_pret(&result, node, env);
     } else if (is_lambda4((unitp_t)node->data)) {
