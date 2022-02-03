@@ -9,7 +9,7 @@
 #define ASSOCIATION_KEYWORD "let"
 #define LAMBDA_KEYWORD "lambda"
 #define FUNCALL_KEYWORD "pass"
-#define BINDING_PREFIX ':'
+#define PACK_BIND_TOK '&'
 #define BINDING_TOKEN ':'
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
