@@ -112,11 +112,16 @@ bool is_funcall(struct Unit *u) {
 }
 bool maybe_binding3(GList *link)
 {
-  return unit_type((unitp_t)link->data) == NAME && *((unitp_t)link->data)->token.str == BINDING_PREFIX;
+  /* return unit_type((unitp_t)link->data) == NAME && *((unitp_t)link->data)->token.str == BINDING_PREFIX; */
+  char *str = ((unitp_t)link->data)->token.str;
+  return unit_type((unitp_t)link->data) == NAME && str[strlen(str) - 1] == BINDING_TOKEN;
 }
+
 bool maybe_binding4(struct Unit *u)
 {
-  return unit_type(u) == NAME && *u->token.str == BINDING_PREFIX;
+  /* return unit_type(u) == NAME && *u->token.str == BINDING_PREFIX; */
+  char *str = u->token.str;
+  return unit_type(u) == NAME && str[strlen(str) - 1] == BINDING_TOKEN;
 }
 
 bool is_binding4(struct Unit *u, GNode *scope) {

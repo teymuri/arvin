@@ -10,6 +10,7 @@
 #define LAMBDA_KEYWORD "lambda"
 #define FUNCALL_KEYWORD "pass"
 #define BINDING_PREFIX ':'
+#define BINDING_TOKEN ':'
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
 
