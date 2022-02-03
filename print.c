@@ -1,6 +1,7 @@
 #include <glib.h>
 #include <stdio.h>
-#include "let_data.h"
+/* #include "let_data.h" */
+#include "type.h"
 #include "unit.h"
 
 void print_indent(int i) {
