@@ -151,7 +151,8 @@ bool need_subtree4(struct Unit *u, GNode *scope) {
     is_lambda4(u) ||
     is_binding4(u, scope) ||
     is_pret4(u) ||
-    is_funcall(u)
+    is_funcall(u) ||
+    is_pack(u)
     ;
 }
 
@@ -195,9 +196,6 @@ GNode *parse3(GList *unit_link) {
     if (maybe_binding3(unit_link) &&
 	current_binding_unit &&
 	is_enclosed_in4((unitp_t)unit_link->data, current_binding_unit)) {
-      /* printf("%s %s %p\n", ((unitp_t)unit_link->data)->token.str, current_binding_unit->token.str, (void *)current_binding_unit); */
-      /* ((unitp_t)unit_link->data)->type = BINDING; */
-      /* ((unitp_t)unit_link->data)->is_atomic = false; */
       /* the scope will be the current binding unit */
       scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, current_binding_unit);
       /* funcalls have no arity! */
