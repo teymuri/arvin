@@ -16,6 +16,8 @@ enum Type unit_type(struct Unit *u) {
   case LAMBDA: return LAMBDA;
   case BINDING: return BINDING;
   case BOUND_BINDING: return BOUND_BINDING;
+  case PACK_BINDING: return PACK_BINDING;
+  case BOUND_PACK_BINDING: return BOUND_PACK_BINDING;
   default: return UNDEFINED;
   }
 }

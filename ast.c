@@ -224,10 +224,10 @@ GNode *parse3(GList *unit_link) {
     if (is_association4((unitp_t)scope->data) ||
         is_lambda4((unitp_t)scope->data) ||
         is_funcall((unitp_t)scope->data)) {
-      if (maybe_binding3(unit_link))
-        ((unitp_t)unit_link->data)->type = BINDING;
-      else if (maybe_pack_binding(unit_link))
+      if (maybe_pack_binding(unit_link)) /* check pack binding before binding!!! every pack binding is also a binding */
         ((unitp_t)unit_link->data)->type = PACK_BINDING;
+      else if (maybe_binding3(unit_link))
+        ((unitp_t)unit_link->data)->type = BINDING;
       ((unitp_t)unit_link->data)->is_atomic = false;
     }
 
@@ -315,6 +315,8 @@ GNode *parse3(GList *unit_link) {
 	  is_association4((unitp_t)scope->data)) &&
 	 unit_type((unitp_t)unit_link->data) != BINDING &&
 	 unit_type((unitp_t)unit_link->data) != BOUND_BINDING &&
+         unit_type((unitp_t)unit_link->data) != PACK_BINDING &&
+         unit_type((unitp_t)unit_link->data) != BOUND_PACK_BINDING &&
 	 /* is the first element? */
 	 g_node_child_index(scope, (unitp_t)unit_link->data) == 0)) {
       ((unitp_t)scope->data)->max_capacity = 0;
@@ -331,11 +333,13 @@ GNode *parse3(GList *unit_link) {
 
 
 
-void assert_binding_node(GNode *node, GNode *last_child) {
-  /* e.g. a parameter or a binding in let */
+void assert_lambda_param(GNode *node, GNode *last_child)
+{
   if ((node != last_child &&
        unit_type((unitp_t)node->data) != BINDING &&
-       unit_type((unitp_t)node->data) != BOUND_BINDING)) {
+       unit_type((unitp_t)node->data) != BOUND_BINDING &&
+       unit_type((unitp_t)node->data) != PACK_BINDING &&
+       unit_type((unitp_t)node->data) != BOUND_PACK_BINDING)) {
     fprintf(stderr, "invalid expression in place of binding\n");
     print_node(node, NULL);
     exit(EXIT_FAILURE);
@@ -349,22 +353,32 @@ gboolean sanify_lambda(GNode *node, gpointer data) {
       /* first assert that every child node except with the last one
 	 is a binding (ie a parameter decleration) */
       g_node_children_foreach(node, G_TRAVERSE_ALL,
-			      (GNodeForeachFunc)assert_binding_node,
+			      (GNodeForeachFunc)assert_lambda_param,
 			      last_child);
       /* if the last node is a mandatory parameter (i.e. a parameter
-	 without default value), it is an error! */
-      if (((unitp_t)last_child->data)->type == BINDING) {
+	 without default value which i can take out as the lambda
+	 expression), it is an error! */
+      if (((unitp_t)last_child->data)->type == BINDING ||
+          unit_type((unitp_t)last_child->data) == PACK_BINDING) {
 	fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
 		((unitp_t)last_child->data)->token.str);
 	exit(EXIT_FAILURE);
 	/* if the last node LOOKS LIKE a parameter with a default
 	   argument (i.e. optional argument/bound binding), we treat
 	   it's default argument as the final expression of lambda */
-      } else if (unit_type((unitp_t)last_child->data) == BOUND_BINDING) {
+      } else if (unit_type((unitp_t)last_child->data) == BOUND_BINDING ||
+                 unit_type((unitp_t)last_child->data) == BOUND_PACK_BINDING) {
 	GNode *bound_value = g_node_last_child(last_child);
 	g_node_unlink(bound_value);
 	g_node_insert(node, -1, bound_value);
-	((unitp_t)last_child->data)->type = BINDING;
+        if (unit_type((unitp_t)last_child->data) == BOUND_BINDING)
+          ((unitp_t)last_child->data)->type = BINDING;
+        /* if we took the last and only child of the bound pack
+           binding out as the lambda expression and it has no
+           children, change it's type to a simple pack binding without
+           default arguments */
+        else if (g_node_n_children(last_child) == 0)
+          ((unitp_t)last_child->data)->type = PACK_BINDING;
       }
     } else {
       fprintf(stderr, "malformed lambda\n");
