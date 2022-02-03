@@ -13,7 +13,7 @@
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
 
-#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
+#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&]+)"
 
 #define COMMENT_OPENING "("		/* comment opening token */
 #define COMMENT_CLOSING ")"		/* comment closing token */
