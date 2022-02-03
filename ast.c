@@ -110,6 +110,11 @@ bool is_assignment4(struct Unit *u)
 bool is_funcall(struct Unit *u) {
   return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
+
+bool is_pack(struct Unit *u) {
+  return !strcmp(u->token.str, PACK_KW);
+}
+
 bool maybe_binding3(GList *link)
 {
   /* return unit_type((unitp_t)link->data) == NAME && *((unitp_t)link->data)->token.str == BINDING_PREFIX; */

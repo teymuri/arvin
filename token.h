@@ -9,6 +9,7 @@
 #define ASSOCIATION_KEYWORD "let"
 #define LAMBDA_KEYWORD "lambda"
 #define FUNCALL_KEYWORD "pass"
+#define PACK_KW "pack"
 #define PACK_BIND_TOK '&'
 #define BINDING_TOKEN ':'
 
