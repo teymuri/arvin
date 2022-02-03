@@ -63,7 +63,11 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
   (*result)->data.slot_lambda = lambda;
 }
 
-void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env) {
+
+void eval_cpack(struct Let_data **, GNode *, GHashTable *);
+
+void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env)
+{
   ((unitp_t)node->data)->env = clone_hash_table(env);
   for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
     GNode *binding = g_node_nth_child(node, i);
@@ -149,7 +153,8 @@ void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
   *result = eval3(g_node_last_child(x->data.slot_lambda->node), call_time_env);
 }
 
-void eval_toplevel(struct Let_data **result, GNode *root) {
+void eval_toplevel(struct Let_data **result, GNode *root)
+{
   guint size = g_node_n_children(root);
   for (guint i = 0; i < size - 1; i++)
     /* every other toplevel part of code inherits the environment of the toplevel */
@@ -233,7 +238,20 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
     } else if (is_association4((unitp_t)node->data)) {
       /* eval_assoc(&result, node, ((unitp_t)node->data)->env); */
       eval_assoc(&result, node, env);
+    } else if (is_cpack((unitp_t)node->data)) {
+      eval_cpack(&result, node, env);
     }
   }
   return result;
 }
+
+  
+void eval_cpack(struct Let_data **result, GNode *node, GHashTable *env)
+{
+  guint size = g_node_n_children(node);
+  GList *pack = NULL;
+  for (guint i = 0; i < size; i++)
+    pack = g_list_append(pack, eval3(g_node_nth_child(node, i), env));
+  (*result)->data.pack = pack;
+}
+

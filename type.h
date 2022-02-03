@@ -9,6 +9,8 @@ enum Type {
   DOUBLE = 5,
   BINDING=6,
   BOUND_BINDING=7,	/* parameter with default argument */
+  PACK_BINDING = 8,
+  BOUND_PACK_BINDING = 9,
   UNDEFINED
 };
 
@@ -30,6 +32,7 @@ struct Let_data {
     int int_slot;
     float float_slot;
     struct Lambda *slot_lambda;
+    GList *pack;
   } data;
 };
 

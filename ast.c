@@ -111,22 +111,31 @@ bool is_funcall(struct Unit *u) {
   return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
 
-bool is_pack(struct Unit *u) {
-  return !strcmp(u->token.str, PACK_KW);
+bool is_cpack(struct Unit *u)
+{
+  return !strcmp(u->token.str, CPACK_KW);
 }
 
 bool maybe_binding3(GList *link)
 {
   /* return unit_type((unitp_t)link->data) == NAME && *((unitp_t)link->data)->token.str == BINDING_PREFIX; */
   char *str = ((unitp_t)link->data)->token.str;
-  return unit_type((unitp_t)link->data) == NAME && str[strlen(str) - 1] == BINDING_TOKEN;
+  return unit_type((unitp_t)link->data) == NAME && str[strlen(str) - 1] == BINDING_SUFFIX;
 }
 
 bool maybe_binding4(struct Unit *u)
 {
   /* return unit_type(u) == NAME && *u->token.str == BINDING_PREFIX; */
   char *str = u->token.str;
-  return unit_type(u) == NAME && str[strlen(str) - 1] == BINDING_TOKEN;
+  return unit_type(u) == NAME && str[strlen(str) - 1] == BINDING_SUFFIX;
+}
+bool maybe_pack_binding(GList *link)
+{
+  struct Unit *u = (unitp_t)link->data;
+  char *str = u->token.str;
+  return unit_type(u) == NAME && /* not a number */
+    str[strlen(str) - 1] == BINDING_SUFFIX &&
+    *str == PACK_BINDING_PREFIX;
 }
 
 bool is_binding4(struct Unit *u, GNode *scope) {
@@ -151,8 +160,7 @@ bool need_subtree4(struct Unit *u, GNode *scope) {
     is_lambda4(u) ||
     is_binding4(u, scope) ||
     is_pret4(u) ||
-    is_funcall(u) ||
-    is_pack(u)
+    is_funcall(u)
     ;
 }
 
@@ -193,7 +201,7 @@ GNode *parse3(GList *unit_link) {
   while (unit_link) {
     /* find out the DIRECT embedding block of the current cell */
     /* Scope */
-    if (maybe_binding3(unit_link) &&
+    if ((maybe_binding3(unit_link) || maybe_pack_binding(unit_link)) &&
 	current_binding_unit &&
 	is_enclosed_in4((unitp_t)unit_link->data, current_binding_unit)) {
       /* the scope will be the current binding unit */
@@ -213,11 +221,13 @@ GNode *parse3(GList *unit_link) {
     }
     
     /* make a binding based on scope, oben ist nur EBU bedingt! */
-    if (maybe_binding3(unit_link) &&
-	(is_association4((unitp_t)scope->data) ||
-	 is_lambda4((unitp_t)scope->data) ||
-	 is_funcall((unitp_t)scope->data))) {
-      ((unitp_t)unit_link->data)->type = BINDING;
+    if (is_association4((unitp_t)scope->data) ||
+        is_lambda4((unitp_t)scope->data) ||
+        is_funcall((unitp_t)scope->data)) {
+      if (maybe_binding3(unit_link))
+        ((unitp_t)unit_link->data)->type = BINDING;
+      else if (maybe_pack_binding(unit_link))
+        ((unitp_t)unit_link->data)->type = PACK_BINDING;
       ((unitp_t)unit_link->data)->is_atomic = false;
     }
 
@@ -227,16 +237,18 @@ GNode *parse3(GList *unit_link) {
     /* enclosure ist hier der block von bound_param */
     if (((unitp_t)scope->data)->type == BINDING || ((unitp_t)scope->data)->type == BOUND_BINDING) {
       ((unitp_t)scope->data)->type = BOUND_BINDING;
-      if (((unitp_t)scope->data)->max_capacity == 1) {
+      if (((unitp_t)scope->data)->max_capacity == 1) { /* binding has max capa 1 */
 	((unitp_t)scope->data)->max_capacity = 0;
       } else {
 	scope = find_parent_with_capa(scope);
       }
-    } else if (is_assignment4((unitp_t)scope->data)) {
+    } else if (is_assignment4((unitp_t)scope->data)) { /* assign has max_capa 2 */
       if (((unitp_t)scope->data)->max_capacity)
 	((unitp_t)scope->data)->max_capacity--;
       else
 	scope = find_parent_with_capa(scope);
+    } else if (unit_type((unitp_t)scope->data) == PACK_BINDING) {
+      ((unitp_t)scope->data)->type = BOUND_PACK_BINDING;
     }
 
     /* remove this shit later please! */
@@ -256,7 +268,9 @@ GNode *parse3(GList *unit_link) {
        block still has absorption capacity (i.e. it's single
        default-argument) the computed enclosing block is correct, only
        decrement it's absorption capacity. */
-    if (need_subtree4((unitp_t)unit_link->data, scope) || ((unitp_t)unit_link->data)->type == BINDING) {
+    if (need_subtree4((unitp_t)unit_link->data, scope) ||
+        ((unitp_t)unit_link->data)->type == BINDING ||
+        unit_type((unitp_t)unit_link->data) == PACK_BINDING) {
       ((unitp_t)unit_link->data)->is_atomic = false;
       ((unitp_t)unit_link->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
 

@@ -12,4 +12,6 @@ bool is_call4(struct Unit *);
 bool is_association4(struct Unit *);
 bool is_assignment4(struct Unit *);
 bool is_funcall(struct Unit *);
+bool is_cpack(struct Unit *);
+
 #endif	/* LET_AST_H */
