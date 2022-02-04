@@ -12,6 +12,10 @@ bool is_call4(struct Unit *);
 bool is_association4(struct Unit *);
 bool is_assignment4(struct Unit *);
 bool is_funcall(struct Unit *);
+
+/* c level geschwister: sind keine let funktionen: können nicht mit
+   pass aufgerufen werden, haben keine keyword parameter usw... */
 bool is_cpack(struct Unit *);
+bool is_cith(struct Unit *);
 
 #endif	/* LET_AST_H */

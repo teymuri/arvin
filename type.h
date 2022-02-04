@@ -11,6 +11,7 @@ enum Type {
   BOUND_BINDING=7,	/* parameter with default argument */
   PACK_BINDING = 8,
   BOUND_PACK_BINDING = 9,
+  PACK = 10,
   UNDEFINED
 };
 

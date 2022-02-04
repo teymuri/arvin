@@ -18,13 +18,6 @@ char *bind_name(char *b) {
   name[strlen(b) - 1] = '\0';
   return name;
 }
-/* char *bind_name(char *b) { */
-/*   /\* semicolon removed from the head *\/ */
-/*   char *name = (char *)malloc(strlen(b)); */
-/*   strncpy(name, b + 1, strlen(b)); */
-/*   return name; */
-/* } */
-
 
 void put_hash_table_entry(gpointer key, gpointer val, gpointer ht) {
   g_hash_table_insert(ht, key, val);
@@ -63,9 +56,36 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
   (*result)->data.slot_lambda = lambda;
 }
 
-
-void eval_cpack(struct Let_data **, GNode *, GHashTable *);
-
+/* pack contains Let_data pointers */
+void eval_cpack(struct Let_data **result, GNode *node, GHashTable *env)
+{
+  guint size = g_node_n_children(node);
+  GList *pack = NULL;
+  for (guint i = 0; i < size; i++)
+    pack = g_list_append(pack, eval3(g_node_nth_child(node, i), env));
+  (*result)->type = PACK;
+  (*result)->data.pack = pack;
+}
+void eval_cith(struct Let_data **result, GNode *node, GHashTable *env)
+{
+  struct Let_data *i_data = eval3(g_node_nth_child(node, 0), env);
+  struct Let_data *pack_data = eval3(g_node_nth_child(node, 1), env);
+  guint i = (guint)i_data->data.int_slot;
+  GList *pack = pack_data->data.pack;
+  struct Let_data *data = g_list_nth(pack, i)->data;
+  (*result)->type = data->type;
+  switch (data->type) {
+  case INTEGER:
+    (*result)->data.int_slot = data->data.int_slot; break;
+  case FLOAT:
+    (*result)->data.float_slot = data->data.float_slot; break;
+  case LAMBDA:
+    (*result)->data.slot_lambda = data->data.slot_lambda; break;
+  case PACK:
+    (*result)->data.pack = data->data.pack; break;
+  default: break;
+  }  
+}
 void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env)
 {
   ((unitp_t)node->data)->env = clone_hash_table(env);
@@ -92,8 +112,9 @@ void eval_assign(struct Let_data **result, GNode *node, GHashTable *env) {
   case FLOAT:
     (*result)->data.float_slot = data->data.float_slot; break;
   case LAMBDA:
-    (*result)->data.slot_lambda = data->data.slot_lambda;
-    break;
+    (*result)->data.slot_lambda = data->data.slot_lambda; break;
+  case PACK:
+    (*result)->data.pack = data->data.pack; break;
   default: break;
   }
 }
@@ -188,8 +209,9 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
 	    case FLOAT:
 	      result->data.float_slot = data->data.float_slot; break;
 	    case LAMBDA:
-	      result->data.slot_lambda = data->data.slot_lambda;
-	      break;
+	      result->data.slot_lambda = data->data.slot_lambda; break;
+            case PACK:
+              result->data.pack = data->data.pack; break;
 	    default: break;
 	    }
 	    break;
@@ -204,8 +226,9 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
 	      case FLOAT:
 		result->data.float_slot = data->data.float_slot; break;
 	      case LAMBDA:
-		result->data.slot_lambda = data->data.slot_lambda;
-		break;
+		result->data.slot_lambda = data->data.slot_lambda; break;
+              case PACK:
+                result->data.pack = data->data.pack; break;
 	      default: break;
 	      }
 	      break;
@@ -240,18 +263,12 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
       eval_assoc(&result, node, env);
     } else if (is_cpack((unitp_t)node->data)) {
       eval_cpack(&result, node, env);
+    } else if (is_cith((unitp_t)node->data)) {
+      eval_cith(&result, node, env);
     }
   }
   return result;
 }
 
   
-void eval_cpack(struct Let_data **result, GNode *node, GHashTable *env)
-{
-  guint size = g_node_n_children(node);
-  GList *pack = NULL;
-  for (guint i = 0; i < size; i++)
-    pack = g_list_append(pack, eval3(g_node_nth_child(node, i), env));
-  (*result)->data.pack = pack;
-}
 

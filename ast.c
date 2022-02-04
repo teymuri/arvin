@@ -115,7 +115,10 @@ bool is_cpack(struct Unit *u)
 {
   return !strcmp(u->token.str, CPACK_KW);
 }
-
+bool is_cith(struct Unit *u)
+{
+  return !strcmp(u->token.str, CITH_KEYWORD);
+}
 bool maybe_binding3(GList *link)
 {
   /* return unit_type((unitp_t)link->data) == NAME && *((unitp_t)link->data)->token.str == BINDING_PREFIX; */
@@ -161,7 +164,8 @@ bool need_block(struct Unit *u, GNode *scope) {
     is_binding4(u, scope) ||
     is_pret4(u) ||
     is_funcall(u) ||
-    is_cpack(u)
+    is_cpack(u) ||
+    is_cith(u)
     ;
 }
 
@@ -243,7 +247,8 @@ GNode *parse3(GList *unit_link) {
       } else {
 	scope = find_parent_with_capa(scope);
       }
-    } else if (is_assignment4((unitp_t)scope->data)) { /* assign has max_capa 2 */
+    } else if (is_assignment4((unitp_t)scope->data) ||
+               is_cith((unitp_t)scope->data)) { /* assign has max_capa 2 */
       if (((unitp_t)scope->data)->max_capacity)
 	((unitp_t)scope->data)->max_capacity--;
       else
@@ -294,13 +299,18 @@ GNode *parse3(GList *unit_link) {
 	((unitp_t)unit_link->data)->max_capacity = 1;
 	((unitp_t)unit_link->data)->arity = 1;
       }
-      /* set the maximum absorption capacity */
+      
+      /* set the maximum absorption capacity for units with definit capacity */
       if (is_binding4((unitp_t)unit_link->data, scope) ||
 	  ((unitp_t)unit_link->data)->type == BINDING) {
 	((unitp_t)unit_link->data)->max_capacity = BIND_MAXCAP;
       } else if (is_assignment4((unitp_t)unit_link->data)) {
 	((unitp_t)unit_link->data)->max_capacity = ASSIGN_MAXCAP;
+      } else if (is_cith((unitp_t)unit_link->data)) {
+        /* i, pack */
+        ((unitp_t)unit_link->data)->max_capacity = 2;
       }
+      
       node = g_node_new((unitp_t)unit_link->data);
       g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data), -1, node);
     } else {			/* it is an atomic unit */

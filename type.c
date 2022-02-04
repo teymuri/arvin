@@ -16,6 +16,7 @@ char *stringify_type(enum Type t)
   case 7: return "bound-binding";
   case 8: return "pack-binding";
   case 9: return "bound-pack-binding";
+  case 10: return "pack";
   default: return "undefined";
   }
 }
