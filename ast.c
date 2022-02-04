@@ -154,13 +154,14 @@ bool is_pret4(struct Unit *u) {
   return !strcmp(u->token.str, "pret");
 }
 
-bool need_subtree4(struct Unit *u, GNode *scope) {
+bool need_block(struct Unit *u, GNode *scope) {
   return is_assignment4(u) ||
     is_association4(u) ||
     is_lambda4(u) ||
     is_binding4(u, scope) ||
     is_pret4(u) ||
-    is_funcall(u)
+    is_funcall(u) ||
+    is_cpack(u)
     ;
 }
 
@@ -268,7 +269,7 @@ GNode *parse3(GList *unit_link) {
        block still has absorption capacity (i.e. it's single
        default-argument) the computed enclosing block is correct, only
        decrement it's absorption capacity. */
-    if (need_subtree4((unitp_t)unit_link->data, scope) ||
+    if (need_block((unitp_t)unit_link->data, scope) ||
         ((unitp_t)unit_link->data)->type == BINDING ||
         unit_type((unitp_t)unit_link->data) == PACK_BINDING) {
       ((unitp_t)unit_link->data)->is_atomic = false;
