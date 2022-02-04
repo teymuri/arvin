@@ -64,7 +64,6 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
   /* add parameters to env */
   for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
     GNode *binding = g_node_nth_child(node, i);
-    /* char *name = bind_name(((unitp_t)binding->data)->token.str);  */
     char *name = bind_node_name(binding);
     lambda->param_list = g_list_append(lambda->param_list, (unitp_t)binding->data);
     /* if it is an optional parameter save it's value */
@@ -77,10 +76,6 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
       struct Let_data *rest_params = malloc(sizeof (struct Let_data));
       eval_cpack(&rest_params, binding, lambda->env);
       g_hash_table_insert(lambda->env, name, rest_params);
-      /* printf("%s %s %d\n", stringify_type(rest_params->type), */
-      /*        name, */
-      /*        g_hash_table_contains(lambda->env, "rest") */
-      /*        ); */
     }
   }
   (*result)->data.slot_lambda = lambda;
@@ -97,7 +92,7 @@ void eval_cpack(struct Let_data **result, GNode *node, GHashTable *env)
   (*result)->data.pack = pack;
 }
 
-void eval_cith(struct Let_data **result, GNode *node, GHashTable *env)
+void eval_stunt_ith(struct Let_data **result, GNode *node, GHashTable *env)
 {
   struct Let_data *i_data = eval3(g_node_nth_child(node, 0), env);
   struct Let_data *pack_data = eval3(g_node_nth_child(node, 1), env);
@@ -164,42 +159,43 @@ gint get_param_index(GList *list, char *str) {
   else return -1;
 }
 
-void eval_funcall(struct Let_data **result, GNode *pass, GHashTable *env) {
-  GNode *lambda_node = g_node_last_child(pass);
+void eval_funcall(struct Let_data **result, GNode *node, GHashTable *env) {
+  GNode *lambda_node = g_node_last_child(node);
   /* populate lambda environment */
   struct Let_data *x = eval3(lambda_node, env);
   /* make a copy of the lambda env */
   GHashTable *call_time_env = clone_hash_table(x->data.slot_lambda->env);
   /* iterate over passed arguments */
   gint idx = 0;			/* gint because of g_node_child_index update later */
-  while (idx < (gint)g_node_n_children(pass) - 1) {
-    if (unit_type((unitp_t)g_node_nth_child(pass, idx)->data) == BOUND_BINDING) {
+  while (idx < (gint)g_node_n_children(node) - 1) {
+    if (unit_type((unitp_t)g_node_nth_child(node, idx)->data) == BOUND_BINDING) {
       g_hash_table_insert(call_time_env,
 			  /* bind_name(((unitp_t)g_node_nth_child(pass, idx)->data)->token.str), */
-                          bind_node_name(g_node_nth_child(pass, idx)),
-			  eval3(g_node_nth_child(pass, idx)->children, env));
+                          bind_node_name(g_node_nth_child(node, idx)),
+			  eval3(g_node_nth_child(node, idx)->children, env));
       /* update the index to reflect the position of current passed
 	 argument in the parameter list of the lambda */
+
       gint in_lambda_idx = get_param_index(x->data.slot_lambda->param_list,
-					   ((unitp_t)g_node_nth_child(pass, idx)->data)->token.str);;
+					   ((unitp_t)g_node_nth_child(node, idx)->data)->token.str);;
       if (in_lambda_idx == -1) {
 	fprintf(stderr, "unknown parameter\n");
-	print_node(g_node_nth_child(pass, idx), NULL);
+	print_node(g_node_nth_child(node, idx), NULL);
 	fprintf(stderr, "passed to\n");
 	print_node(x->data.slot_lambda->node, NULL);
 	exit(EXIT_FAILURE);
       } else if (in_lambda_idx > idx) {
-	if (unit_type((unitp_t)g_node_nth_child(pass, idx+1)->data) == BOUND_BINDING) {
+	if (unit_type((unitp_t)g_node_nth_child(node, idx+1)->data) == BOUND_BINDING) {
 	  idx++;
 	} else 	idx = in_lambda_idx;
       }
-      else
-	idx++;
+      else idx++;
     } else {			/* just an expression, not a binding (para->arg) */
       /* char *bname = bind_name(((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx)->data)->token.str); */
       char *bname = bind_node_name(g_node_nth_child(x->data.slot_lambda->node, idx));
+      printf("%s\n", bname);
       g_hash_table_insert(call_time_env, bname,
-			  eval3(g_node_nth_child(pass, idx), env));
+			  eval3(g_node_nth_child(node, idx), env));
       idx++;
     }
   }
@@ -296,7 +292,7 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
     } else if (is_cpack((unitp_t)node->data)) {
       eval_cpack(&result, node, env);
     } else if (is_cith((unitp_t)node->data)) {
-      eval_cith(&result, node, env);
+      eval_stunt_ith(&result, node, env);
     }
   }
   return result;
