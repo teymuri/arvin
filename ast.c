@@ -117,7 +117,7 @@ bool is_cpack(struct Unit *u)
 }
 bool is_cith(struct Unit *u)
 {
-  return !strcmp(u->token.str, CITH_KEYWORD);
+  return !strcmp(u->token.str, STUNT_ITH_KEYWORD);
 }
 bool maybe_binding3(GList *link)
 {
@@ -148,7 +148,6 @@ bool is_binding4(struct Unit *u, GNode *scope) {
      is_association4((unitp_t)scope->data) ||
      is_funcall((unitp_t)scope->data));
 }
-
 
 bool is_pret(GList *unit) {
   return !strcmp(((unitp_t)unit->data)->token.str, "pret");

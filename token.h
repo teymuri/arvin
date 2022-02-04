@@ -12,7 +12,7 @@
 #define CPACK_KW "cpack"
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
-#define CITH_KEYWORD "cith"
+#define STUNT_ITH_KEYWORD "stunt-ith"
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&]+)"
 
