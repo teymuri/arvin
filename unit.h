@@ -10,21 +10,21 @@
 #define UNIT_FORMAT "[tokstr(%s) id(%zu) type(%s) nadd(%p) uadd(%p) sz(%d) atom(%d) arity(%d) maxcap(%d)]"
 
 struct Unit {
-  size_t uuid;
-  /* arity is unsigned int for lambdas, and -1 otherwise (invalid
-     arity if not a lambda) */
-  int arity;
-  GNode *lambda_expr;
-  /* maximum absorption capacity: -1 = indefinite capacity, 0 = no
-   capacity, else definite capacity*/
-  int max_capa;
-  struct Token token;
-  enum Type type;
-  bool is_atomic;
-  GHashTable *env;	/* unit's environment */
-  /* here will supported Let-types be stored as evaluating */
-  int ival;
-  float fval;
+    size_t uuid;
+    /* arity is unsigned int for lambdas, and -1 otherwise (invalid
+       arity if not a lambda) */
+    int arity;
+    GNode *lambda_expr;
+    /* maximum absorption capacity: -1 = indefinite capacity, 0 = no
+       capacity, else definite capacity*/
+    int max_capa;
+    struct Token token;
+    enum Type type;
+    bool is_atomic;
+    GHashTable *env;	/* unit's environment */
+    /* here will supported Let-types be stored as evaluating */
+    int ival;
+    float fval;
 };
 
 

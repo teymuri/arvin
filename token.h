@@ -23,13 +23,13 @@
 #define MAX_TOKLEN 50		/* max token length in bytes */
 
 struct Token {
-  char str[MAX_TOKLEN];	/* token's string */
-  int col_start_idx;			/* start index in line (column start index) */
-  int column_end_idx;			/* end index in line (column end index) */
-  int line;			/* line number */
-  int id;			/* id of this token (tracked globally) */
-  int comment_index;			/* comment indices: 0 = (, 1 = ) */
-  enum Type type;		/* guessed types at token-generation time */
+    char str[MAX_TOKLEN];	/* token's string */
+    int col_start_idx;			/* start index in line (column start index) */
+    int column_end_idx;			/* end index in line (column end index) */
+    int line;			/* line number */
+    int id;			/* id of this token (tracked globally) */
+    int comment_index;			/* comment indices: 0 = (, 1 = ) */
+    enum Type type;		/* guessed types at token-generation time */
 };
 
 #endif	/* LET_TOK_H */
