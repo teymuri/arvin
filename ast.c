@@ -171,7 +171,7 @@ bool need_block(struct Unit *u, GNode *scope) {
 /* statt scope das jetzige atom selbst */
 GNode *find_parent_with_capa(GNode *node) {
   while (node) {
-    if (((unitp_t)node->data)->max_capa)
+    if (((unitp_t)node->data)->max_capa != 0)
       return node;
     else
       node = node->parent;
