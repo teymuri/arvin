@@ -117,7 +117,7 @@ bool is_cpack(struct Unit *u)
 }
 bool is_cith(struct Unit *u)
 {
-  return !strcmp(u->token.str, STUNT_ITH_KEYWORD);
+  return !strcmp(u->token.str, C_ITH_KW);
 }
 bool maybe_binding3(GList *link)
 {
@@ -169,12 +169,12 @@ bool need_block(struct Unit *u, GNode *scope) {
 }
 
 /* statt scope das jetzige atom selbst */
-GNode *find_parent_with_capa(GNode *scope) {
-  while (scope) {
-    if (((unitp_t)scope->data)->max_capacity)
-      return scope;
+GNode *find_parent_with_capa(GNode *node) {
+  while (node) {
+    if (((unitp_t)node->data)->max_capa)
+      return node;
     else
-      scope = scope->parent;
+      node = node->parent;
   }
   return NULL;		/* nothing found! */
 }
@@ -184,7 +184,7 @@ struct Unit *find_prev_binding_unit(GList *unit_link) {
     if ((is_lambda4((unitp_t)unit_link->data) ||
 	 is_association4((unitp_t)unit_link->data) ||
 	 is_funcall((unitp_t)unit_link->data)) &&
-	((unitp_t)unit_link->data)->max_capacity)
+	((unitp_t)unit_link->data)->max_capa)
       return (unitp_t)unit_link->data;
     else unit_link = unit_link->prev;
   }
@@ -198,18 +198,18 @@ GNode *parse3(GList *unit_link) {
   /* effective binding units are units which introduce bindings,
      e.g. lambda, let, pass */
   struct Unit *current_binding_unit = NULL;
-  GNode *scope;
+  GNode *enc_node;              /* enclosing node */
   GList *units_onset = unit_link;
   unit_link = unit_link->next;
   GNode *node;
   while (unit_link) {
-    /* find out the DIRECT embedding block of the current cell */
-    /* Scope */
+
+    /* find enclosing node */
     if ((maybe_binding3(unit_link) || maybe_pack_binding(unit_link)) &&
 	current_binding_unit &&
 	is_enclosed_in4((unitp_t)unit_link->data, current_binding_unit)) {
       /* the scope will be the current binding unit */
-      scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, current_binding_unit);
+      enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, current_binding_unit);
       /* funcalls have no arity! */
       if (!is_funcall(current_binding_unit))
 	current_binding_unit->arity++;
@@ -221,13 +221,20 @@ GNode *parse3(GList *unit_link) {
 	 spielt. Deshalb verschieben wir das Setzen vom Typ von NAME zum
 	 BOUND_BINDING auf nach need_new_cons. */
     } else {			/* compute the enclosure anew */
-      scope = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, (unitp_t)find_enclosure_link(unit_link, units_onset)->data);
+      enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL,
+                             (unitp_t)find_enclosure_link(unit_link, units_onset)->data);
     }
+    /* if the enclosing block has no more capacity set the closest
+       parent with capacity as the enclosing block */
+    if (((unitp_t)enc_node->data)->max_capa == 0) {
+      enc_node = find_parent_with_capa(enc_node);
+    }
+
     
     /* make a binding based on scope, oben ist nur EBU bedingt! */
-    if (is_association4((unitp_t)scope->data) ||
-        is_lambda4((unitp_t)scope->data) ||
-        is_funcall((unitp_t)scope->data)) {
+    if (is_association4((unitp_t)enc_node->data) ||
+        is_lambda4((unitp_t)enc_node->data) ||
+        is_funcall((unitp_t)enc_node->data)) {
       if (maybe_pack_binding(unit_link)) /* check pack binding before binding!!! every pack binding is also a binding */
         ((unitp_t)unit_link->data)->type = PACK_BINDING;
       else if (maybe_binding3(unit_link))
@@ -239,30 +246,30 @@ GNode *parse3(GList *unit_link) {
        ich frag hier ob das enclosing Zeug von einem bound param
        ist ...*/
     /* enclosure ist hier der block von bound_param */
-    if (((unitp_t)scope->data)->type == BINDING || ((unitp_t)scope->data)->type == BOUND_BINDING) {
-      ((unitp_t)scope->data)->type = BOUND_BINDING;
-      if (((unitp_t)scope->data)->max_capacity == 1) { /* binding has max capa 1 */
-	((unitp_t)scope->data)->max_capacity = 0;
+    if (((unitp_t)enc_node->data)->type == BINDING || ((unitp_t)enc_node->data)->type == BOUND_BINDING) {
+      ((unitp_t)enc_node->data)->type = BOUND_BINDING;
+      if (((unitp_t)enc_node->data)->max_capa == 1) { /* binding has max capa 1 */
+	((unitp_t)enc_node->data)->max_capa = 0;
       } else {
-	scope = find_parent_with_capa(scope);
+	enc_node = find_parent_with_capa(enc_node);
       }
-    } else if (is_assignment4((unitp_t)scope->data) ||
-               is_cith((unitp_t)scope->data)) { /* assign has max_capa 2 */
-      if (((unitp_t)scope->data)->max_capacity)
-	((unitp_t)scope->data)->max_capacity--;
+    } else if (is_assignment4((unitp_t)enc_node->data) ||
+               is_cith((unitp_t)enc_node->data)) { /* assign has max_capa 2 */
+      if (((unitp_t)enc_node->data)->max_capa)
+	((unitp_t)enc_node->data)->max_capa--;
       else
-	scope = find_parent_with_capa(scope);
-    } else if (unit_type((unitp_t)scope->data) == PACK_BINDING) {
-      ((unitp_t)scope->data)->type = BOUND_PACK_BINDING;
+	enc_node = find_parent_with_capa(enc_node);
+    } else if (unit_type((unitp_t)enc_node->data) == PACK_BINDING) {
+      ((unitp_t)enc_node->data)->type = BOUND_PACK_BINDING;
     }
 
     /* remove this shit later please! */
-    if (is_pret4((unitp_t)scope->data)) {
-      if (((unitp_t)scope->data)->max_capacity == 1) {
-	((unitp_t)scope->data)->max_capacity = 0;
+    if (is_pret4((unitp_t)enc_node->data)) {
+      if (((unitp_t)enc_node->data)->max_capa == 1) {
+	((unitp_t)enc_node->data)->max_capa = 0;
       }
       else {
-	scope = find_parent_with_capa(scope);
+	enc_node = find_parent_with_capa(enc_node);
       }
     }    
     /* If the computed enclosing block is a lambda-parameter and it
@@ -273,7 +280,7 @@ GNode *parse3(GList *unit_link) {
        block still has absorption capacity (i.e. it's single
        default-argument) the computed enclosing block is correct, only
        decrement it's absorption capacity. */
-    if (need_block((unitp_t)unit_link->data, scope) ||
+    if (need_block((unitp_t)unit_link->data, enc_node) ||
         ((unitp_t)unit_link->data)->type == BINDING ||
         unit_type((unitp_t)unit_link->data) == PACK_BINDING) {
       ((unitp_t)unit_link->data)->is_atomic = false;
@@ -295,43 +302,43 @@ GNode *parse3(GList *unit_link) {
 
       
       if (is_pret4((unitp_t)unit_link->data)) {
-	((unitp_t)unit_link->data)->max_capacity = 1;
+	((unitp_t)unit_link->data)->max_capa = 1;
 	((unitp_t)unit_link->data)->arity = 1;
       }
       
       /* set the maximum absorption capacity for units with definit capacity */
-      if (is_binding4((unitp_t)unit_link->data, scope) ||
+      if (is_binding4((unitp_t)unit_link->data, enc_node) ||
 	  ((unitp_t)unit_link->data)->type == BINDING) {
-	((unitp_t)unit_link->data)->max_capacity = BIND_MAXCAP;
+	((unitp_t)unit_link->data)->max_capa = BIND_MAXCAP;
       } else if (is_assignment4((unitp_t)unit_link->data)) {
-	((unitp_t)unit_link->data)->max_capacity = ASSIGN_MAXCAP;
+	((unitp_t)unit_link->data)->max_capa = ASSIGN_MAXCAP;
       } else if (is_cith((unitp_t)unit_link->data)) {
         /* i, pack */
-        ((unitp_t)unit_link->data)->max_capacity = 2;
+        ((unitp_t)unit_link->data)->max_capa = 2;
       }
       
       node = g_node_new((unitp_t)unit_link->data);
-      g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data), -1, node);
+      g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, enc_node->data), -1, node);
     } else {			/* it is an atomic unit */
       ((unitp_t)unit_link->data)->is_atomic = true;
-      ((unitp_t)unit_link->data)->max_capacity = 0;
+      ((unitp_t)unit_link->data)->max_capa = 0;
       node = g_node_new((unitp_t)unit_link->data);
-      g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, scope->data), -1, node);
+      g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, enc_node->data), -1, node);
     }
-    /* when the unit's scope is a lambda/let, the unit is the first item
+    /* when the unit's enc_node is a lambda/let, the unit is the first item
        of lambda and not a binding form, the unit is the final
        expression of lambda (i.e. lambda will be closed!) */
-    if (((is_lambda4((unitp_t)scope->data) ||
-	  is_association4((unitp_t)scope->data)) &&
+    if (((is_lambda4((unitp_t)enc_node->data) ||
+	  is_association4((unitp_t)enc_node->data)) &&
 	 unit_type((unitp_t)unit_link->data) != BINDING &&
 	 unit_type((unitp_t)unit_link->data) != BOUND_BINDING &&
          unit_type((unitp_t)unit_link->data) != PACK_BINDING &&
          unit_type((unitp_t)unit_link->data) != BOUND_PACK_BINDING &&
 	 /* is the first element? */
-	 g_node_child_index(scope, (unitp_t)unit_link->data) == 0)) {
-      ((unitp_t)scope->data)->max_capacity = 0;
+	 g_node_child_index(enc_node, (unitp_t)unit_link->data) == 0)) {
+      ((unitp_t)enc_node->data)->max_capa = 0;
       /* current_binding_unit = find_prev_binding_unit(unit_link->prev); */
-      current_binding_unit=NULL;
+      current_binding_unit = NULL;
     }
     /* process next unit */
     unit_link = unit_link->next;

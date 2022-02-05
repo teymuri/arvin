@@ -19,7 +19,7 @@ struct Unit {
   /* GHashTable *lambda_env; */
   /* don't use unsigned for max absorption, since we need -1 for
      undefined/unlimited capacity */
-  int max_capacity;
+  int max_capa;
   struct Token token;
   enum Type type;
   bool is_atomic;

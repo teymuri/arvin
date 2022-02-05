@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
   };
   struct Unit toplevel_unit = {				/* bricks[0] toplevel cell */
     .uuid = TOPLEVEL_UNIT_UUID,					/*  */
-    .max_capacity = -1,
+    .max_capa = -1,
     .arity = -1,
     .is_atomic = false,
     .token = toplevel_token,
