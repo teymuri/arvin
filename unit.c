@@ -23,7 +23,7 @@ enum Type unit_type(struct Unit *u) {
   }
 }
 
-void determine_unit_type(struct Unit *c)
+void set_unit_type(struct Unit *c)
 {
   switch (c->token.type) {
   case INTEGER: c->type = INTEGER; break;
@@ -33,7 +33,7 @@ void determine_unit_type(struct Unit *c)
   }
 }
 
-void determine_unit_value(struct Unit *c)
+void set_unit_value(struct Unit *c)
 {
   switch (c->token.type) {
   case INTEGER:
@@ -70,8 +70,8 @@ GList *unit_linked_list(struct Token toks[], size_t toks_n)
     /* arity will be set by the parser to either 0 or more for lambdas
        and remains -1 for everything else */
     unit->arity = -1;
-    determine_unit_value(unit);
-    determine_unit_type(unit);
+    set_unit_value(unit);
+    set_unit_type(unit);
     link = g_list_prepend(link, unit);
   }
   link = g_list_reverse(link);

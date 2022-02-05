@@ -34,4 +34,7 @@ enum Type unit_type(struct Unit *);
 GList *brick_slist(struct Token tokens[], size_t count);
 GList *unit_linked_list(struct Token toks[], size_t toks_n);
 typedef struct Unit * unitp_t;
+bool is_of_type(struct Unit *, enum Type);
+
+
 #endif	/* LET_UNIT_H */

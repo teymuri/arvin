@@ -75,8 +75,8 @@ GList *rightmost_enclosure(GList *botencs) {
   return rmost;
 }
 
-GList *find_enclosure_link(GList *unit_link, GList *units_onset) {
-  GList *all = enclosures3(unit_link, units_onset);
+GList *find_enclosure_link(GList *unit_link, GList *tl_ulink) {
+  GList *all = enclosures3(unit_link, tl_ulink);
   GList *undermosts = bottom_enclosures3(all);
   return rightmost_enclosure(undermosts);
 }
@@ -193,53 +193,54 @@ struct Unit *find_prev_binding_unit(GList *unit_link) {
 
 
 /* goes through the atoms, root will be the container with tl_cons ... */
-GNode *parse3(GList *unit_link) {
-  GNode *root = g_node_new((unitp_t)unit_link->data); /* toplevel atom stattdessen */
+GNode *parse3(GList *ulink) {
+  GNode *root = g_node_new((unitp_t)ulink->data); /* toplevel atom stattdessen */
   /* effective binding units are units which introduce bindings,
      e.g. lambda, let, pass */
-  struct Unit *current_binding_unit = NULL;
+  struct Unit *curr_bind_unit = NULL; /* current binding unit */
   GNode *enc_node;              /* enclosing node */
-  GList *units_onset = unit_link;
-  unit_link = unit_link->next;
+  GList *tl_ulink = ulink;      /* toplevel unit link */
+  ulink = ulink->next;
   GNode *node;
-  while (unit_link) {
-
-    /* find enclosing node */
-    if ((maybe_binding3(unit_link) || maybe_pack_binding(unit_link)) &&
-	current_binding_unit &&
-	is_enclosed_in4((unitp_t)unit_link->data, current_binding_unit)) {
+  while (ulink) {
+    /* ************** */
+    /* ENCLOSING NODE */
+    /* ************** */
+    if ((maybe_binding3(ulink) || maybe_pack_binding(ulink)) &&
+	curr_bind_unit &&
+	is_enclosed_in4((unitp_t)ulink->data, curr_bind_unit)) {
       /* the scope will be the current binding unit */
-      enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, current_binding_unit);
+      enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, curr_bind_unit);
       /* funcalls have no arity! */
-      if (!is_funcall(current_binding_unit))
-	current_binding_unit->arity++;
-      
-      /* enhance the type of the parameter symbol. */
-      /* ACHTUNG: wir setzen den neuen Typ für bound param nicht hier,
-	 denn is_bound_parameter fragt ab ob das Cell vom Typ NAME
-	 ist, was wiederum unten im need_new_cons eine Rolle
-	 spielt. Deshalb verschieben wir das Setzen vom Typ von NAME zum
-	 BOUND_BINDING auf nach need_new_cons. */
+      if (!is_funcall(curr_bind_unit))
+	curr_bind_unit->arity++;
     } else {			/* compute the enclosure anew */
       enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL,
-                             (unitp_t)find_enclosure_link(unit_link, units_onset)->data);
+                             (unitp_t)find_enclosure_link(ulink, tl_ulink)->data);
     }
+    
     /* if the enclosing block has no more capacity set the closest
        parent with capacity as the enclosing block */
     if (((unitp_t)enc_node->data)->max_capa == 0) {
       enc_node = find_parent_with_capa(enc_node);
     }
-
     
-    /* make a binding based on scope, oben ist nur EBU bedingt! */
+    /* establish binding types based on their look and/or their enclosing units */
     if (is_association4((unitp_t)enc_node->data) ||
         is_lambda4((unitp_t)enc_node->data) ||
         is_funcall((unitp_t)enc_node->data)) {
-      if (maybe_pack_binding(unit_link)) /* check pack binding before binding!!! every pack binding is also a binding */
-        ((unitp_t)unit_link->data)->type = PACK_BINDING;
-      else if (maybe_binding3(unit_link))
-        ((unitp_t)unit_link->data)->type = BINDING;
-      ((unitp_t)unit_link->data)->is_atomic = false;
+      /* check pack binding before binding!!! every pack binding is also a binding */
+      if (maybe_pack_binding(ulink)) {
+        ((unitp_t)ulink->data)->is_atomic = false;
+        ((unitp_t)ulink->data)->type = PACK_BINDING; /* now unit IS pack binding! */
+      } else if (maybe_binding3(ulink)) {
+        ((unitp_t)ulink->data)->is_atomic = false;
+        ((unitp_t)ulink->data)->type = BINDING;
+      } else if (is_of_type((unitp_t)enc_node->data), PACK_BINDING) {
+        ((unitp_t)enc_node->data)->type = BOUND_PACK_BINDING;
+      } else if (is_of_type((unitp_t)enc_node->data), BINDING) {
+        ((unitp_t)enc_node->data)->type = BOUND_BINDING;
+      }
     }
 
     /* i.e. ist das Ding jetzt der WERT für einen Bound Parameter?
@@ -280,49 +281,49 @@ GNode *parse3(GList *unit_link) {
        block still has absorption capacity (i.e. it's single
        default-argument) the computed enclosing block is correct, only
        decrement it's absorption capacity. */
-    if (need_block((unitp_t)unit_link->data, enc_node) ||
-        ((unitp_t)unit_link->data)->type == BINDING ||
-        unit_type((unitp_t)unit_link->data) == PACK_BINDING) {
-      ((unitp_t)unit_link->data)->is_atomic = false;
-      ((unitp_t)unit_link->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
+    if (need_block((unitp_t)ulink->data, enc_node) ||
+        ((unitp_t)ulink->data)->type == BINDING ||
+        unit_type((unitp_t)ulink->data) == PACK_BINDING) {
+      ((unitp_t)ulink->data)->is_atomic = false;
+      ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
 
       /* set the effective binding unit anew */
-      if (is_lambda4((unitp_t)unit_link->data) ||
-	  is_funcall((unitp_t)unit_link->data) ||
-	  is_association4((unitp_t)unit_link->data))
-	current_binding_unit = (unitp_t)unit_link->data;
+      if (is_lambda4((unitp_t)ulink->data) ||
+	  is_funcall((unitp_t)ulink->data) ||
+	  is_association4((unitp_t)ulink->data))
+	curr_bind_unit = (unitp_t)ulink->data;
 
       /* set the arity for lambda */
-      if (is_lambda4((unitp_t)unit_link->data))
+      if (is_lambda4((unitp_t)ulink->data))
 	/* we know at this point not much about the number of
 	   parameters of this lambda, so set it to 0 (default arity
 	   for lambda is 0 parameters). this can change as we go on
 	   with parsing and detect it's parameter declerations. */
-	((unitp_t)unit_link->data)->arity = 0;
+	((unitp_t)ulink->data)->arity = 0;
 
       
-      if (is_pret4((unitp_t)unit_link->data)) {
-	((unitp_t)unit_link->data)->max_capa = 1;
-	((unitp_t)unit_link->data)->arity = 1;
+      if (is_pret4((unitp_t)ulink->data)) {
+	((unitp_t)ulink->data)->max_capa = 1;
+	((unitp_t)ulink->data)->arity = 1;
       }
       
       /* set the maximum absorption capacity for units with definit capacity */
-      if (is_binding4((unitp_t)unit_link->data, enc_node) ||
-	  ((unitp_t)unit_link->data)->type == BINDING) {
-	((unitp_t)unit_link->data)->max_capa = BIND_MAXCAP;
-      } else if (is_assignment4((unitp_t)unit_link->data)) {
-	((unitp_t)unit_link->data)->max_capa = ASSIGN_MAXCAP;
-      } else if (is_cith((unitp_t)unit_link->data)) {
+      if (is_binding4((unitp_t)ulink->data, enc_node) ||
+	  ((unitp_t)ulink->data)->type == BINDING) {
+	((unitp_t)ulink->data)->max_capa = BIND_MAXCAP;
+      } else if (is_assignment4((unitp_t)ulink->data)) {
+	((unitp_t)ulink->data)->max_capa = ASSIGN_MAXCAP;
+      } else if (is_cith((unitp_t)ulink->data)) {
         /* i, pack */
-        ((unitp_t)unit_link->data)->max_capa = 2;
+        ((unitp_t)ulink->data)->max_capa = 2;
       }
       
-      node = g_node_new((unitp_t)unit_link->data);
+      node = g_node_new((unitp_t)ulink->data);
       g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, enc_node->data), -1, node);
     } else {			/* it is an atomic unit */
-      ((unitp_t)unit_link->data)->is_atomic = true;
-      ((unitp_t)unit_link->data)->max_capa = 0;
-      node = g_node_new((unitp_t)unit_link->data);
+      ((unitp_t)ulink->data)->is_atomic = true;
+      ((unitp_t)ulink->data)->max_capa = 0;
+      node = g_node_new((unitp_t)ulink->data);
       g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, enc_node->data), -1, node);
     }
     /* when the unit's enc_node is a lambda/let, the unit is the first item
@@ -330,18 +331,18 @@ GNode *parse3(GList *unit_link) {
        expression of lambda (i.e. lambda will be closed!) */
     if (((is_lambda4((unitp_t)enc_node->data) ||
 	  is_association4((unitp_t)enc_node->data)) &&
-	 unit_type((unitp_t)unit_link->data) != BINDING &&
-	 unit_type((unitp_t)unit_link->data) != BOUND_BINDING &&
-         unit_type((unitp_t)unit_link->data) != PACK_BINDING &&
-         unit_type((unitp_t)unit_link->data) != BOUND_PACK_BINDING &&
+	 unit_type((unitp_t)ulink->data) != BINDING &&
+	 unit_type((unitp_t)ulink->data) != BOUND_BINDING &&
+         unit_type((unitp_t)ulink->data) != PACK_BINDING &&
+         unit_type((unitp_t)ulink->data) != BOUND_PACK_BINDING &&
 	 /* is the first element? */
-	 g_node_child_index(enc_node, (unitp_t)unit_link->data) == 0)) {
+	 g_node_child_index(enc_node, (unitp_t)ulink->data) == 0)) {
       ((unitp_t)enc_node->data)->max_capa = 0;
-      /* current_binding_unit = find_prev_binding_unit(unit_link->prev); */
-      current_binding_unit = NULL;
+      /* curr_bind_unit = find_prev_binding_unit(ulink->prev); */
+      curr_bind_unit = NULL;
     }
     /* process next unit */
-    unit_link = unit_link->next;
+    ulink = ulink->next;
   }
   return root;
 }

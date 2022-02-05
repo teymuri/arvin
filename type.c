@@ -21,3 +21,7 @@ char *stringify_type(enum Type t)
   }
 }
 
+bool is_of_type(struct Unit *u, enum Type t)
+{
+  return unit_type(u) == t;
+}
