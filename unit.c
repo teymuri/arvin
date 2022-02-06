@@ -23,8 +23,7 @@ enum Type unit_type(struct Unit *u) {
     }
 }
 
-void set_unit_type(struct Unit *c)
-{
+void set_unit_type(struct Unit *c) {
     switch (c->token.type) {
     case INTEGER: c->type = INTEGER; break;
     case FLOAT: c->type = FLOAT; break;
