@@ -136,14 +136,6 @@ bool maybe_pack_binding(struct Unit *u) {
         
 }
 
-bool is_binding4(struct Unit *u, GNode *scope) {
-    return maybe_binding4(u) &&
-        (is_lambda4((unitp_t)scope->data) ||
-         is_association4(u) ||	/* ????? */
-         is_association4((unitp_t)scope->data) ||
-         is_funcall((unitp_t)scope->data));
-}
-
 bool is_pret(GList *unit) {
     return !strcmp(((unitp_t)unit->data)->token.str, "pret");
 }
@@ -151,11 +143,12 @@ bool is_pret4(struct Unit *u) {
     return !strcmp(u->token.str, "pret");
 }
 
-bool need_block(struct Unit *u, GNode *scope) {
+bool need_block(struct Unit *u) {
     return is_assignment4(u) ||
         is_association4(u) ||
         is_lambda4(u) ||
-        is_binding4(u, scope) ||
+        is_of_type(u, BINDING) ||
+        is_of_type(u, PACK_BINDING) ||
         is_pret4(u) ||
         is_funcall(u) ||
         is_cpack(u) ||
@@ -253,9 +246,7 @@ GNode *parse3(GList *ulink) {
            block still has absorption capacity (i.e. it's single
            default-argument) the computed enclosing block is correct, only
            decrement it's absorption capacity. */
-        if (need_block((unitp_t)ulink->data, enc_node) ||
-            ((unitp_t)ulink->data)->type == BINDING ||
-            unit_type((unitp_t)ulink->data) == PACK_BINDING) {
+        if (need_block((unitp_t)ulink->data)) {
             
             ((unitp_t)ulink->data)->is_atomic = false;
             
@@ -263,9 +254,9 @@ GNode *parse3(GList *ulink) {
             ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
             
             /* set the maximum absorption capacity for units with definit capacity */
-            if (is_binding4((unitp_t)ulink->data, enc_node) ||
-                is_of_type((unitp_t)ulink->data, BINDING)) {
-                /* capa = binding value */
+            if (is_of_type((unitp_t)ulink->data, BINDING)) {
+                /* capa = binding value (n.b.: pack binding has
+                 * indefinite capa ie -1, hence no touched at all!)*/
                 ((unitp_t)ulink->data)->max_capa = 1;
             } else if (is_assignment4((unitp_t)ulink->data)) {
                 /* capa = name, data */
