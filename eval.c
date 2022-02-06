@@ -308,7 +308,7 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
             eval_assign(&result, node, env);
         } else if (is_funcall((unitp_t)node->data)) {
             eval_funcall(&result, node, env);
-        } else if (is_association4((unitp_t)node->data)) {
+        } else if (is_let((unitp_t)node->data)) {
             eval_assoc(&result, node, env);
         } else if (is_cpack((unitp_t)node->data)) {
             eval_stunt_pack(&result, node, env, 0, 0);

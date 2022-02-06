@@ -3,13 +3,13 @@
 
 void sanify_lambdas(GNode *);
 void check_funcalls(GNode *);
-void check_assocs(GNode *);
-bool is_association4(struct Unit *);
+void post_parse_let_sanfiy(GNode *);
+bool is_let(struct Unit *);
 GNode *parse3(GList *atoms);
 bool is_pret4(struct Unit *);
 bool is_lambda4(struct Unit *);
 bool is_call4(struct Unit *);
-bool is_association4(struct Unit *);
+bool is_let(struct Unit *);
 bool is_assignment4(struct Unit *);
 bool is_funcall(struct Unit *);
 

@@ -98,7 +98,7 @@ bool is_association(struct Unit *c)
     return !strcmp(c->token.str, ASSOCIATION_KEYWORD);
 }
 
-bool is_association4(struct Unit *u) {
+bool is_let(struct Unit *u) {
     return !strcmp(u->token.str, ASSOCIATION_KEYWORD);
 }
 
@@ -145,7 +145,7 @@ bool is_pret4(struct Unit *u) {
 
 bool need_block(struct Unit *u) {
     return is_assignment4(u) ||
-        is_association4(u) ||
+        is_let(u) ||
         is_lambda4(u) ||
         is_of_type(u, BINDING) ||
         is_of_type(u, PACK_BINDING) ||
@@ -156,21 +156,30 @@ bool need_block(struct Unit *u) {
         ;
 }
 
-/* statt scope das jetzige atom selbst */
+/* GNode *find_parent_with_capa(GNode *node) { */
+/*     while (node) { */
+/*         if (((unitp_t)node->data)->max_capa != 0) */
+/*             return node; */
+/*         else */
+/*             node = node->parent; */
+/*     } */
+/*     return NULL;		/\* nothing found! *\/ */
+/* } */
+
 GNode *find_parent_with_capa(GNode *node) {
-    while (node) {
+    do {
+        node = node->parent;
         if (((unitp_t)node->data)->max_capa != 0)
             return node;
-        else
-            node = node->parent;
-    }
-    return NULL;		/* nothing found! */
+    } while (node);
+    return NULL;
 }
+
 
 struct Unit *find_prev_binding_unit(GList *unit_link) {
     while (unit_link) {
         if ((is_lambda4((unitp_t)unit_link->data) ||
-             is_association4((unitp_t)unit_link->data) ||
+             is_let((unitp_t)unit_link->data) ||
              is_funcall((unitp_t)unit_link->data)) &&
             ((unitp_t)unit_link->data)->max_capa)
             return (unitp_t)unit_link->data;
@@ -208,7 +217,7 @@ GNode *parse3(GList *ulink) {
             enc_node = find_parent_with_capa(enc_node);
         
         /* establish binding types based on the enclosing units and the unit's look */
-        if (is_association4((unitp_t)enc_node->data) ||
+        if (is_let((unitp_t)enc_node->data) ||
             is_lambda4((unitp_t)enc_node->data) ||
             is_funcall((unitp_t)enc_node->data)) {
             /* check pack binding before binding!!! every pack binding is also a binding */
@@ -272,7 +281,7 @@ GNode *parse3(GList *ulink) {
             /* set current binding unit */
             if (is_lambda4((unitp_t)ulink->data) ||
                 is_funcall((unitp_t)ulink->data) ||
-                is_association4((unitp_t)ulink->data))
+                is_let((unitp_t)ulink->data))
                 curr_bind_unit = (unitp_t)ulink->data;
             
             /* set arity */
@@ -300,7 +309,7 @@ GNode *parse3(GList *ulink) {
            of lambda and not a binding form, the unit is the final
            expression of lambda (i.e. lambda will be closed!) */
         if (((is_lambda4((unitp_t)enc_node->data) ||
-              is_association4((unitp_t)enc_node->data)) &&
+              is_let((unitp_t)enc_node->data)) &&
              unit_type((unitp_t)ulink->data) != BINDING &&
              unit_type((unitp_t)ulink->data) != BOUND_BINDING &&
              unit_type((unitp_t)ulink->data) != PACK_BINDING &&
@@ -433,8 +442,12 @@ void check_funcalls(GNode *root) {
                     (GNodeTraverseFunc)check_funcall, NULL);
     puts("  pass checked");
 }
+
+
+
+
 gboolean check_assoc(GNode *node, gpointer data) {
-    if (is_association4((unitp_t)node->data)) {
+    if (is_let((unitp_t)node->data)) {
         if (g_node_n_children(node)) {
             GNode *last_child = g_node_last_child(node);
             /* first assert that every child node except with the last one
@@ -463,10 +476,61 @@ gboolean check_assoc(GNode *node, gpointer data) {
     return false;
 }
 
-void check_assocs(GNode *root) {
-    puts("parse-time assocs check");
-    g_node_traverse(root, G_PRE_ORDER,
+void assert_let_expr(GNode *node, GNode **data) {
+    GNode *let_node = *data;
+    GNode *last_child = *(data + 1);
+    if ((node != last_child)) {
+        if (!is_of_type((unitp_t)node->data, BOUND_BINDING)) {
+            if (is_of_type((unitp_t)node->data, BINDING)) {
+                fprintf(stderr, "malformed association binding\n");
+                print_node(node, NULL);
+                fprintf(stderr, "missing binding expression\n");
+                exit(EXIT_FAILURE);
+            } else if (!is_of_type((unitp_t)node->prev->data, BOUND_BINDING)) {
+                g_node_unlink(node);
+                g_node_insert(find_parent_with_capa(let_node), -1, node);
+            }            
+        }        
+    }
+    else
+        /* hit the last child: set the capacity of this let unit to
+         * 0. this prevents subsequent find_parent_with_capa calls to
+         * calssify this as a parent with capacity */
+        ((unitp_t)let_node->data)->max_capa = 0;
+}
+
+gboolean assert_let_(GNode *node, gpointer data) {
+    if (is_let((unitp_t)node->data)) {
+        GNode *last_child = g_node_last_child(node);
+        GNode *foreach_func_data[] = {node, last_child};
+        guint n_children = g_node_n_children(node);;
+        if (g_node_n_children(node) == 0 ||
+            is_of_type((unitp_t)last_child->data, BINDING) ||
+            is_of_type((unitp_t)last_child->data, BOUND_BINDING)) {
+            fprintf(stderr, "malformed association\n");
+            print_node(node, NULL);
+            fprintf(stderr, "expression missing\n");
+            exit(EXIT_FAILURE);
+        } else {
+            /* assert that every child node except with the last one
+               is a bound binding */
+            g_node_children_foreach(node, G_TRAVERSE_ALL,
+                                    (GNodeForeachFunc)assert_let_expr,
+                                    foreach_func_data);
+        }
+        if (g_node_n_children(node) != n_children) {
+            printf("ASD\n");
+            g_node_unlink(last_child);
+            g_node_insert(find_parent_with_capa(node), -1, last_child);
+        }
+    }
+    return false;
+}
+
+void post_parse_let_sanfiy(GNode *node) {
+    puts("parse-time assoc check");
+    g_node_traverse(node, G_PRE_ORDER,
                     G_TRAVERSE_ALL, -1,
-                    (GNodeTraverseFunc)check_assoc, NULL);
+                    (GNodeTraverseFunc)assert_let_, NULL);
     puts("  assocs checked");
 }
