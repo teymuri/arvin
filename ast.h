@@ -3,7 +3,7 @@
 
 void sanify_lambdas(GNode *);
 void check_funcalls(GNode *);
-void post_parse_let_sanfiy(GNode *);
+void post_parse_let_check(GNode *);
 bool is_let(struct Unit *);
 GNode *parse3(GList *atoms);
 bool is_pret4(struct Unit *);
