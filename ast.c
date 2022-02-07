@@ -313,9 +313,7 @@ GNode *parse3(GList *ulink) {
              unit_type((unitp_t)ulink->data) != BINDING &&
              unit_type((unitp_t)ulink->data) != BOUND_BINDING &&
              unit_type((unitp_t)ulink->data) != PACK_BINDING &&
-             unit_type((unitp_t)ulink->data) != BOUND_PACK_BINDING
-             /* is the first element? */
-             /* g_node_child_index(enc_node, (unitp_t)ulink->data) == 0 */)) {
+             unit_type((unitp_t)ulink->data) != BOUND_PACK_BINDING)) {
             ((unitp_t)enc_node->data)->max_capa = 0;
             curr_bind_unit = NULL;
         }
@@ -399,8 +397,9 @@ void sanify_lambdas(GNode *root) {
 /* schmelz die 2 zusammen mit der obigen */
 void assert_bound_binding_node(GNode *node, GNode *last_child) {
     /* e.g. a parameter or a binding in let */
-    if ((node != last_child && unit_type((unitp_t)node->data) != BOUND_BINDING)) {
-        fprintf(stderr, "malformed binding\n");
+    if (node != last_child &&
+        !is_of_type((unitp_t)node->data, BOUND_BINDING)) {
+        fprintf(stderr, "bound binding assertion failed\n");
         print_node(node, NULL);
         fprintf(stderr, "not bound\n");
         exit(EXIT_FAILURE);
@@ -444,14 +443,12 @@ void check_funcalls(GNode *root) {
 }
 
 
-
-
 gboolean check_assoc(GNode *node, gpointer data) {
     if (is_let((unitp_t)node->data)) {
         if (g_node_n_children(node)) {
             GNode *last_child = g_node_last_child(node);
-            /* first assert that every child node except with the last one
-               is a bound binding */
+            /* first assert that every child node except with the last
+             * one is a bound binding */
             g_node_children_foreach(node, G_TRAVERSE_ALL,
                                     (GNodeForeachFunc)assert_bound_binding_node,
                                     last_child);
@@ -476,19 +473,38 @@ gboolean check_assoc(GNode *node, gpointer data) {
     return false;
 }
 
-
+void check_let_bindings(GNode *node, GNode *last_child) {
+    if (node == last_child) {
+        if (is_of_type((unitp_t)node->data, BINDING)) {
+            fprintf(stderr, "let final expression cant be a BINDING\n");
+            print_node(node, NULL);
+            exit(EXIT_FAILURE);
+        } else if (is_of_type((unitp_t)node->data, BOUND_BINDING)) {
+            fprintf(stderr, "let final expression cant be a BOUND-BINDING\n");
+            print_node(node, NULL);
+            exit(EXIT_FAILURE);            
+        }
+    } else {                    /* bindings */
+        if (!is_of_type((unitp_t)node->data, BOUND_BINDING)) {
+            fprintf(stderr, "malformed let binding\n");
+            print_node(node, NULL);
+            exit(EXIT_FAILURE);                        
+        }
+    }
+}
 
 gboolean check_let(GNode *node, gpointer data) {
     if (is_let((unitp_t)node->data)) {
         GNode *last_child = g_node_last_child(node);
-        if (g_node_n_children(node) == 0 ||
-            is_of_type((unitp_t)last_child->data, BINDING) ||
-            is_of_type((unitp_t)last_child->data, BOUND_BINDING)) {
-            fprintf(stderr, "malformed let\n");
+        /* check that there is something in let */
+        if (g_node_n_children(node) < 2) {
+            fprintf(stderr, "malformed let, missing bindings or expr\n");
             print_node(node, NULL);
-            fprintf(stderr, "expression missing\n");
-            exit(EXIT_FAILURE);
-        }        
+            exit(EXIT_FAILURE);            
+        }
+        g_node_children_foreach(node, G_TRAVERSE_ALL,
+                                (GNodeForeachFunc)check_let_bindings,
+                                last_child);
     }
     return false;
 }
