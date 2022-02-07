@@ -473,16 +473,13 @@ gboolean check_assoc(GNode *node, gpointer data) {
     return false;
 }
 
-void check_let_bindings(GNode *node, GNode *last_child) {
+void check_let_binding(GNode *node, GNode *last_child) {
     if (node == last_child) {
-        if (is_of_type((unitp_t)node->data, BINDING)) {
-            fprintf(stderr, "let final expression cant be a BINDING\n");
+        if (is_of_type((unitp_t)node->data, BINDING) ||
+            is_of_type((unitp_t)node->data, BOUND_BINDING)) {
+            fprintf(stderr, "let final expression cant be a binding\n");
             print_node(node, NULL);
             exit(EXIT_FAILURE);
-        } else if (is_of_type((unitp_t)node->data, BOUND_BINDING)) {
-            fprintf(stderr, "let final expression cant be a BOUND-BINDING\n");
-            print_node(node, NULL);
-            exit(EXIT_FAILURE);            
         }
     } else {                    /* bindings */
         if (!is_of_type((unitp_t)node->data, BOUND_BINDING)) {
@@ -503,7 +500,7 @@ gboolean check_let(GNode *node, gpointer data) {
             exit(EXIT_FAILURE);            
         }
         g_node_children_foreach(node, G_TRAVERSE_ALL,
-                                (GNodeForeachFunc)check_let_bindings,
+                                (GNodeForeachFunc)check_let_binding,
                                 last_child);
     }
     return false;
