@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "type.h"
-/* #include "let_data.h" */
+#include "token.h"
 #include "unit.h"
 
 
@@ -17,7 +17,7 @@ struct Let_data *pret(struct Let_data *thing) {
     switch(thing->type) {
     case INTEGER: printf("%d", thing->data.int_slot); break;
     case FLOAT: printf("%f", thing->data.float_slot); break;
-    case BOOL:printf("%s", thing->data.slot_bool ? "T":"F"); break;
+    case BOOL:printf("%s", thing->data.slot_bool ? TRUE_KW:FALSE_KW); break;
     case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
     default: break;
     }

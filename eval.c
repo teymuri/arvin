@@ -117,17 +117,6 @@ void eval_cith(struct Let_data **result, GNode *node, GHashTable *env) {
     struct Let_data *data = g_list_nth(pack, idx)->data;
     (*result)->type = data->type;
     set_data_slot(*result, data);
-    /* switch (data->type) { */
-    /* case INTEGER: */
-    /*     (*result)->data.int_slot = data->data.int_slot; break; */
-    /* case FLOAT: */
-    /*     (*result)->data.float_slot = data->data.float_slot; break; */
-    /* case LAMBDA: */
-    /*     (*result)->data.slot_lambda = data->data.slot_lambda; break; */
-    /* case PACK: */
-    /*     (*result)->data.pack = data->data.pack; break; */
-    /* default: break; */
-    /* } */  
 }
 
 void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env) {
@@ -149,18 +138,6 @@ void eval_define(struct Let_data **result, GNode *node, GHashTable *env) {
     g_hash_table_insert(((unitp_t)g_node_get_root(node)->data)->env, name, data);
     (*result)->type = data->type;
     set_data_slot(*result, data);
-    /* which data slot to set */
-    /* switch (data->type) { */
-    /* case INTEGER: */
-    /*     (*result)->data.int_slot = data->data.int_slot; break; */
-    /* case FLOAT: */
-    /*     (*result)->data.float_slot = data->data.float_slot; break; */
-    /* case LAMBDA: */
-    /*     (*result)->data.slot_lambda = data->data.slot_lambda; break; */
-    /* case PACK: */
-    /*     (*result)->data.pack = data->data.pack; break; */
-    /* default: break; */
-    /* } */
 }
 
 gint lambda_param_idx(GList *list, char *str) {

@@ -1,6 +1,6 @@
 #include <glib.h>
 #include <stdio.h>
-/* #include "let_data.h" */
+#include "token.h"
 #include "type.h"
 #include "unit.h"
 
@@ -49,7 +49,7 @@ void print(struct Let_data *data)
     case LAMBDA:
         printf("lambda..."); break;
     case BOOL:
-        printf("%s", data->data.slot_bool ? "true" : "False"); break;
+        printf("%s", data->data.slot_bool ? TRUE_KW : FALSE_KW); break;
     default: break;
     }
     puts("");
