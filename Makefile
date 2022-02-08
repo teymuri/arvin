@@ -5,8 +5,8 @@ OBJS =  unit.o ast.o core.o print.o read.o type.o eval.o main.o
 #  
 # BART = ./build_artifacts
 
-let: $(OBJS)
-	$(CC) $(CFLAGS) -o let $(OBJS)
+tila: $(OBJS)
+	$(CC) $(CFLAGS) -o tila $(OBJS)
 
 clean:
 	rm -rf *.o *~ && clear
