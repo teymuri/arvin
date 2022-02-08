@@ -189,18 +189,6 @@ struct Unit *find_prev_binding_unit(GList *unit_link) {
 }
 
 
-struct Unit *find_prev_binding_unit(GList *unit_link) {
-  while (unit_link) {
-    if ((is_lambda4((unitp_t)unit_link->data) ||
-	 is_association4((unitp_t)unit_link->data) ||
-	 is_funcall((unitp_t)unit_link->data)) &&
-	((unitp_t)unit_link->data)->max_capacity)
-      return (unitp_t)unit_link->data;
-    else unit_link = unit_link->prev;
-  }
-  return NULL;
-}
-
 
 /* goes through the atoms, root will be the container with tl_cons ... */
 GNode *parse3(GList *ulink) {
@@ -425,14 +413,6 @@ void assert_pass_binding(GNode *binding, GNode *lambda) {
         fprintf(stderr, "is not bound\n");
         exit(EXIT_FAILURE);
     }
-}
-void assert_pass_binding(GNode *binding, GNode *lambda) {
-  if ((binding != lambda && unit_type((unitp_t)binding->data) == BINDING)) {
-    fprintf(stderr, "malformed argument passed\n");
-    print_node(binding, NULL);
-    fprintf(stderr, "is not bound\n");
-    exit(EXIT_FAILURE);
-  }
 }
 
 gboolean check_funcall(GNode *node, gpointer data) {
