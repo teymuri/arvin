@@ -33,7 +33,8 @@ gboolean print_node(GNode *node, gpointer data) {
     return false;
 }
 void print_ast3(GNode *root) {
-    g_node_traverse(root, G_PRE_ORDER, G_TRAVERSE_ALL, -1, (GNodeTraverseFunc)print_node, NULL);
+    g_node_traverse(root, G_PRE_ORDER, G_TRAVERSE_ALL,
+                    -1, (GNodeTraverseFunc)print_node, NULL);
 }
 
 /* string representation of data, this is the P in REPL */
@@ -42,16 +43,14 @@ void print(struct Let_data *data)
 {
     switch (data->type) {
     case INTEGER:
-        printf("%d", data->data.int_slot);
-        break;
+        printf("%d", data->data.int_slot); break;
     case FLOAT:
-        printf("%f", data->data.float_slot);
-        break;
+        printf("%f", data->data.float_slot); break;
     case LAMBDA:
-        printf("lambda...");
-        break;
-    default:
-        break;
+        printf("lambda..."); break;
+    case BOOL:
+        printf("%s", data->data.slot_bool ? "true" : "False"); break;
+    default: break;
     }
     puts("");
 }

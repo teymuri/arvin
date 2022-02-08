@@ -6,9 +6,7 @@
 #include "type.h"
 #include "token.h"
 #include "unit.h"
-
 #include "core.h"
-
 #include "print.h"
 
 #define LEAST_COL_START_IDX -2
@@ -114,13 +112,23 @@ bool is_pass(struct Unit *u) {
     return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
 
-bool is_cpack(struct Unit *u)
-{
+bool is_cpack(struct Unit *u) {
     return !strcmp(u->token.str, CPACK_KW);
 }
-bool is_cith(struct Unit *u)
-{
+
+bool is_cith(struct Unit *u) {
     return !strcmp(u->token.str, C_ITH_KW);
+}
+
+/* booleans */
+bool is_true(struct Unit *u) {
+    return !strcmp(u->token.str, TRUE_KW);
+}
+bool is_false(struct Unit *u) {
+    return !strcmp(u->token.str, FALSE_KW);
+}
+bool is_bool(struct Unit *u) {
+    return is_true(u) || is_false(u);
 }
 
 bool maybe_binding4(struct Unit *u) {
@@ -300,6 +308,9 @@ GNode *parse3(GList *ulink) {
         } else {			/* is an atomic unit */
             ((unitp_t)ulink->data)->is_atomic = true;
             ((unitp_t)ulink->data)->max_capa = 0;
+            /* is the unit true or false? set it's boolean type */
+            if (is_bool(((unitp_t)ulink->data)))
+                ((unitp_t)ulink->data)->type = BOOL;
         }
         
         g_node_insert(g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, enc_node->data),

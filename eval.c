@@ -4,7 +4,6 @@
 #include <stdio.h>
 #include <glib.h>
 #include "type.h"
-/* #include "let_data.h" */
 #include "token.h"
 #include "unit.h"
 #include "core.h"
@@ -100,8 +99,7 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
 /* pack contains Let_data pointers */
 /* pack start to end children, when end == 0 packt alle kinder bis zum ende */
 void eval_stunt_pack(struct Let_data **result, GNode *node,
-                     GHashTable *env, guint start, guint end)
-{
+                     GHashTable *env, guint start, guint end) {
     guint n = end ? end : g_node_n_children(node);
     GList *pack = NULL;
     for (guint i = start; i < n; i++)
@@ -110,8 +108,7 @@ void eval_stunt_pack(struct Let_data **result, GNode *node,
     (*result)->data.pack = pack;
 }
 
-void eval_stunt_ith(struct Let_data **result, GNode *node, GHashTable *env)
-{
+void eval_stunt_ith(struct Let_data **result, GNode *node, GHashTable *env) {
     struct Let_data *idx_data = eval3(g_node_nth_child(node, 0), env);
     struct Let_data *pack_data = eval3(g_node_nth_child(node, 1), env);
     guint idx = (guint)idx_data->data.int_slot;
@@ -130,8 +127,8 @@ void eval_stunt_ith(struct Let_data **result, GNode *node, GHashTable *env)
     default: break;
     }  
 }
-void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env)
-{
+
+void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env) {
     ((unitp_t)node->data)->env = clone_hash_table(env);
     for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
         GNode *binding = g_node_nth_child(node, i);
@@ -162,6 +159,7 @@ void eval_assign(struct Let_data **result, GNode *node, GHashTable *env) {
     default: break;
     }
 }
+
 gint lambda_param_idx(GList *list, char *str) {
     bool found = false;
     gint idx = 0;
@@ -177,7 +175,7 @@ gint lambda_param_idx(GList *list, char *str) {
     else return -1;
 }
 
-void eval_funcall(struct Let_data **result, GNode *node, GHashTable *env) {
+void eval_pass(struct Let_data **result, GNode *node, GHashTable *env) {
     GNode *lambda_node = g_node_last_child(node);
     /* populate lambda environment */
     struct Let_data *x = eval3(lambda_node, env);
@@ -260,6 +258,10 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
             result->type = FLOAT;
             result->data.float_slot = ((unitp_t)node->data)->fval;
             break;
+        case BOOL:              /* a literal boolean (i.e. true/false) */
+            result->type = BOOL;
+            result->data.slot_bool = is_true((unitp_t)node->data) ? true : false;
+            break;
         case NAME:
             /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
         {	  
@@ -275,8 +277,8 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
                     result->data.float_slot = data->data.float_slot; break;
                 case LAMBDA:
                     result->data.slot_lambda = data->data.slot_lambda; break;
-                case PACK:
-                    result->data.pack = data->data.pack; break;
+                case PACK: result->data.pack = data->data.pack; break;
+                case BOOL: result->data.slot_bool = data->data.slot_bool; break;
                 default: break;
                 }
                 break;
@@ -294,6 +296,7 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
                             result->data.slot_lambda = data->data.slot_lambda; break;
                         case PACK:
                             result->data.pack = data->data.pack; break;
+                        case BOOL: result->data.slot_bool = data->data.slot_bool; break;
                         default: break;
                         }
                         break;
@@ -311,7 +314,7 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
         break;
         default: break;		/* undefined */
         }
-    } else {			/* block/function */
+    } else {			/* builtin stuff */
         if ((((unitp_t)node->data)->uuid == 0)) {
             eval_toplevel(&result, node); /* toplevel uses it's own environment */
         } else if (is_pret4((unitp_t)node->data)) {
@@ -321,7 +324,7 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
         } else if (is_assignment4((unitp_t)node->data)) { /* define */
             eval_assign(&result, node, env);
         } else if (is_pass((unitp_t)node->data)) {
-            eval_funcall(&result, node, env);
+            eval_pass(&result, node, env);
         } else if (is_let((unitp_t)node->data)) {
             eval_assoc(&result, node, env);
         } else if (is_cpack((unitp_t)node->data)) {

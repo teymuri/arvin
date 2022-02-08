@@ -13,6 +13,8 @@
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
 #define C_ITH_KW "cith"
+#define TRUE_KW "true"
+#define FALSE_KW "false"
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&]+)"
 

@@ -12,6 +12,9 @@ bool is_call4(struct Unit *);
 bool is_let(struct Unit *);
 bool is_assignment4(struct Unit *);
 bool is_pass(struct Unit *);
+bool is_true(struct Unit *);
+/* bool is_false(struct Unit *); */
+/* bool is_bool(struct Unit *); */
 
 /* c level geschwister: sind keine let funktionen: können nicht mit
    pass aufgerufen werden, haben keine keyword parameter usw... */

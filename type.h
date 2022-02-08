@@ -2,6 +2,7 @@
 #define LET_TYPE_H
 
 #include <glib.h>
+#include <stdbool.h>
 
 enum Type {
     NUMBER = 0, INTEGER = 1, FLOAT = 2,
@@ -12,6 +13,7 @@ enum Type {
     PACK_BINDING = 8,
     BOUND_PACK_BINDING = 9,
     PACK = 10,
+    BOOL = 11,
     UNDEFINED
 };
 
@@ -34,6 +36,7 @@ struct Let_data {
         float float_slot;
         struct Lambda *slot_lambda;
         GList *pack;
+        bool slot_bool;
     } data;
 };
 

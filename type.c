@@ -3,8 +3,7 @@
 
 #include "unit.h"
 
-char *stringify_type(enum Type t)
-{
+char *stringify_type(enum Type t) {
     switch (t) {
     case 0: return "Weiss net, waisch?!! vielleicht number??????";
     case 1: return "integer";
@@ -17,11 +16,11 @@ char *stringify_type(enum Type t)
     case 8: return "pack-binding";
     case 9: return "bound-pack-binding";
     case 10: return "pack";
+    case 11: return "bool";
     default: return "undefined";
     }
 }
 
-bool is_of_type(struct Unit *u, enum Type t)
-{
+bool is_of_type(struct Unit *u, enum Type t) {
     return unit_type(u) == t;
 }

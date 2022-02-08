@@ -12,12 +12,12 @@
 /* das hier ist ein (interner Sprachkonstrukt) console.log ähnliches
    ding */
 /* hoffentlich ist thing already evaled!!! */
-struct Let_data *pret(struct Let_data *thing)
-{
+struct Let_data *pret(struct Let_data *thing) {
     /* puts(">"); */
     switch(thing->type) {
     case INTEGER: printf("%d", thing->data.int_slot); break;
     case FLOAT: printf("%f", thing->data.float_slot); break;
+    case BOOL:printf("%s", thing->data.slot_bool ? "T":"F"); break;
     case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
     default: break;
     }
