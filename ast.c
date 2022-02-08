@@ -110,7 +110,7 @@ bool is_assignment3(GList *link) {
 bool is_assignment4(struct Unit *u) {
     return !strcmp(u->token.str, ASSIGNMENT_KEYWORD);
 }
-bool is_funcall(struct Unit *u) {
+bool is_pass(struct Unit *u) {
     return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
 
@@ -150,7 +150,7 @@ bool need_block(struct Unit *u) {
         is_of_type(u, BINDING) ||
         is_of_type(u, PACK_BINDING) ||
         is_pret4(u) ||
-        is_funcall(u) ||
+        is_pass(u) ||
         is_cpack(u) ||
         is_cith(u)
         ;
@@ -180,7 +180,7 @@ struct Unit *find_prev_binding_unit(GList *unit_link) {
     while (unit_link) {
         if ((is_lambda4((unitp_t)unit_link->data) ||
              is_let((unitp_t)unit_link->data) ||
-             is_funcall((unitp_t)unit_link->data)) &&
+             is_pass((unitp_t)unit_link->data)) &&
             ((unitp_t)unit_link->data)->max_capa)
             return (unitp_t)unit_link->data;
         else unit_link = unit_link->prev;
@@ -220,7 +220,7 @@ GNode *parse3(GList *ulink) {
         /* establish binding types based on the enclosing units and the unit's look */
         if (is_let((unitp_t)enc_node->data) ||
             is_lambda4((unitp_t)enc_node->data) ||
-            is_funcall((unitp_t)enc_node->data)) {
+            is_pass((unitp_t)enc_node->data)) {
             /* check pack binding before binding!!! every pack binding is also a binding */
             if (maybe_pack_binding((unitp_t)ulink->data)) {
                 ((unitp_t)ulink->data)->is_atomic = false;
@@ -281,7 +281,7 @@ GNode *parse3(GList *ulink) {
             
             /* set current binding unit */
             if (is_lambda4((unitp_t)ulink->data) ||
-                is_funcall((unitp_t)ulink->data) ||
+                is_pass((unitp_t)ulink->data) ||
                 is_let((unitp_t)ulink->data))
                 curr_bind_unit = (unitp_t)ulink->data;
             
@@ -386,7 +386,7 @@ gboolean sanify_lambda(GNode *node, gpointer data) {
     return false;
 }
 
-void sanify_lambdas(GNode *root) {
+void post_parse_lambda_check(GNode *root) {
     puts("parse-time lambda sanify");
     g_node_traverse(root, G_PRE_ORDER,
                     G_TRAVERSE_ALL, -1,
@@ -415,8 +415,8 @@ void assert_pass_binding(GNode *binding, GNode *lambda) {
     }
 }
 
-gboolean check_funcall(GNode *node, gpointer data) {
-    if (is_funcall((unitp_t)node->data)) {
+gboolean check_pass(GNode *node, gpointer data) {
+    if (is_pass((unitp_t)node->data)) {
         if (g_node_n_children(node)) {
             GNode *lambda_node = g_node_last_child(node);
             g_node_children_foreach(node, G_TRAVERSE_ALL,
@@ -435,44 +435,15 @@ gboolean check_funcall(GNode *node, gpointer data) {
     return false;
 }
 
-void check_funcalls(GNode *root) {
+void post_parse_pass_check(GNode *root) {
     puts("parse-time pass check");
     g_node_traverse(root, G_PRE_ORDER,
                     G_TRAVERSE_ALL, -1,
-                    (GNodeTraverseFunc)check_funcall, NULL);
+                    (GNodeTraverseFunc)check_pass, NULL);
     puts("  pass checked");
 }
 
 
-gboolean check_assoc(GNode *node, gpointer data) {
-    if (is_let((unitp_t)node->data)) {
-        if (g_node_n_children(node)) {
-            GNode *last_child = g_node_last_child(node);
-            /* first assert that every child node except with the last
-             * one is a bound binding */
-            g_node_children_foreach(node, G_TRAVERSE_ALL,
-                                    (GNodeForeachFunc)assert_bound_binding_node,
-                                    last_child);
-            if (unit_type((unitp_t)last_child->data) == BINDING) {
-                fprintf(stderr, "malformed association\n");
-                print_node(last_child, NULL);
-                fprintf(stderr, "not bound\n");
-                exit(EXIT_FAILURE);
-            } else if (unit_type((unitp_t)last_child->data) == BOUND_BINDING) {
-                fprintf(stderr, "malformed association\n");
-                print_node(node, NULL);
-                fprintf(stderr, "expression missing\n");
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            fprintf(stderr, "malformed association\n");
-            print_node(node, NULL);
-            fprintf(stderr, "missing expression\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-    return false;
-}
 
 void check_let_binding(GNode *node, GNode *last_child) {
     if (node == last_child) {

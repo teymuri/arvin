@@ -47,9 +47,9 @@ int main(int argc, char **argv) {
         GList *unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
         unit_link = g_list_prepend(unit_link, &toplevel_unit);
         GNode *ast3 = parse3(unit_link);
-        /* print_ast3(ast3); */
-        sanify_lambdas(ast3);
-        check_funcalls(ast3);
+        print_ast3(ast3);
+        post_parse_lambda_check(ast3);
+        post_parse_pass_check(ast3);
         post_parse_let_check(ast3);
         print_ast3(ast3);
         struct Let_data *e = eval3(ast3, toplevel_unit.env);

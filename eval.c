@@ -320,7 +320,7 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
             eval_lambda(&result, node, env);
         } else if (is_assignment4((unitp_t)node->data)) { /* define */
             eval_assign(&result, node, env);
-        } else if (is_funcall((unitp_t)node->data)) {
+        } else if (is_pass((unitp_t)node->data)) {
             eval_funcall(&result, node, env);
         } else if (is_let((unitp_t)node->data)) {
             eval_assoc(&result, node, env);
