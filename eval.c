@@ -275,38 +275,12 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
             if ((data = g_hash_table_lookup(env, tokstr))) {
                 result->type = data->type;
                 set_data_slot(result, data);
-                /* switch (result->type) { */
-                /* case INTEGER: */
-                /*     result->data.int_slot = data->data.int_slot; break; */
-                /* case FLOAT: */
-                /*     result->data.float_slot = data->data.float_slot; break; */
-                /* case LAMBDA: */
-                /*     result->data.slot_lambda = data->data.slot_lambda; break; */
-                /* case PACK: result->data.pack = data->data.pack; break; */
-                /* case BOOL: result->data.slot_bool = data->data.slot_bool; break; */
-                /* default: break; */
-                /* } */
-                
-                /* break;          /\* ??????????????break out of eval *\/ */
-                
             } else {
                 GNode *parent = node->parent;
                 while (parent) {		  
                     if ((data = g_hash_table_lookup(((unitp_t)parent->data)->env, tokstr))) {
                         result->type = data->type;
                         set_data_slot(result, data);
-                        /* switch (result->type) { */
-                        /* case INTEGER: */
-                        /*     result->data.int_slot = data->data.int_slot; break; */
-                        /* case FLOAT: */
-                        /*     result->data.float_slot = data->data.float_slot; break; */
-                        /* case LAMBDA: */
-                        /*     result->data.slot_lambda = data->data.slot_lambda; break; */
-                        /* case PACK: */
-                        /*     result->data.pack = data->data.pack; break; */
-                        /* case BOOL: result->data.slot_bool = data->data.slot_bool; break; */
-                        /* default: break; */
-                        /* } */
                         break;  /* out of while */
                     } else {
                         parent = parent->parent;
@@ -316,12 +290,6 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
                 fprintf(stderr, "lookup failed for\n");
                 print_node(node, NULL);
                 exit(EXIT_FAILURE);
-
-                /* if (!parent) {		/\* wir sind schon beim parent von global env angekommen *\/ */
-                /*     fprintf(stderr, "lookup failed for\n"); */
-                /*     print_node(node, NULL); */
-                /*     exit(EXIT_FAILURE); */
-                /* } */
             }
         }
         break;                  /* break the NAME branch */
