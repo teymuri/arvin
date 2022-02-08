@@ -17,9 +17,6 @@ enum Type {
     UNDEFINED
 };
 
-
-char *stringify_type(enum Type);
-
 /* data structures of the landuage */
 
 struct Lambda {
@@ -39,6 +36,9 @@ struct Let_data {
         bool slot_bool;
     } data;
 };
+
+char *stringify_type(enum Type);
+void set_data_slot(struct Let_data *, struct Let_data *);
 
 
 #endif	/* LET_TYPE_H */

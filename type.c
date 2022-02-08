@@ -1,6 +1,5 @@
 
 #include "type.h"
-
 #include "unit.h"
 
 char *stringify_type(enum Type t) {
@@ -23,4 +22,17 @@ char *stringify_type(enum Type t) {
 
 bool is_of_type(struct Unit *u, enum Type t) {
     return unit_type(u) == t;
+}
+
+/* sets the appropriate slot of the destination data based on the slot
+ * of the source data */
+void set_data_slot(struct Let_data *dest, struct Let_data *src) {
+    switch (src->type) {
+    case INTEGER: dest->data.int_slot = src->data.int_slot; break;
+    case FLOAT: dest->data.float_slot = src->data.float_slot; break;
+    case LAMBDA: dest->data.slot_lambda = src->data.slot_lambda; break;
+    case BOOL: dest->data.slot_bool = src->data.slot_bool; break;
+    case PACK: dest->data.pack = src->data.pack; break;
+    default: break;
+    }
 }

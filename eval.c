@@ -10,7 +10,7 @@
 #include "ast.h"
 #include "print.h"
 
-void eval_stunt_pack(struct Let_data **, GNode *, GHashTable *, guint, guint);
+void eval_cpack(struct Let_data **, GNode *, GHashTable *, guint, guint);
 
 
 char *bind_name(char *b) {
@@ -21,8 +21,7 @@ char *bind_name(char *b) {
     return name;
 }
 
-char *bind_node_name(GNode *node)
-{
+char *bind_node_name(GNode *node) {
     struct Unit *u = ((unitp_t)node->data);
     char *s = u->token.str;
     char *name;
@@ -89,7 +88,7 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
         } else if (unit_type((unitp_t)binding->data) == BOUND_PACK_BINDING) {
             struct Let_data *rest_params = malloc(sizeof (struct Let_data));
             /* 0tes Kind bis zum letzten Kind (mit allen seinen siblings) */
-            eval_stunt_pack(&rest_params, binding, lambda->env, 0, 0);
+            eval_cpack(&rest_params, binding, lambda->env, 0, 0);
             g_hash_table_insert(lambda->env, name, rest_params);
         }
     }
@@ -98,7 +97,7 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
 
 /* pack contains Let_data pointers */
 /* pack start to end children, when end == 0 packt alle kinder bis zum ende */
-void eval_stunt_pack(struct Let_data **result, GNode *node,
+void eval_cpack(struct Let_data **result, GNode *node,
                      GHashTable *env, guint start, guint end) {
     guint n = end ? end : g_node_n_children(node);
     GList *pack = NULL;
@@ -108,24 +107,27 @@ void eval_stunt_pack(struct Let_data **result, GNode *node,
     (*result)->data.pack = pack;
 }
 
-void eval_stunt_ith(struct Let_data **result, GNode *node, GHashTable *env) {
+
+
+void eval_cith(struct Let_data **result, GNode *node, GHashTable *env) {
     struct Let_data *idx_data = eval3(g_node_nth_child(node, 0), env);
     struct Let_data *pack_data = eval3(g_node_nth_child(node, 1), env);
     guint idx = (guint)idx_data->data.int_slot;
     GList *pack = pack_data->data.pack;
     struct Let_data *data = g_list_nth(pack, idx)->data;
     (*result)->type = data->type;
-    switch (data->type) {
-    case INTEGER:
-        (*result)->data.int_slot = data->data.int_slot; break;
-    case FLOAT:
-        (*result)->data.float_slot = data->data.float_slot; break;
-    case LAMBDA:
-        (*result)->data.slot_lambda = data->data.slot_lambda; break;
-    case PACK:
-        (*result)->data.pack = data->data.pack; break;
-    default: break;
-    }  
+    set_data_slot(*result, data);
+    /* switch (data->type) { */
+    /* case INTEGER: */
+    /*     (*result)->data.int_slot = data->data.int_slot; break; */
+    /* case FLOAT: */
+    /*     (*result)->data.float_slot = data->data.float_slot; break; */
+    /* case LAMBDA: */
+    /*     (*result)->data.slot_lambda = data->data.slot_lambda; break; */
+    /* case PACK: */
+    /*     (*result)->data.pack = data->data.pack; break; */
+    /* default: break; */
+    /* } */  
 }
 
 void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env) {
@@ -139,25 +141,26 @@ void eval_assoc(struct Let_data **result, GNode *node, GHashTable *env) {
     (*result) = eval3(g_node_last_child(node), ((unitp_t)node->data)->env);
 }
 
-void eval_assign(struct Let_data **result, GNode *node, GHashTable *env) {
+void eval_define(struct Let_data **result, GNode *node, GHashTable *env) {
     char *name = ((unitp_t)g_node_nth_child(node, 0)->data)->token.str;
     struct Let_data *data = eval3(g_node_nth_child(node, 1), env);
     /* definitions are always saved in the global environment, no
        matter in which environment we are currently */
     g_hash_table_insert(((unitp_t)g_node_get_root(node)->data)->env, name, data);
     (*result)->type = data->type;
+    set_data_slot(*result, data);
     /* which data slot to set */
-    switch (data->type) {
-    case INTEGER:
-        (*result)->data.int_slot = data->data.int_slot; break;
-    case FLOAT:
-        (*result)->data.float_slot = data->data.float_slot; break;
-    case LAMBDA:
-        (*result)->data.slot_lambda = data->data.slot_lambda; break;
-    case PACK:
-        (*result)->data.pack = data->data.pack; break;
-    default: break;
-    }
+    /* switch (data->type) { */
+    /* case INTEGER: */
+    /*     (*result)->data.int_slot = data->data.int_slot; break; */
+    /* case FLOAT: */
+    /*     (*result)->data.float_slot = data->data.float_slot; break; */
+    /* case LAMBDA: */
+    /*     (*result)->data.slot_lambda = data->data.slot_lambda; break; */
+    /* case PACK: */
+    /*     (*result)->data.pack = data->data.pack; break; */
+    /* default: break; */
+    /* } */
 }
 
 gint lambda_param_idx(GList *list, char *str) {
@@ -205,7 +208,7 @@ void eval_pass(struct Let_data **result, GNode *node, GHashTable *env) {
             } else idx++;
         } else if (unit_type((unitp_t)g_node_nth_child(node, idx)->data) == BOUND_PACK_BINDING) {
             struct Let_data *rest_params = malloc(sizeof (struct Let_data));
-            eval_stunt_pack(&rest_params,
+            eval_cpack(&rest_params,
                             g_node_nth_child(node, idx),
                             call_time_env, 0, 0);
             g_hash_table_insert(call_time_env,
@@ -217,7 +220,7 @@ void eval_pass(struct Let_data **result, GNode *node, GHashTable *env) {
                 unit_type((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx)->data) == BOUND_PACK_BINDING) {
                 /* es ist pack binding ohne keyword */
                 struct Let_data *rest_params = malloc(sizeof (struct Let_data));
-                eval_stunt_pack(&rest_params,
+                eval_cpack(&rest_params,
                                 node,
                                 call_time_env,
                                 idx,
@@ -249,6 +252,8 @@ void eval_toplevel(struct Let_data **result, GNode *root)
 struct Let_data *eval3(GNode *node, GHashTable *env) {
     struct Let_data *result = malloc(sizeof (struct Let_data));
     if (((unitp_t)node->data)->is_atomic) {
+        /* result->type = unit_type(((unitp_t)node->data)); */
+        /* set_data_slot(result, ) */
         switch (unit_type(((unitp_t)node->data))) {
         case INTEGER:
             result->type = INTEGER;
@@ -263,56 +268,64 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
             result->data.slot_bool = is_true((unitp_t)node->data) ? true : false;
             break;
         case NAME:
-            /* a symbol not contained in a BIND expression (sondern hängt einfach so rum im text) */
         {	  
             char *tokstr = ((unitp_t)node->data)->token.str;
             /* symbols are evaluated in the envs of their enclosing units */
             struct Let_data *data;
             if ((data = g_hash_table_lookup(env, tokstr))) {
                 result->type = data->type;
-                switch (result->type) {
-                case INTEGER:
-                    result->data.int_slot = data->data.int_slot; break;
-                case FLOAT:
-                    result->data.float_slot = data->data.float_slot; break;
-                case LAMBDA:
-                    result->data.slot_lambda = data->data.slot_lambda; break;
-                case PACK: result->data.pack = data->data.pack; break;
-                case BOOL: result->data.slot_bool = data->data.slot_bool; break;
-                default: break;
-                }
-                break;
+                set_data_slot(result, data);
+                /* switch (result->type) { */
+                /* case INTEGER: */
+                /*     result->data.int_slot = data->data.int_slot; break; */
+                /* case FLOAT: */
+                /*     result->data.float_slot = data->data.float_slot; break; */
+                /* case LAMBDA: */
+                /*     result->data.slot_lambda = data->data.slot_lambda; break; */
+                /* case PACK: result->data.pack = data->data.pack; break; */
+                /* case BOOL: result->data.slot_bool = data->data.slot_bool; break; */
+                /* default: break; */
+                /* } */
+                
+                /* break;          /\* ??????????????break out of eval *\/ */
+                
             } else {
                 GNode *parent = node->parent;
                 while (parent) {		  
                     if ((data = g_hash_table_lookup(((unitp_t)parent->data)->env, tokstr))) {
                         result->type = data->type;
-                        switch (result->type) {
-                        case INTEGER:
-                            result->data.int_slot = data->data.int_slot; break;
-                        case FLOAT:
-                            result->data.float_slot = data->data.float_slot; break;
-                        case LAMBDA:
-                            result->data.slot_lambda = data->data.slot_lambda; break;
-                        case PACK:
-                            result->data.pack = data->data.pack; break;
-                        case BOOL: result->data.slot_bool = data->data.slot_bool; break;
-                        default: break;
-                        }
-                        break;
+                        set_data_slot(result, data);
+                        /* switch (result->type) { */
+                        /* case INTEGER: */
+                        /*     result->data.int_slot = data->data.int_slot; break; */
+                        /* case FLOAT: */
+                        /*     result->data.float_slot = data->data.float_slot; break; */
+                        /* case LAMBDA: */
+                        /*     result->data.slot_lambda = data->data.slot_lambda; break; */
+                        /* case PACK: */
+                        /*     result->data.pack = data->data.pack; break; */
+                        /* case BOOL: result->data.slot_bool = data->data.slot_bool; break; */
+                        /* default: break; */
+                        /* } */
+                        break;  /* out of while */
                     } else {
                         parent = parent->parent;
                     }
                 }
-                if (!parent) {		/* wir sind schon beim parent von global env angekommen */
-                    fprintf(stderr, "lookup failed for\n");
-                    print_node(node, NULL);
-                    exit(EXIT_FAILURE);
-                }
+                /* nothing found */
+                fprintf(stderr, "lookup failed for\n");
+                print_node(node, NULL);
+                exit(EXIT_FAILURE);
+
+                /* if (!parent) {		/\* wir sind schon beim parent von global env angekommen *\/ */
+                /*     fprintf(stderr, "lookup failed for\n"); */
+                /*     print_node(node, NULL); */
+                /*     exit(EXIT_FAILURE); */
+                /* } */
             }
         }
-        break;
-        default: break;		/* undefined */
+        break;                  /* break the NAME branch */
+        default: break;		/* undefined unit type */
         }
     } else {			/* builtin stuff */
         if ((((unitp_t)node->data)->uuid == 0)) {
@@ -322,19 +335,16 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
         } else if (is_lambda4((unitp_t)node->data)) {
             eval_lambda(&result, node, env);
         } else if (is_assignment4((unitp_t)node->data)) { /* define */
-            eval_assign(&result, node, env);
+            eval_define(&result, node, env);
         } else if (is_pass((unitp_t)node->data)) {
             eval_pass(&result, node, env);
         } else if (is_let((unitp_t)node->data)) {
             eval_assoc(&result, node, env);
         } else if (is_cpack((unitp_t)node->data)) {
-            eval_stunt_pack(&result, node, env, 0, 0);
+            eval_cpack(&result, node, env, 0, 0);
         } else if (is_cith((unitp_t)node->data)) {
-            eval_stunt_ith(&result, node, env);
+            eval_cith(&result, node, env);
         }
     }
     return result;
 }
-
-  
-
