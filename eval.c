@@ -183,6 +183,13 @@ void eval_call(struct Let_data **result, GNode *node, GHashTable *env) {
                                 rest_params);
             break;       /* out of parameter processing, &rest: must be the last! */
         } else {			/* just an expression or multiple expressions, not a binding (para->arg) */
+            /* looking up child nodes of the lambda node must be with
+             * current index - 1, since in a lambda parameter names
+             * come right after the lambda keyword, whereas in call
+             * the first thing after the call keyword is the function
+             * name, e.g. DEFINE FN LAMBDA X: X, where x: has index 0
+             * is called thus CALL FN 2022, where the arg 2022 (for
+             * the parameter x:) has index 1 */
             if (unit_type((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx - 1)->data) == PACK_BINDING ||
                 unit_type((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx - 1)->data) == BOUND_PACK_BINDING) {
                 /* es ist pack binding ohne keyword */
