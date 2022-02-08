@@ -9,9 +9,12 @@
 #define ASSOCIATION_KEYWORD "let"
 #define LAMBDA_KEYWORD "lambda"
 #define FUNCALL_KEYWORD "pass"
-#define BINDING_PREFIX ':'
+#define CPACK_KW "cpack"
+#define PACK_BINDING_PREFIX '&'
+#define BINDING_SUFFIX ':'
+#define C_ITH_KW "cith"
 
-#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*]+)"
+#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&]+)"
 
 #define COMMENT_OPENING "("		/* comment opening token */
 #define COMMENT_CLOSING ")"		/* comment closing token */
@@ -20,13 +23,13 @@
 #define MAX_TOKLEN 50		/* max token length in bytes */
 
 struct Token {
-  char str[MAX_TOKLEN];	/* token's string */
-  int col_start_idx;			/* start index in line (column start index) */
-  int column_end_idx;			/* end index in line (column end index) */
-  int line;			/* line number */
-  int id;			/* id of this token (tracked globally) */
-  int comment_index;			/* comment indices: 0 = (, 1 = ) */
-  enum Type type;		/* guessed types at token-generation time */
+    char str[MAX_TOKLEN];	/* token's string */
+    int col_start_idx;			/* start index in line (column start index) */
+    int column_end_idx;			/* end index in line (column end index) */
+    int line;			/* line number */
+    int id;			/* id of this token (tracked globally) */
+    int comment_index;			/* comment indices: 0 = (, 1 = ) */
+    enum Type type;		/* guessed types at token-generation time */
 };
 
 #endif	/* LET_TOK_H */

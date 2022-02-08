@@ -2,7 +2,7 @@
 #define LET_CORE_H
 
 
-#include "let_data.h"
+#include "type.h"
 
 struct Let_data *pret(struct Let_data *);
 struct Let_data *GJ(void);
