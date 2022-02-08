@@ -111,13 +111,16 @@ bool is_assignment4(struct Unit *u) {
 bool is_pass(struct Unit *u) {
     return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
+bool is_call(struct Unit *u) {
+    return !strcmp(u->token.str, CALL_KW);
+}
 
 bool is_cpack(struct Unit *u) {
     return !strcmp(u->token.str, CPACK_KW);
 }
 
 bool is_cith(struct Unit *u) {
-    return !strcmp(u->token.str, C_ITH_KW);
+    return !strcmp(u->token.str, CITH_KW);
 }
 
 /* booleans */
@@ -159,6 +162,7 @@ bool need_block(struct Unit *u) {
         is_of_type(u, PACK_BINDING) ||
         is_pret4(u) ||
         is_pass(u) ||
+        is_call(u) ||
         is_cpack(u) ||
         is_cith(u)
         ;
@@ -228,7 +232,8 @@ GNode *parse3(GList *ulink) {
         /* establish binding types based on the enclosing units and the unit's look */
         if (is_let((unitp_t)enc_node->data) ||
             is_lambda4((unitp_t)enc_node->data) ||
-            is_pass((unitp_t)enc_node->data)) {
+            is_pass((unitp_t)enc_node->data) ||
+            is_call((unitp_t)enc_node->data)) {
             /* check pack binding before binding!!! every pack binding is also a binding */
             if (maybe_pack_binding((unitp_t)ulink->data)) {
                 ((unitp_t)ulink->data)->is_atomic = false;
@@ -244,7 +249,8 @@ GNode *parse3(GList *ulink) {
         else if (is_of_type((unitp_t)enc_node->data, BINDING))
             ((unitp_t)enc_node->data)->type = BOUND_BINDING;
         
-        /* decrement maximum capacity of enclosing nodes if the unit takes up their capacity */
+        /* decrement maximum capacity of enclosing nodes with definite
+         * amount of capacity if the unit takes up their capacity */
         if (is_of_type((unitp_t)enc_node->data, BOUND_BINDING) ||
             is_assignment4((unitp_t)enc_node->data) ||
             is_cith((unitp_t)enc_node->data) ||
@@ -256,14 +262,6 @@ GNode *parse3(GList *ulink) {
                 enc_node = find_parent_with_capa(enc_node);
         }
         
-        /* If the computed enclosing block is a lambda-parameter and it
-           has no more absorption capacity then reset the enclosing block
-           to be the enclosing block of the lambda-parameter block
-           i.e. the lambda block itself (imply that the current item is
-           the return-expression of the lambda-block). If the parameter
-           block still has absorption capacity (i.e. it's single
-           default-argument) the computed enclosing block is correct, only
-           decrement it's absorption capacity. */
         if (need_block((unitp_t)ulink->data)) {
             
             ((unitp_t)ulink->data)->is_atomic = false;
@@ -271,7 +269,8 @@ GNode *parse3(GList *ulink) {
             /* new block has it's own environment */
             ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
             
-            /* set the maximum absorption capacity for units with definit capacity */
+            /* set the maximum absorption capacity for units with
+             * definite amount of capacity */
             if (is_of_type((unitp_t)ulink->data, BINDING)) {
                 /* capa = binding value (n.b.: pack binding has
                  * indefinite capa ie -1, hence no touched at all!)*/
@@ -290,6 +289,7 @@ GNode *parse3(GList *ulink) {
             /* set current binding unit */
             if (is_lambda4((unitp_t)ulink->data) ||
                 is_pass((unitp_t)ulink->data) ||
+                is_call((unitp_t)ulink->data) ||
                 is_let((unitp_t)ulink->data))
                 curr_bind_unit = (unitp_t)ulink->data;
             
@@ -302,10 +302,10 @@ GNode *parse3(GList *ulink) {
                 ((unitp_t)ulink->data)->arity = 0;
             else if (curr_bind_unit && is_lambda4(curr_bind_unit))
                 curr_bind_unit->arity++;
-            else if (is_pret4((unitp_t)ulink->data))
+            else if (is_pret4((unitp_t)ulink->data)) /* ???????? */
                 ((unitp_t)ulink->data)->arity = 1;
             
-        } else {			/* is an atomic unit */
+        } else {			/* an atomic unit */
             ((unitp_t)ulink->data)->is_atomic = true;
             ((unitp_t)ulink->data)->max_capa = 0;
             /* is the unit true or false? set it's boolean type */

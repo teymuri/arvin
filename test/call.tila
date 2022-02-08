@@ -1,0 +1,6 @@
+
+
+
+define f lambda pret 2022
+call f 1 2 3 4
+

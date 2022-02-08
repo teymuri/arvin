@@ -12,9 +12,10 @@
 #define CPACK_KW "cpack"
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
-#define C_ITH_KW "cith"
+#define CITH_KW "cith"
 #define TRUE_KW "true"
 #define FALSE_KW "false"
+#define CALL_KW "call"
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&]+)"
 
