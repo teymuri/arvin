@@ -68,10 +68,11 @@ pass
 call f 1 2 3 4 5
 )
 
-(define f lambda w: 0 a: s: &rest: pret cith s rest
-call f a: 4 0 6 7 8 9 10 11 12)
+define f lambda w: 0 a: s: &rest: pret cith s rest
+call f a: 4 0 6 7 8 9 10 11 12
 
+(
 call
   lambda q: w: e: r: t: z:
     pret z
-  e: 1 2 q: 3 4 5 6 7 8 9
+  e: 1 2 q: 3 4 5 6 7 8 9)
