@@ -13,7 +13,7 @@ define ith lambda i: &args: cith i args
 pret call ith i: 7 1 2 3 4 5 6 7 true 9 10
 )
 (((())))
-
+(
 let fn: lambda i: &args: pret cith i args
     fn2: lambda fn
     let x: call fn2
@@ -48,8 +48,8 @@ pret call ith i: 3 &r: 10 20 30 let x: true x 50 60
 
 
 call lambda q: w: &e:
-             pret cith cith cith 0 e e e
-     0 1 2 3 4 5 true 7 8 9 10
+        pret cith cith cith 0 e e e
+     0 1 2 3 4 5 true 7 8 9 10)
 (
 pass
   0 1
@@ -67,3 +67,11 @@ pass
 
 call f 1 2 3 4 5
 )
+
+(define f lambda w: 0 a: s: &rest: pret cith s rest
+call f a: 4 0 6 7 8 9 10 11 12)
+
+call
+  lambda q: w: e: r: t: z:
+    pret r
+  e: 1 2 3 4

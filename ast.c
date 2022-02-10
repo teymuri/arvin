@@ -300,10 +300,14 @@ GNode *parse3(GList *ulink) {
                    for lambda is 0 parameters). this can change as we go on
                    with parsing and detect it's parameter declerations. */
                 ((unitp_t)ulink->data)->arity = 0;
-            else if (curr_bind_unit && is_lambda4(curr_bind_unit))
-                curr_bind_unit->arity++;
-            else if (is_pret4((unitp_t)ulink->data)) /* ???????? */
-                ((unitp_t)ulink->data)->arity = 1;
+            else if (curr_bind_unit && is_lambda4(curr_bind_unit)) {
+                if (is_of_type((unitp_t)ulink->data, BINDING))
+                    /* if a simple binding increment lambda's arity */
+                    curr_bind_unit->arity++;
+                else if (is_of_type((unitp_t)ulink->data, PACK_BINDING))
+                    /* if encountered a pack binding lambda has indefinite artiy */
+                    curr_bind_unit->arity = -1;
+            }
             
         } else {			/* an atomic unit */
             ((unitp_t)ulink->data)->is_atomic = true;

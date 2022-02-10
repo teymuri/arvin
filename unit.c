@@ -68,7 +68,7 @@ GList *unit_linked_list(struct Token toks[], size_t toks_n)
            bindings will get 1 etc.)*/
         unit->max_capa = -1;
         /* arity will be set by the parser to either 0 or more for lambdas
-           and remains -1 for everything else */
+           and remains -1 (invalid arity) for everything else */
         unit->arity = -1;
         set_unit_value(unit);
         set_unit_type(unit);
