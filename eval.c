@@ -178,7 +178,7 @@ void eval_call(struct Let_data **result, GNode *node, GHashTable *env)
     gint arg_idx = 0, param_idx;
     GNode *first_arg = g_node_nth_child(node, 1);
     int args_count = lambda_arity != -1 ? lambda_arity : g_node_n_children(node) - 1;
-    while (arg_idx < args_count) {
+    while (arg_idx < g_node_n_children(node) - 1) {
         if (unit_type((unitp_t)nth_sibling(first_arg, arg_idx)->data) == BOUND_BINDING) {
             g_hash_table_insert(call_time_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
@@ -197,11 +197,12 @@ void eval_call(struct Let_data **result, GNode *node, GHashTable *env)
                 print_node(lambda_data->data.slot_lambda->node, NULL);
                 exit(EXIT_FAILURE);
             } else {
-                if (param_idx > arg_idx &&
-                    !is_of_type((unitp_t)nth_sibling(first_arg, idx + 1)->data, BOUND_BINDING)) {
-                    idx = in_lambda_idx;
-                }
-                idx++;
+                /* if (param_idx > arg_idx && */
+                /*     !is_of_type((unitp_t)nth_sibling(first_arg, idx + 1)->data, BOUND_BINDING)) { */
+                /*     idx = in_lambda_idx; */
+                /* } */
+                arg_idx++;
+                param_idx++;
             }
         } else if (is_of_type((unitp_t)nth_sibling(first_arg, idx)->data, BOUND_PACK_BINDING)) {
             struct Let_data *rest_params = malloc(sizeof (struct Let_data));
@@ -230,9 +231,10 @@ void eval_call(struct Let_data **result, GNode *node, GHashTable *env)
                 break;                  /* last param, get out!!! */
             } else {
                 g_hash_table_insert(call_time_env,
-                                    binding_node_name(g_node_nth_child(lambda_data->data.slot_lambda->node, idx)),
-                                    eval3(nth_sibling(first_arg, idx), env));
-                idx++;        
+                                    binding_node_name(g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)),
+                                    eval3(nth_sibling(first_arg, arg_idx), env));
+                arg_idx++;
+                param_idx++;
             }
         }
     }
