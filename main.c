@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
         post_parse_pass_check(ast3);
         post_parse_let_check(ast3);
         print_ast3(ast3);
-        struct Let_data *e = eval3(ast3, toplevel_unit.env);
+        struct Tila_data *e = eval3(ast3, toplevel_unit.env);
         /* print(e); */
     }
     exit(EXIT_SUCCESS);

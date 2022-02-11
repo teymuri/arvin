@@ -1,9 +1,9 @@
-#ifndef LET_EVAL_H
-#define LET_EVAL_H
+#ifndef TILA_EVAL_H
+#define TILA_EVAL_H
 
 
 
-struct Let_data *eval3(GNode *, GHashTable *);
+struct Tila_data *eval3(GNode *, GHashTable *);
 
 
-#endif	/* LET_EVAL_H */
+#endif	/* TILA_EVAL_H */

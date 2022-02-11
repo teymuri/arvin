@@ -39,7 +39,7 @@ void print_ast3(GNode *root) {
 
 /* string representation of data, this is the P in REPL */
 /* data arg is the evaluated expression (is gone through eval already) */
-void print(struct Let_data *data)
+void print(struct Tila_data *data)
 {
     switch (data->type) {
     case INTEGER:

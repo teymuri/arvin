@@ -8,11 +8,11 @@
 
 
 
-/* wie jede andere funktion, muss hier auch eine struct Let_data pointer zurückgegeben werden */
+/* wie jede andere funktion, muss hier auch eine struct Tila_data pointer zurückgegeben werden */
 /* das hier ist ein (interner Sprachkonstrukt) console.log ähnliches
    ding */
 /* hoffentlich ist thing already evaled!!! */
-struct Let_data *pret(struct Let_data *thing) {
+struct Tila_data *pret(struct Tila_data *thing) {
     /* puts(">"); */
     switch(thing->type) {
     case INTEGER: printf("%d", thing->data.int_slot); break;
@@ -26,16 +26,16 @@ struct Let_data *pret(struct Let_data *thing) {
     return thing;
 }
 
-struct Let_data *GJ(void) {
-    struct Let_data *ld = malloc(sizeof *ld);
+struct Tila_data *GJ(void) {
+    struct Tila_data *ld = malloc(sizeof *ld);
     ld->type = INTEGER;
     ld->data.int_slot = 1363;
     /* printf("mein geburtsjahr %d", ld->data.i); */
     return ld;
 }
-/* struct Let_data *(*lambda_0)(); */
-/* struct Let_data *(*f1)(struct Let_data *); */
-/* struct Let_data *(*f2)(struct Let_data *, struct Let_data *); */
+/* struct Tila_data *(*lambda_0)(); */
+/* struct Tila_data *(*f1)(struct Tila_data *); */
+/* struct Tila_data *(*f2)(struct Tila_data *, struct Tila_data *); */
 /* struct Lambda { */
 /*   int arity; */
 /* blkcont} */

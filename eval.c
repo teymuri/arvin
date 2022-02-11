@@ -10,7 +10,7 @@
 #include "ast.h"
 #include "print.h"
 
-void eval_cpack(struct Let_data **, GNode *, GHashTable *, guint, guint);
+void eval_cpack(struct Tila_data **, GNode *, GHashTable *, guint, guint);
 
 
 char *binding_node_name(GNode *node) {
@@ -39,9 +39,9 @@ GHashTable *clone_hash_table(GHashTable *ht) {
     return new;
 }
 
-struct Let_data *eval3(GNode *, GHashTable *);
+struct Tila_data *eval3(GNode *, GHashTable *);
 
-void eval_pret(struct Let_data **result, GNode *root, GHashTable *env) {
+void eval_pret(struct Tila_data **result, GNode *root, GHashTable *env) {
     *result = pret(eval3(root->children, env));
 }
 gint get_param_index(GList *list, char *str) {
@@ -59,7 +59,7 @@ gint get_param_index(GList *list, char *str) {
   else return -1;
 }
 
-void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
+void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
     (*result)->type = LAMBDA;
     struct Lambda *lambda = malloc(sizeof (struct Lambda));
     lambda->env = clone_hash_table(env);
@@ -78,7 +78,7 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
                    unit_type((unitp_t)binding->data) == PACK_BINDING) {
             g_hash_table_insert(lambda->env, name, NULL);
         } else if (unit_type((unitp_t)binding->data) == BOUND_PACK_BINDING) {
-            struct Let_data *rest_params = malloc(sizeof (struct Let_data));
+            struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
             /* 0tes Kind bis zum letzten Kind (mit allen seinen siblings) */
             eval_cpack(&rest_params, binding, lambda->env, 0, 0);
             g_hash_table_insert(lambda->env, name, rest_params);
@@ -87,9 +87,9 @@ void eval_lambda(struct Let_data **result, GNode *node, GHashTable *env) {
     (*result)->data.slot_lambda = lambda;
 }
 
-/* pack contains Let_data pointers */
+/* pack contains Tila_data pointers */
 /* pack start upto end children, when end == 0 packt alle kinder bis zum ende */
-void eval_cpack(struct Let_data **result, GNode *node,
+void eval_cpack(struct Tila_data **result, GNode *node,
                 GHashTable *env, guint start, guint end) {
     guint n = end ? end : g_node_n_children(node);
     GList *pack = NULL;
@@ -100,7 +100,7 @@ void eval_cpack(struct Let_data **result, GNode *node,
 }
 
 
-void eval_named_rest_args(struct Let_data **result, GNode *node, GHashTable *env)
+void eval_named_rest_args(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     GList *pack = NULL;
     guint count = g_node_n_children(node);
@@ -109,7 +109,7 @@ void eval_named_rest_args(struct Let_data **result, GNode *node, GHashTable *env
     (*result)->type = PACK;
     (*result)->data.pack = pack;
 }
-void eval_unnamed_rest_args(struct Let_data **result, GNode *node, GHashTable *env)
+void eval_unnamed_rest_args(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     GList *pack = NULL;
     while (node) {
@@ -123,17 +123,17 @@ void eval_unnamed_rest_args(struct Let_data **result, GNode *node, GHashTable *e
 
 
 
-void eval_cith(struct Let_data **result, GNode *node, GHashTable *env) {
-    struct Let_data *idx_data = eval3(g_node_nth_child(node, 0), env);
-    struct Let_data *pack_data = eval3(g_node_nth_child(node, 1), env);
+void eval_cith(struct Tila_data **result, GNode *node, GHashTable *env) {
+    struct Tila_data *idx_data = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *pack_data = eval3(g_node_nth_child(node, 1), env);
     guint idx = (guint)idx_data->data.int_slot;
     GList *pack = pack_data->data.pack;
-    struct Let_data *data = g_list_nth(pack, idx)->data;
+    struct Tila_data *data = g_list_nth(pack, idx)->data;
     (*result)->type = data->type;
     set_data_slot(*result, data);
 }
 
-void eval_let(struct Let_data **result, GNode *node, GHashTable *env) {
+void eval_let(struct Tila_data **result, GNode *node, GHashTable *env) {
     ((unitp_t)node->data)->env = clone_hash_table(env);
     for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
         GNode *binding = g_node_nth_child(node, i);
@@ -144,9 +144,9 @@ void eval_let(struct Let_data **result, GNode *node, GHashTable *env) {
     (*result) = eval3(g_node_last_child(node), ((unitp_t)node->data)->env);
 }
 
-void eval_define(struct Let_data **result, GNode *node, GHashTable *env) {
+void eval_define(struct Tila_data **result, GNode *node, GHashTable *env) {
     char *name = ((unitp_t)g_node_nth_child(node, 0)->data)->token.str;
-    struct Let_data *data = eval3(g_node_nth_child(node, 1), env);
+    struct Tila_data *data = eval3(g_node_nth_child(node, 1), env);
     /* definitions are always saved in the global environment, no
        matter in which environment we are currently */
     g_hash_table_insert(((unitp_t)g_node_get_root(node)->data)->env, name, data);
@@ -176,11 +176,11 @@ GNode *nth_sibling(GNode *node, int n)
     return node;
 }
 
-void eval_call(struct Let_data **result, GNode *node, GHashTable *env)
+void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     GNode *lambda_node = g_node_first_child(node);
     /* populate lambda environment */
-    struct Let_data *lambda_data = eval3(lambda_node, env);
+    struct Tila_data *lambda_data = eval3(lambda_node, env);
     /* make a copy of the lambda env */
     GHashTable *call_time_env = clone_hash_table(lambda_data->data.slot_lambda->env);
     /* iterate over passed arguments */
@@ -208,7 +208,7 @@ void eval_call(struct Let_data **result, GNode *node, GHashTable *env)
                 param_idx++;
             }
         } else if (is_of_type((unitp_t)nth_sibling(first_arg, arg_idx)->data, BOUND_PACK_BINDING)) {
-            struct Let_data *rest_params = malloc(sizeof (struct Let_data));
+            struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
             eval_named_rest_args(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env);
             g_hash_table_insert(call_time_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
@@ -218,7 +218,7 @@ void eval_call(struct Let_data **result, GNode *node, GHashTable *env)
             if (unit_type((unitp_t)g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)->data) == PACK_BINDING ||
                 unit_type((unitp_t)g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
                 /* es ist pack binding ohne keyword */
-                struct Let_data *rest_params = malloc(sizeof (struct Let_data));
+                struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
                 eval_unnamed_rest_args(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env);
                 g_hash_table_insert(call_time_env,
                                     binding_node_name(g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)),
@@ -236,10 +236,10 @@ void eval_call(struct Let_data **result, GNode *node, GHashTable *env)
     *result = eval3(g_node_last_child(lambda_data->data.slot_lambda->node), call_time_env);
 }
 
-void eval_pass(struct Let_data **result, GNode *node, GHashTable *env) {
+void eval_pass(struct Tila_data **result, GNode *node, GHashTable *env) {
     GNode *lambda_node = g_node_last_child(node);
     /* populate lambda environment */
-    struct Let_data *x = eval3(lambda_node, env);
+    struct Tila_data *x = eval3(lambda_node, env);
     /* make a copy of the lambda env */
     GHashTable *call_time_env = clone_hash_table(x->data.slot_lambda->env);
     /* iterate over passed arguments */
@@ -265,7 +265,7 @@ void eval_pass(struct Let_data **result, GNode *node, GHashTable *env) {
                 } else idx = in_lambda_idx;
             } else idx++;
         } else if (unit_type((unitp_t)g_node_nth_child(node, idx)->data) == BOUND_PACK_BINDING) {
-            struct Let_data *rest_params = malloc(sizeof (struct Let_data));
+            struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
             eval_cpack(&rest_params,
                             g_node_nth_child(node, idx),
                             call_time_env, 0, 0);
@@ -277,7 +277,7 @@ void eval_pass(struct Let_data **result, GNode *node, GHashTable *env) {
             if (unit_type((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx)->data) == PACK_BINDING ||
                 unit_type((unitp_t)g_node_nth_child(x->data.slot_lambda->node, idx)->data) == BOUND_PACK_BINDING) {
                 /* es ist pack binding ohne keyword */
-                struct Let_data *rest_params = malloc(sizeof (struct Let_data));
+                struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
                 eval_cpack(&rest_params,
                                 node,
                                 call_time_env,
@@ -300,7 +300,7 @@ void eval_pass(struct Let_data **result, GNode *node, GHashTable *env) {
 
 
 
-void eval_toplevel(struct Let_data **result, GNode *root)
+void eval_toplevel(struct Tila_data **result, GNode *root)
 {
     guint size = g_node_n_children(root);
     for (guint i = 0; i < size - 1; i++)
@@ -309,8 +309,8 @@ void eval_toplevel(struct Let_data **result, GNode *root)
     *result = eval3(g_node_nth_child(root, size - 1), ((unitp_t)root->data)->env);
 }
 
-struct Let_data *eval3(GNode *node, GHashTable *env) {
-    struct Let_data *result = malloc(sizeof (struct Let_data));
+struct Tila_data *eval3(GNode *node, GHashTable *env) {
+    struct Tila_data *result = malloc(sizeof (struct Tila_data));
     if (((unitp_t)node->data)->is_atomic) {
         switch (unit_type(((unitp_t)node->data))) {
         case INTEGER:
@@ -329,7 +329,7 @@ struct Let_data *eval3(GNode *node, GHashTable *env) {
         {	  
             char *tokstr = ((unitp_t)node->data)->token.str;
             /* symbols are evaluated in the envs of their enclosing units */
-            struct Let_data *data;
+            struct Tila_data *data;
             if ((data = g_hash_table_lookup(env, tokstr))) {
                 result->type = data->type;
                 set_data_slot(result, data);

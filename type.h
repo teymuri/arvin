@@ -1,5 +1,5 @@
-#ifndef LET_TYPE_H
-#define LET_TYPE_H
+#ifndef TILA_TYPE_H
+#define TILA_TYPE_H
 
 #include <glib.h>
 #include <stdbool.h>
@@ -27,7 +27,7 @@ struct Lambda {
     GNode *node;			/* the lambda code */
 };
 
-struct Let_data {
+struct Tila_data {
     enum Type type;
     union {
         int int_slot;
@@ -39,7 +39,7 @@ struct Let_data {
 };
 
 char *stringify_type(enum Type);
-void set_data_slot(struct Let_data *, struct Let_data *);
+void set_data_slot(struct Tila_data *, struct Tila_data *);
 
 
-#endif	/* LET_TYPE_H */
+#endif	/* TILA_TYPE_H */

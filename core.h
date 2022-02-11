@@ -4,8 +4,8 @@
 
 #include "type.h"
 
-struct Let_data *pret(struct Let_data *);
-struct Let_data *GJ(void);
+struct Tila_data *pret(struct Tila_data *);
+struct Tila_data *GJ(void);
 /* bool is_define(struct Cons *); */
 /* extern bool is_association(struct Unit *); */
 /* extern bool is_bound_parameter(struct Unit *, struct Cons *); */
