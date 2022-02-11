@@ -185,7 +185,7 @@ void eval_call(struct Let_data **result, GNode *node, GHashTable *env)
     GHashTable *call_time_env = clone_hash_table(lambda_data->data.slot_lambda->env);
     /* iterate over passed arguments */
     guint arg_idx = 0;
-    gint param_idx;
+    gint param_idx = 0;
     GNode *first_arg = g_node_nth_child(node, 1);
     
     while (arg_idx < g_node_n_children(node) - 1) {
