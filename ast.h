@@ -19,6 +19,7 @@ bool is_true(struct Unit *);
 /* c level geschwister: sind keine let funktionen: können nicht mit
    pass aufgerufen werden, haben keine keyword parameter usw... */
 bool is_cpack(struct Unit *);
+bool is_tila_list(struct Unit *);
 bool is_cith(struct Unit *);
 
 #endif	/* LET_AST_H */

@@ -118,6 +118,10 @@ bool is_call(struct Unit *u) {
 bool is_cpack(struct Unit *u) {
     return !strcmp(u->token.str, CPACK_KW);
 }
+bool is_tila_list(struct Unit *u)
+{
+    return !strcmp(u->token.str, TILA_LIST_KW);
+}
 
 bool is_cith(struct Unit *u) {
     return !strcmp(u->token.str, CITH_KW);
@@ -164,6 +168,7 @@ bool need_block(struct Unit *u) {
         is_pass(u) ||
         is_call(u) ||
         is_cpack(u) ||
+        is_tila_list(u) ||
         is_cith(u)
         ;
 }

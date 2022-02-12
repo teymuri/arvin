@@ -10,6 +10,7 @@
 #include "ast.h"
 #include "print.h"
 
+
 void eval_cpack(struct Tila_data **, GNode *, GHashTable *, guint, guint);
 
 
@@ -86,6 +87,20 @@ void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
     }
     (*result)->data.slot_lambda = lambda;
 }
+
+void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
+{
+    struct List *list = malloc(sizeof (struct List));
+    list->cont = NULL;
+    list->len = g_node_n_children(node);
+    while (node) {
+        list->cont = g_list_append(list->cont, eval3(node, env));
+        node = node->next;      /* node's sibling */
+    }
+    (*tdata)->type = LIST;
+    (*tdata)->data.list = list;
+}
+
 
 /* pack contains Tila_data pointers */
 /* pack start upto end children, when end == 0 packt alle kinder bis zum ende */
@@ -372,7 +387,8 @@ struct Tila_data *eval3(GNode *node, GHashTable *env) {
             eval_cith(&result, node, env);
         } else if (is_call((unitp_t)node->data)) {
             eval_call(&result, node, env);
-        }
+        } else if (is_tila_list((unitp_t)node->data))
+            eval_tila_list(&result, node->children, env);
     }
     return result;
 }

@@ -14,6 +14,7 @@ enum Type {
     BOUND_PACK_BINDING = 9,
     PACK = 10,
     BOOL = 11,
+    LIST = 12,
     UNDEFINED
 };
 
@@ -27,6 +28,12 @@ struct Lambda {
     GNode *node;			/* the lambda code */
 };
 
+struct List {
+    GList *cont;
+    int len;
+};
+
+
 struct Tila_data {
     enum Type type;
     union {
@@ -34,6 +41,7 @@ struct Tila_data {
         float float_slot;
         struct Lambda *slot_lambda;
         GList *pack;
+        struct List *list;
         bool slot_bool;
     } data;
 };
