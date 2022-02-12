@@ -354,31 +354,24 @@ struct Tila_data *eval3(GNode *node, GHashTable *env)
             result->data.slot_bool = is_true((unitp_t)node->data) ? true : false;
             break;
         case NAME:
-        {	  
+        {
             char *tokstr = ((unitp_t)node->data)->token.str;
             /* symbols are evaluated in the envs of their enclosing units */
-            struct Tila_data *data;
-            if ((data = g_hash_table_lookup(env, tokstr))) {
-                result->type = data->type;
-                set_data_slot(result, data);
-            } else {
-                GNode *parent = node->parent;
-                while (parent) {		  
-                    if ((data = g_hash_table_lookup(((unitp_t)parent->data)->env, tokstr))) {
-                        result->type = data->type;
-                        set_data_slot(result, data);
-                        break;  /* out of while */
-                    } else {
-                        parent = parent->parent;
-                    }
+            struct Tila_data *tdata;
+            GNode *wanted_node = node;
+            do {
+                if ((tdata = g_hash_table_lookup(env, tokstr))) {
+                    result->type = tdata->type;
+                    set_data_slot(result, tdata);
+                    break;
                 }
-                /* nothing found */
+            } while ((node = node->parent) && (env = ((unitp_t)node->data)->env));
+            if (!node) {
                 fprintf(stderr, "lookup failed for\n");
-                print_node(node, NULL);
+                print_node(wanted_node, NULL);
                 exit(EXIT_FAILURE);
             }
-        }
-        break;                  /* break the NAME branch */
+        } break;                  /* break the NAME branch */
         default: break;		/* undefined unit type */
         }
     } else {			/* builtin stuff */

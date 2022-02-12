@@ -3,26 +3,25 @@
 
 
 define list lambda &args: args
+define nth n: lst: tilanth n 
 
-(
 pret
-  tilanth 1
-    call list 10 false 3.14 true
-           call list 1 2 3 4
-)
+  tilanth 3
+    tilanth 4
+      call list 10 false 3.14 true
+             call list 100 200 300 400
 
-(call list 1 call list 2)
-(pret tilanth 1 tilanth 1 tilanth 1 tilalist 1 tilalist 2 tilalist 3 4)
 
-(pret tilanth 3 lst)
 
-(pret call list 1 list 2)
+pret tilanth 1 tilanth 1 tilanth 1 call list 1 call list 2 call list 3 4
+
+define lst call list 93.2 3.4 1.2 call list 4.5 63.2403
+
+pret tilanth 1 tilanth 3 lst
+
+pret tilanth 0 tilanth 1 call list 1 call list 2
 (pret
   tilanth 0
     tilanth 1
       tilalist 2
         tilalist 3)
-
-define x 2
-
-tilalist x tilalist x
