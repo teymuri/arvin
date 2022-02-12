@@ -17,6 +17,7 @@
 #define FALSE_KW "false"
 #define CALL_KW "call"
 #define TILA_LIST_KW "tilalist"
+#define TILA_NTH_KW "tilanth"
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&]+)"
 

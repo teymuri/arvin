@@ -1,1 +1,28 @@
-tilalist 1 2 3 4 5
+(pret tilanth 2 tilalist 1 2 3 4 5)
+(tilalist 1 2 3)
+
+
+define list lambda &args: args
+
+(
+pret
+  tilanth 1
+    call list 10 false 3.14 true
+           call list 1 2 3 4
+)
+
+(call list 1 call list 2)
+(pret tilanth 1 tilanth 1 tilanth 1 tilalist 1 tilalist 2 tilalist 3 4)
+
+(pret tilanth 3 lst)
+
+(pret call list 1 list 2)
+(pret
+  tilanth 0
+    tilanth 1
+      tilalist 2
+        tilalist 3)
+
+define x 2
+
+tilalist x tilalist x

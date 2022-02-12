@@ -88,18 +88,6 @@ void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
     (*result)->data.slot_lambda = lambda;
 }
 
-void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
-{
-    struct List *list = malloc(sizeof (struct List));
-    list->cont = NULL;
-    list->len = g_node_n_children(node);
-    while (node) {
-        list->cont = g_list_append(list->cont, eval3(node, env));
-        node = node->next;      /* node's sibling */
-    }
-    (*tdata)->type = LIST;
-    (*tdata)->data.list = list;
-}
 
 
 /* pack contains Tila_data pointers */
@@ -135,7 +123,28 @@ void eval_unnamed_rest_args(struct Tila_data **result, GNode *node, GHashTable *
     (*result)->data.pack = pack;
 }
 
+void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
+{
+    struct List *list = (struct List *)malloc(sizeof (struct List));
+    list->item = NULL;
+    list->size = g_node_n_children(node->parent);
+    while (node) {
+        list->item = g_list_append(list->item, eval3(node, env));
+        node = node->next;      /* node's sibling */
+    }
+    (*tdata)->type = LIST;
+    (*tdata)->data.list = list;
+}
 
+void eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env) {
+    struct Tila_data *idx_data = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *pack_data = eval3(g_node_nth_child(node, 1), env);
+    guint idx = (guint)idx_data->data.int_slot;
+    GList *pack = pack_data->data.list->item;
+    struct Tila_data *data = g_list_nth(pack, idx)->data;
+    (*result)->type = data->type;
+    set_data_slot(*result, data);
+}
 
 
 void eval_cith(struct Tila_data **result, GNode *node, GHashTable *env) {
@@ -224,7 +233,9 @@ void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
             }
         } else if (is_of_type((unitp_t)nth_sibling(first_arg, arg_idx)->data, BOUND_PACK_BINDING)) {
             struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
-            eval_named_rest_args(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env);
+            /* is named rest args */
+            eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx)->children, call_time_env);
+            /* eval_named_rest_args(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env); */
             g_hash_table_insert(call_time_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
                                 rest_params);
@@ -232,9 +243,10 @@ void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
         } else {			/* just an expression or multiple expressions, not a binding (para->arg) */
             if (unit_type((unitp_t)g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)->data) == PACK_BINDING ||
                 unit_type((unitp_t)g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
-                /* es ist pack binding ohne keyword */
+                /* reached rest args without param name */
                 struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
-                eval_unnamed_rest_args(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env);
+                eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env);
+                /* eval_unnamed_rest_args(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env); */
                 g_hash_table_insert(call_time_env,
                                     binding_node_name(g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)),
                                     rest_params);
@@ -324,7 +336,8 @@ void eval_toplevel(struct Tila_data **result, GNode *root)
     *result = eval3(g_node_nth_child(root, size - 1), ((unitp_t)root->data)->env);
 }
 
-struct Tila_data *eval3(GNode *node, GHashTable *env) {
+struct Tila_data *eval3(GNode *node, GHashTable *env)
+{
     struct Tila_data *result = malloc(sizeof (struct Tila_data));
     if (((unitp_t)node->data)->is_atomic) {
         switch (unit_type(((unitp_t)node->data))) {
@@ -389,6 +402,8 @@ struct Tila_data *eval3(GNode *node, GHashTable *env) {
             eval_call(&result, node, env);
         } else if (is_tila_list((unitp_t)node->data))
             eval_tila_list(&result, node->children, env);
+        else if (is_tila_nth((unitp_t)node->data))
+            eval_tila_nth(&result, node, env);
     }
     return result;
 }

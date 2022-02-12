@@ -16,6 +16,7 @@ char *stringify_type(enum Type t) {
     case 9: return "bound-pack-binding";
     case 10: return "pack";
     case 11: return "bool";
+    case 12: return "List";
     default: return "undefined";
     }
 }
@@ -33,6 +34,7 @@ void set_data_slot(struct Tila_data *dest, struct Tila_data *src) {
     case LAMBDA: dest->data.slot_lambda = src->data.slot_lambda; break;
     case BOOL: dest->data.slot_bool = src->data.slot_bool; break;
     case PACK: dest->data.pack = src->data.pack; break;
+    case LIST: dest->data.list = src->data.list; break;
     default: break;
     }
 }

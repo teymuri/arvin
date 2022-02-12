@@ -29,8 +29,8 @@ struct Lambda {
 };
 
 struct List {
-    GList *cont;
-    int len;
+    GList *item;
+    int size;
 };
 
 

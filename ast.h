@@ -21,5 +21,6 @@ bool is_true(struct Unit *);
 bool is_cpack(struct Unit *);
 bool is_tila_list(struct Unit *);
 bool is_cith(struct Unit *);
+bool is_tila_nth(struct Unit *);
 
 #endif	/* LET_AST_H */

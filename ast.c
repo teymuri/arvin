@@ -126,6 +126,10 @@ bool is_tila_list(struct Unit *u)
 bool is_cith(struct Unit *u) {
     return !strcmp(u->token.str, CITH_KW);
 }
+bool is_tila_nth(struct Unit *u)
+{
+    return !strcmp(u->token.str, TILA_NTH_KW);
+}
 
 /* booleans */
 bool is_true(struct Unit *u) {
@@ -169,7 +173,8 @@ bool need_block(struct Unit *u) {
         is_call(u) ||
         is_cpack(u) ||
         is_tila_list(u) ||
-        is_cith(u)
+        is_cith(u) ||
+        is_tila_nth(u)
         ;
 }
 
@@ -273,6 +278,10 @@ GNode *parse3(GList *ulink) {
             
             /* new block has it's own environment */
             ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
+
+            /* set type */
+            if (is_tila_list((unitp_t)ulink->data))
+                ((unitp_t)ulink->data)->type = LIST;
             
             /* set the maximum absorption capacity for units with
              * definite amount of capacity */
