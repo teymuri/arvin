@@ -207,11 +207,10 @@ void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
     struct Tila_data *lambda_data = eval3(lambda_node, env);
     /* make a copy of the lambda env */
     GHashTable *call_time_env = clone_hash_table(lambda_data->data.slot_lambda->env);
-    /* iterate over passed arguments */
     guint arg_idx = 0;
     gint param_idx = 0;
     GNode *first_arg = g_node_nth_child(node, 1);
-    
+    /* iterate over passed arguments */
     while (arg_idx < g_node_n_children(node) - 1) {
         if (unit_type((unitp_t)nth_sibling(first_arg, arg_idx)->data) == BOUND_BINDING) {
             g_hash_table_insert(call_time_env,
