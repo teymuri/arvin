@@ -122,7 +122,7 @@ void eval_unnamed_rest_args(struct Tila_data **result, GNode *node, GHashTable *
     (*result)->type = PACK;
     (*result)->data.pack = pack;
 }
-
+/* ******* begin list ******* */
 void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
 {
     struct List *list = (struct List *)malloc(sizeof (struct List));
@@ -137,15 +137,15 @@ void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
 }
 
 void eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env) {
-    struct Tila_data *idx_data = eval3(g_node_nth_child(node, 0), env);
-    struct Tila_data *pack_data = eval3(g_node_nth_child(node, 1), env);
-    guint idx = (guint)idx_data->data.int_slot;
-    GList *pack = pack_data->data.list->item;
-    struct Tila_data *data = g_list_nth(pack, idx)->data;
+    guint idx = eval3(g_node_nth_child(node, 0), env)->data.int_slot;
+    struct List *list = eval3(g_node_nth_child(node, 1), env)->data.list;
+    struct Tila_data *data = g_list_nth(list->item, idx)->data; /* item = first link of list */
     (*result)->type = data->type;
     set_data_slot(*result, data);
 }
 
+
+/* ***** end list ******* */
 
 void eval_cith(struct Tila_data **result, GNode *node, GHashTable *env) {
     struct Tila_data *idx_data = eval3(g_node_nth_child(node, 0), env);
@@ -355,12 +355,12 @@ struct Tila_data *eval3(GNode *node, GHashTable *env)
             break;
         case NAME:
         {
-            char *tokstr = ((unitp_t)node->data)->token.str;
+            char *wanted_kw = ((unitp_t)node->data)->token.str;
             /* symbols are evaluated in the envs of their enclosing units */
             struct Tila_data *tdata;
-            GNode *wanted_node = node;
+            GNode *nodecp = node; /* copy node for print_node belowv */
             do {
-                if ((tdata = g_hash_table_lookup(env, tokstr))) {
+                if ((tdata = g_hash_table_lookup(env, wanted_kw))) {
                     result->type = tdata->type;
                     set_data_slot(result, tdata);
                     break;
@@ -368,7 +368,7 @@ struct Tila_data *eval3(GNode *node, GHashTable *env)
             } while ((node = node->parent) && (env = ((unitp_t)node->data)->env));
             if (!node) {
                 fprintf(stderr, "lookup failed for\n");
-                print_node(wanted_node, NULL);
+                print_node(nodecp, NULL);
                 exit(EXIT_FAILURE);
             }
         } break;                  /* break the NAME branch */

@@ -3,7 +3,7 @@
 
 
 define list lambda &args: args
-define nth n: lst: tilanth n 
+define nth lambda n: lst: tilanth n lst
 
 pret
   tilanth 3
@@ -12,14 +12,14 @@ pret
              call list 100 200 300 400
 
 
-
+(
 pret tilanth 1 tilanth 1 tilanth 1 call list 1 call list 2 call list 3 4
 
 define lst call list 93.2 3.4 1.2 call list 4.5 63.2403
 
 pret tilanth 1 tilanth 3 lst
 
-pret tilanth 0 tilanth 1 call list 1 call list 2
+pret tilanth 0 tilanth 1 call list 1 call list 2)
 (pret
   tilanth 0
     tilanth 1
