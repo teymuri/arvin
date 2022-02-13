@@ -203,17 +203,16 @@ GNode *nth_sibling(GNode *node, int n)
 void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     GNode *lambda_node = g_node_first_child(node);
-    /* populate lambda environment */
     struct Tila_data *lambda_data = eval3(lambda_node, env);
-    /* make a copy of the lambda env */
-    GHashTable *call_time_env = clone_hash_table(lambda_data->data.slot_lambda->env);
+    /* make a copy of the lambda env just for this call */
+    GHashTable *call_env = clone_hash_table(lambda_data->data.slot_lambda->env);
     guint arg_idx = 0;
     gint param_idx = 0;
     GNode *first_arg = g_node_nth_child(node, 1);
     /* iterate over passed arguments */
     while (arg_idx < g_node_n_children(node) - 1) {
         if (unit_type((unitp_t)nth_sibling(first_arg, arg_idx)->data) == BOUND_BINDING) {
-            g_hash_table_insert(call_time_env,
+            g_hash_table_insert(call_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
                                 eval3(nth_sibling(first_arg, arg_idx)->children, env)); /* nicht call_time env???? */
             
@@ -233,9 +232,8 @@ void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
         } else if (is_of_type((unitp_t)nth_sibling(first_arg, arg_idx)->data, BOUND_PACK_BINDING)) {
             struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
             /* is named rest args */
-            eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx)->children, call_time_env);
-            /* eval_named_rest_args(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env); */
-            g_hash_table_insert(call_time_env,
+            eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx)->children, call_env);
+            g_hash_table_insert(call_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
                                 rest_params);
             break;       /* out of parameter processing, &rest: must be the last! */
@@ -244,14 +242,13 @@ void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
                 unit_type((unitp_t)g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
                 /* reached rest args without param name */
                 struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
-                eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env);
-                /* eval_unnamed_rest_args(&rest_params, nth_sibling(first_arg, arg_idx), call_time_env); */
-                g_hash_table_insert(call_time_env,
+                eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx), call_env);
+                g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)),
                                     rest_params);
                 break;                  /* last param, get out!!! */
             } else {
-                g_hash_table_insert(call_time_env,
+                g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda_data->data.slot_lambda->node, param_idx)),
                                     eval3(nth_sibling(first_arg, arg_idx), env));
                 arg_idx++;
@@ -259,7 +256,7 @@ void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
             }
         }
     }
-    *result = eval3(g_node_last_child(lambda_data->data.slot_lambda->node), call_time_env);
+    *result = eval3(g_node_last_child(lambda_data->data.slot_lambda->node), call_env);
 }
 
 void eval_pass(struct Tila_data **result, GNode *node, GHashTable *env) {
@@ -267,12 +264,12 @@ void eval_pass(struct Tila_data **result, GNode *node, GHashTable *env) {
     /* populate lambda environment */
     struct Tila_data *x = eval3(lambda_node, env);
     /* make a copy of the lambda env */
-    GHashTable *call_time_env = clone_hash_table(x->data.slot_lambda->env);
+    GHashTable *call_env = clone_hash_table(x->data.slot_lambda->env);
     /* iterate over passed arguments */
     gint idx = 0;			/* gint because of g_node_child_index update later */
     while (idx < (gint)g_node_n_children(node) - 1) {
         if (unit_type((unitp_t)g_node_nth_child(node, idx)->data) == BOUND_BINDING) {
-            g_hash_table_insert(call_time_env,
+            g_hash_table_insert(call_env,
                                 binding_node_name(g_node_nth_child(node, idx)),
                                 eval3(g_node_nth_child(node, idx)->children, env));
             /* update the index to reflect the position of current passed
@@ -294,8 +291,8 @@ void eval_pass(struct Tila_data **result, GNode *node, GHashTable *env) {
             struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
             eval_cpack(&rest_params,
                             g_node_nth_child(node, idx),
-                            call_time_env, 0, 0);
-            g_hash_table_insert(call_time_env,
+                            call_env, 0, 0);
+            g_hash_table_insert(call_env,
                                 binding_node_name(g_node_nth_child(node, idx)),
                                 rest_params);
             break;       /* out of parameter processing, &rest: must be the last! */
@@ -306,22 +303,22 @@ void eval_pass(struct Tila_data **result, GNode *node, GHashTable *env) {
                 struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
                 eval_cpack(&rest_params,
                                 node,
-                                call_time_env,
+                                call_env,
                                 idx,
                                 g_node_n_children(node) - 1);
-                g_hash_table_insert(call_time_env,
+                g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(x->data.slot_lambda->node, idx)),
                                     rest_params);
                 break;                  /* last param, get out!!! */
             } else {
                 char *bname = binding_node_name(g_node_nth_child(x->data.slot_lambda->node, idx));
-                g_hash_table_insert(call_time_env, bname,
+                g_hash_table_insert(call_env, bname,
                                     eval3(g_node_nth_child(node, idx), env));
                 idx++;        
             }
         }
     }
-    *result = eval3(g_node_last_child(x->data.slot_lambda->node), call_time_env);
+    *result = eval3(g_node_last_child(x->data.slot_lambda->node), call_env);
 }
 
 
