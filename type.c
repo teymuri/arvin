@@ -29,12 +29,12 @@ bool is_of_type(struct Unit *u, enum Type t) {
  * of the source data */
 void set_data_slot(struct Tila_data *dest, struct Tila_data *src) {
     switch (src->type) {
-    case INTEGER: dest->data.int_slot = src->data.int_slot; break;
-    case FLOAT: dest->data.float_slot = src->data.float_slot; break;
-    case LAMBDA: dest->data.slot_lambda = src->data.slot_lambda; break;
-    case BOOL: dest->data.slot_bool = src->data.slot_bool; break;
-    case PACK: dest->data.pack = src->data.pack; break;
-    case LIST: dest->data.list = src->data.list; break;
+    case INTEGER: dest->slots.tila_int = src->slots.tila_int; break;
+    case FLOAT: dest->slots.tila_float = src->slots.tila_float; break;
+    case LAMBDA: dest->slots.tila_lambda = src->slots.tila_lambda; break;
+    case BOOL: dest->slots.tila_bool = src->slots.tila_bool; break;
+    case PACK: dest->slots.pack = src->slots.pack; break;
+    case LIST: dest->slots.tila_list = src->slots.tila_list; break;
     default: break;
     }
 }

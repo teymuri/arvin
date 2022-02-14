@@ -15,9 +15,9 @@
 struct Tila_data *pret(struct Tila_data *thing) {
     /* puts(">"); */
     switch(thing->type) {
-    case INTEGER: printf("%d", thing->data.int_slot); break;
-    case FLOAT: printf("%f", thing->data.float_slot); break;
-    case BOOL:printf("%s", thing->data.slot_bool ? TRUE_KW:FALSE_KW); break;
+    case INTEGER: printf("%d", thing->slots.tila_int); break;
+    case FLOAT: printf("%f", thing->slots.tila_float); break;
+    case BOOL:printf("%s", thing->slots.tila_bool ? TRUE_KW:FALSE_KW); break;
     case LAMBDA: printf("tbi:lambda (to be implemented)"); break;
     default: break;
     }
@@ -29,7 +29,7 @@ struct Tila_data *pret(struct Tila_data *thing) {
 struct Tila_data *GJ(void) {
     struct Tila_data *ld = malloc(sizeof *ld);
     ld->type = INTEGER;
-    ld->data.int_slot = 1363;
+    ld->slots.tila_int = 1363;
     /* printf("mein geburtsjahr %d", ld->data.i); */
     return ld;
 }

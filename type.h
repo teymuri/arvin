@@ -37,13 +37,13 @@ struct List {
 struct Tila_data {
     enum Type type;
     union {
-        int int_slot;
-        float float_slot;
-        struct Lambda *slot_lambda;
+        int tila_int;
+        float tila_float;
+        struct Lambda *tila_lambda;
         GList *pack;
-        struct List *list;
-        bool slot_bool;
-    } data;
+        struct List *tila_list;
+        bool tila_bool;
+    } slots;
 };
 
 char *stringify_type(enum Type);

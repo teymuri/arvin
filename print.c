@@ -43,13 +43,13 @@ void print(struct Tila_data *data)
 {
     switch (data->type) {
     case INTEGER:
-        printf("%d", data->data.int_slot); break;
+        printf("%d", data->slots.tila_int); break;
     case FLOAT:
-        printf("%f", data->data.float_slot); break;
+        printf("%f", data->slots.tila_float); break;
     case LAMBDA:
         printf("lambda..."); break;
     case BOOL:
-        printf("%s", data->data.slot_bool ? TRUE_KW : FALSE_KW); break;
+        printf("%s", data->slots.tila_bool ? TRUE_KW : FALSE_KW); break;
     default: break;
     }
     puts("");
