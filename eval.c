@@ -104,6 +104,8 @@ void eval_tila_size(struct Tila_data **result, GNode *node, GHashTable *env)
 void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
     (*result)->type = LAMBDA;
     struct Lambda *lambda = malloc(sizeof (struct Lambda));
+    /* make a snapshot of the current environment at the time of
+     * lambda creation */
     lambda->env = clone_hash_table(env);
     lambda->node = node;
     lambda->param_list = NULL;
@@ -248,8 +250,9 @@ void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
             }
         } else if (is_of_type((unitp_t)nth_sibling(first_arg, arg_idx)->data, BOUND_PACK_BINDING)) {
             struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
-            /* is named rest args */
-            eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx)->children, call_env);
+            /* named rest args */
+            /* eval the passed arguments in the  */
+            eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx)->children, env);
             g_hash_table_insert(call_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
                                 rest_params);
@@ -259,7 +262,7 @@ void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
                 unit_type((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
                 /* reached rest args without param name */
                 struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
-                eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx), call_env);
+                eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx), env);
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)),
                                     rest_params);
@@ -273,6 +276,7 @@ void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
             }
         }
     }
+    /* eval the lambda expr in the created call-time env */
     *result = eval3(g_node_last_child(lambda_data->slots.tila_lambda->node), call_env);
 }
 
