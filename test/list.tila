@@ -32,3 +32,9 @@ define size lambda lst: tilasize lst
 
 pret call size call list 0 1 2 3 4
 (pret call size tilalist )
+
+pret call size lambda 0
+
+pret tilasize lambda 290
+
+(call list 1 2)

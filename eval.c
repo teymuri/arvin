@@ -86,8 +86,16 @@ void eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env)
 }
 void eval_tila_size(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    (*result)->type = INTEGER;
-    (*result)->slots.tila_int = eval3(node->children, env)->slots.tila_list->size;
+    struct Tila_data *d = eval3(node->children, env);
+    /* work only if data is list */
+    if (d->type == LIST) {
+        (*result)->type = INTEGER;
+        (*result)->slots.tila_int = d->slots.tila_list->size;
+    } else {
+        fprintf(stderr, "size arg must eval to list\n");
+        print_node(node->children, NULL);
+        exit(EXIT_FAILURE);   
+    }
 }
 
 /* ***** end list ******* */
