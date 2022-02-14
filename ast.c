@@ -118,10 +118,6 @@ bool is_call(struct Unit *u) {
 bool is_cpack(struct Unit *u) {
     return !strcmp(u->token.str, CPACK_KW);
 }
-bool is_tila_list(struct Unit *u)
-{
-    return !strcmp(u->token.str, TILA_LIST_KW);
-}
 
 bool is_cith(struct Unit *u) {
     return !strcmp(u->token.str, CITH_KW);
@@ -129,6 +125,10 @@ bool is_cith(struct Unit *u) {
 bool is_tila_nth(struct Unit *u)
 {
     return !strcmp(u->token.str, TILA_NTH_KW);
+}
+bool is_tila_size(struct Unit *u)
+{
+    return !strcmp(u->token.str, TILA_SIZE_KW);
 }
 
 /* booleans */
@@ -172,9 +172,10 @@ bool need_block(struct Unit *u) {
         is_pass(u) ||
         is_call(u) ||
         is_cpack(u) ||
-        is_tila_list(u) ||
+        /* is_tila_list(u) || */
         is_cith(u) ||
-        is_tila_nth(u)
+        is_tila_nth(u) ||
+        is_tila_size(u)
         ;
 }
 
@@ -264,14 +265,15 @@ GNode *parse3(GList *ulink) {
         if (is_of_type((unitp_t)enc_node->data, BOUND_BINDING) ||
             is_assignment4((unitp_t)enc_node->data) ||
             is_cith((unitp_t)enc_node->data) ||
-            is_pret4((unitp_t)enc_node->data)
+            is_pret4((unitp_t)enc_node->data) ||
+            is_tila_size((unitp_t)enc_node->data)
             ) {
             if (((unitp_t)enc_node->data)->max_capa)
                 ((unitp_t)enc_node->data)->max_capa--;
             else
                 enc_node = find_parent_with_capa(enc_node);
         }
-        
+
         if (need_block((unitp_t)ulink->data)) {
             
             ((unitp_t)ulink->data)->is_atomic = false;
@@ -279,9 +281,9 @@ GNode *parse3(GList *ulink) {
             /* new block has it's own environment */
             ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
 
-            /* set type */
-            if (is_tila_list((unitp_t)ulink->data))
-                ((unitp_t)ulink->data)->type = LIST;
+            /* /\* set type *\/ */
+            /* if (is_tila_list((unitp_t)ulink->data)) */
+            /*     ((unitp_t)ulink->data)->type = LIST; */
             
             /* set the maximum absorption capacity for units with
              * definite amount of capacity */
@@ -298,7 +300,9 @@ GNode *parse3(GList *ulink) {
             } else if (is_pret4((unitp_t)ulink->data)) {
                 /* capa = thing */
                 ((unitp_t)ulink->data)->max_capa = 1;
-            }
+            } else if (is_tila_size((unitp_t)ulink->data))
+                /* capa = list */
+                ((unitp_t)ulink->data)->max_capa = 1;
             
             /* set current binding unit */
             if (is_lambda4((unitp_t)ulink->data) ||

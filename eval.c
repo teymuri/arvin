@@ -60,6 +60,39 @@ gint get_param_index(GList *list, char *str) {
   else return -1;
 }
 
+/* ******* begin list ******* */
+void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
+/* node = first item of the list */
+{
+    (*tdata)->type = LIST;
+    struct List *list = (struct List *)malloc(sizeof (struct List));
+    list->item = NULL;
+    list->size = 0;
+    while (node) {
+        list->item = g_list_append(list->item, eval3(node, env));
+        list->size++;
+        node = node->next;      /* node's sibling */
+    }
+    (*tdata)->data.list = list;
+}
+
+void eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env)
+{
+    guint idx = eval3(g_node_nth_child(node, 0), env)->data.int_slot;
+    struct List *list = eval3(g_node_nth_child(node, 1), env)->data.list;
+    struct Tila_data *data = g_list_nth(list->item, idx)->data; /* item = first link of list */
+    (*result)->type = data->type;
+    set_data_slot(*result, data);
+}
+void eval_tila_size(struct Tila_data **result, GNode *node, GHashTable *env)
+{
+    (*result)->type = INTEGER;
+    (*result)->data.int_slot = eval3(node->children, env)->data.list->size;
+}
+
+/* ***** end list ******* */
+
+
 void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
     (*result)->type = LAMBDA;
     struct Lambda *lambda = malloc(sizeof (struct Lambda));
@@ -79,10 +112,10 @@ void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
                    unit_type((unitp_t)binding->data) == PACK_BINDING) {
             g_hash_table_insert(lambda->env, name, NULL);
         } else if (unit_type((unitp_t)binding->data) == BOUND_PACK_BINDING) {
-            struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
+            struct Tila_data *rest_args = malloc(sizeof (struct Tila_data));
             /* 0tes Kind bis zum letzten Kind (mit allen seinen siblings) */
-            eval_cpack(&rest_params, binding, lambda->env, 0, 0);
-            g_hash_table_insert(lambda->env, name, rest_params);
+            eval_tila_list(&rest_args, binding->children, lambda->env);
+            g_hash_table_insert(lambda->env, name, rest_args);
         }
     }
     (*result)->data.slot_lambda = lambda;
@@ -122,30 +155,6 @@ void eval_unnamed_rest_args(struct Tila_data **result, GNode *node, GHashTable *
     (*result)->type = PACK;
     (*result)->data.pack = pack;
 }
-/* ******* begin list ******* */
-void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
-{
-    struct List *list = (struct List *)malloc(sizeof (struct List));
-    list->item = NULL;
-    list->size = g_node_n_children(node->parent);
-    while (node) {
-        list->item = g_list_append(list->item, eval3(node, env));
-        node = node->next;      /* node's sibling */
-    }
-    (*tdata)->type = LIST;
-    (*tdata)->data.list = list;
-}
-
-void eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env) {
-    guint idx = eval3(g_node_nth_child(node, 0), env)->data.int_slot;
-    struct List *list = eval3(g_node_nth_child(node, 1), env)->data.list;
-    struct Tila_data *data = g_list_nth(list->item, idx)->data; /* item = first link of list */
-    (*result)->type = data->type;
-    set_data_slot(*result, data);
-}
-
-
-/* ***** end list ******* */
 
 void eval_cith(struct Tila_data **result, GNode *node, GHashTable *env) {
     struct Tila_data *idx_data = eval3(g_node_nth_child(node, 0), env);
@@ -389,10 +398,11 @@ struct Tila_data *eval3(GNode *node, GHashTable *env)
             eval_cith(&result, node, env);
         } else if (is_call((unitp_t)node->data)) {
             eval_call(&result, node, env);
-        } else if (is_tila_list((unitp_t)node->data))
-            eval_tila_list(&result, node->children, env);
+        }
         else if (is_tila_nth((unitp_t)node->data))
             eval_tila_nth(&result, node, env);
+        else if (is_tila_size((unitp_t)node->data))
+            eval_tila_size(&result, node, env);
     }
     return result;
 }

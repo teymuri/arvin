@@ -3,13 +3,14 @@
 
 
 define list lambda &args: args
-define nth lambda n: lst: tilanth n lst
 
-pret
+(define nth lambda n: lst: tilanth n lst)
+
+(pret
   tilanth 3
     tilanth 4
       call list 10 false 3.14 true
-             call list 100 200 300 400
+             call list 100 200 300 400)
 
 
 (
@@ -25,3 +26,9 @@ pret tilanth 0 tilanth 1 call list 1 call list 2)
     tilanth 1
       tilalist 2
         tilalist 3)
+
+define size lambda lst: tilasize lst
+
+
+pret call size call list 0 1 2 3 4
+(pret call size tilalist )
