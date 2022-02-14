@@ -1,0 +1,18 @@
+define list lambda &args: args
+
+
+define f lambda x: call list x
+define f2 lambda x: y: call list call f x
+                            y
+(define f2
+  lambda x: y:
+    call list
+      call f x
+      y)
+
+pret tilanth 1 call f2 1 2
+
+
+
+
+

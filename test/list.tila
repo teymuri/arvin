@@ -1,0 +1,14 @@
+define list lambda &args: args
+define size lambda lst: tilasize lst
+define nth lambda i: lst: tilanth i lst
+
+let
+  a: call list 1 2 3
+  b: call list a a a a a a a
+  c: call nth 0 b
+  asz: call size a
+  bsz: call size b
+  csize: call size c
+  define svn bsz
+
+pret svn
