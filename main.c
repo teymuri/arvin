@@ -10,24 +10,33 @@
 #include "eval.h"
 #include "print.h"
 
-#define TOPLEVEL_TOKEN_STRING "_TLTS"
-#define TOPLEVEL_UNIT_UUID 0
+#define GLOBAL_TOKEN_STRING "GTS"
+#define GLOBAL_UNIT_UUID 0
 
 
-int main(int argc, char **argv) {
-    struct Token toplevel_token = {
-        .str = TOPLEVEL_TOKEN_STRING,
-        .col_start_idx = -1,
-        .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
-        .line = -1,
-        .id = 0
-    };
-    struct Unit toplevel_unit = {				/* bricks[0] toplevel cell */
-        .uuid = TOPLEVEL_UNIT_UUID,					/*  */
+int main(int argc, char **argv)
+{
+    /* struct Token toplevel_token = { */
+    /*     .str = GLOBAL_TOKEN_STRING, */
+    /*     .col_start_idx = -1, */
+    /*     .column_end_idx = 100,		/\* ???????????????????????????????????????? set auf maximum*\/ */
+    /*     .line = -1, */
+    /*     .id = 0 */
+    /* }; */
+    
+    /* global unit */
+    struct Unit gunit = {
+        .uuid = GLOBAL_UNIT_UUID,
         .max_capa = -1,
         .arity = -1,
         .is_atomic = false,
-        .token = toplevel_token,
+        .token = {
+            .str = GLOBAL_TOKEN_STRING,
+            .col_start_idx = -1,
+            .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
+            .line = -1,
+            .id = 0
+        },
         .env = g_hash_table_new(g_str_hash, g_str_equal),
         /* type ??? */
         .type = UNDEFINED,
@@ -45,14 +54,14 @@ int main(int argc, char **argv) {
   
     if (polished_tokens_count) {
         GList *unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
-        unit_link = g_list_prepend(unit_link, &toplevel_unit);
+        unit_link = g_list_prepend(unit_link, &gunit);
         GNode *ast3 = parse3(unit_link);
         print_ast3(ast3);
         post_parse_lambda_check(ast3);
         post_parse_pass_check(ast3);
         post_parse_let_check(ast3);
         print_ast3(ast3);
-        struct Tila_data *e = eval3(ast3, toplevel_unit.env);
+        eval3(ast3, gunit.env);
         /* print(e); */
     }
     exit(EXIT_SUCCESS);
