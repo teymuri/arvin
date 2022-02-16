@@ -115,6 +115,19 @@ bool is_call(struct Unit *u) {
     return !strcmp(u->token.str, CALL_KW);
 }
 
+bool starts_with(const char *a, const char *b)
+{
+   if(strncmp(a, b, strlen(b)) == 0) return 1;
+   return 0;
+}
+
+bool
+is_ltd_call(struct Unit *u)
+{
+    return starts_with(u->token.str, LTD_CALL_PREFIX);
+}
+
+
 bool is_cpack(struct Unit *u) {
     return !strcmp(u->token.str, CPACK_KW);
 }
@@ -171,6 +184,7 @@ bool need_block(struct Unit *u) {
         is_pret4(u) ||
         is_pass(u) ||
         is_call(u) ||
+        is_ltd_call(u) ||
         is_cpack(u) ||
         /* is_tila_list(u) || */
         is_cith(u) ||
@@ -179,15 +193,6 @@ bool need_block(struct Unit *u) {
         ;
 }
 
-/* GNode *find_parent_with_capa(GNode *node) { */
-/*     while (node) { */
-/*         if (((unitp_t)node->data)->max_capa != 0) */
-/*             return node; */
-/*         else */
-/*             node = node->parent; */
-/*     } */
-/*     return NULL;		/\* nothing found! *\/ */
-/* } */
 
 GNode *find_parent_with_capa(GNode *node) {
     do {
@@ -244,7 +249,8 @@ GNode *parse3(GList *ulink) {
         if (is_let((unitp_t)enc_node->data) ||
             is_lambda4((unitp_t)enc_node->data) ||
             is_pass((unitp_t)enc_node->data) ||
-            is_call((unitp_t)enc_node->data)) {
+            is_call((unitp_t)enc_node->data) ||
+            is_ltd_call((unitp_t)enc_node->data)) {
             /* check pack binding before binding!!! every pack binding is also a binding */
             if (maybe_pack_binding((unitp_t)ulink->data)) {
                 ((unitp_t)ulink->data)->is_atomic = false;
@@ -266,7 +272,8 @@ GNode *parse3(GList *ulink) {
             is_assignment4((unitp_t)enc_node->data) ||
             is_cith((unitp_t)enc_node->data) ||
             is_pret4((unitp_t)enc_node->data) ||
-            is_tila_size((unitp_t)enc_node->data)
+            is_tila_size((unitp_t)enc_node->data) ||
+            is_ltd_call((unitp_t)enc_node->data)
             ) {
             if (((unitp_t)enc_node->data)->max_capa)
                 ((unitp_t)enc_node->data)->max_capa--;
@@ -280,10 +287,6 @@ GNode *parse3(GList *ulink) {
             
             /* new block has it's own environment */
             ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
-
-            /* /\* set type *\/ */
-            /* if (is_tila_list((unitp_t)ulink->data)) */
-            /*     ((unitp_t)ulink->data)->type = LIST; */
             
             /* set the maximum absorption capacity for units with
              * definite amount of capacity */
@@ -303,11 +306,21 @@ GNode *parse3(GList *ulink) {
             } else if (is_tila_size((unitp_t)ulink->data))
                 /* capa = list */
                 ((unitp_t)ulink->data)->max_capa = 1;
+            else if (is_ltd_call((unitp_t)ulink->data)) {
+                /* capa = the specified number of args */
+                char kwcp[strlen(((unitp_t)ulink->data)->token.str) + 1];
+                strcpy(kwcp, ((unitp_t)ulink->data)->token.str);
+                char *arg_tok = strtok(kwcp, "/");
+                arg_tok = strtok(NULL, "/");
+                int arg_count = atoi(arg_tok);
+                ((unitp_t)ulink->data)->max_capa = arg_count + 1; /* arg_count = args, + 1 = fnc name */
+            }
             
             /* set current binding unit */
             if (is_lambda4((unitp_t)ulink->data) ||
                 is_pass((unitp_t)ulink->data) ||
                 is_call((unitp_t)ulink->data) ||
+                is_ltd_call((unitp_t)ulink->data) ||
                 is_let((unitp_t)ulink->data))
                 curr_bind_unit = (unitp_t)ulink->data;
             

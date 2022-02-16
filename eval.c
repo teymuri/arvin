@@ -219,7 +219,8 @@ GNode *nth_sibling(GNode *node, int n)
     return node;
 }
 
-void eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
+void
+eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     GNode *lambda_node = g_node_first_child(node);
     struct Tila_data *lambda_data = eval3(lambda_node, env);
@@ -408,9 +409,9 @@ struct Tila_data *eval3(GNode *node, GHashTable *env)
             eval_cpack(&result, node, env, 0, 0);
         } else if (is_cith((unitp_t)node->data)) {
             eval_cith(&result, node, env);
-        } else if (is_call((unitp_t)node->data)) {
+        } else if (is_call((unitp_t)node->data) ||
+                   is_ltd_call((unitp_t)node->data))
             eval_call(&result, node, env);
-        }
         else if (is_tila_nth((unitp_t)node->data))
             eval_tila_nth(&result, node, env);
         else if (is_tila_size((unitp_t)node->data))

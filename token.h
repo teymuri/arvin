@@ -12,10 +12,11 @@
 #define CPACK_KW "cpack"
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
+#define LTD_CALL_PREFIX "CALL/"
 #define CITH_KW "cith"
 #define TRUE_KW "true"
 #define FALSE_KW "false"
-#define CALL_KW "call"
+#define CALL_KW "CALL"
 #define TILA_NTH_KW "tilanth"
 #define TILA_SIZE_KW "tilasize"
 

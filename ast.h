@@ -9,6 +9,10 @@ GNode *parse3(GList *atoms);
 bool is_pret4(struct Unit *);
 bool is_lambda4(struct Unit *);
 bool is_call(struct Unit *);
+
+bool
+is_ltd_call(struct Unit *);
+
 bool is_let(struct Unit *);
 bool is_assignment4(struct Unit *);
 bool is_pass(struct Unit *);
