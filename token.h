@@ -5,22 +5,22 @@
 
 /* ******* reserved keywords, Named strings and characters ******** */
 /* differentiate btwn assignment and association like W. Richard Stark pg. 97*/
-#define ASSIGNMENT_KEYWORD "define"		/* used to define symbols in the global environment */
-#define ASSOCIATION_KEYWORD "let"
-#define LAMBDA_KEYWORD "lambda"
+#define DEFINE_KW "DFN"		/* used to define symbols in the global environment */
+#define LET_KW "LET"
+#define FUNCTION_KW "FNC"
 #define FUNCALL_KEYWORD "pass"
 #define CPACK_KW "cpack"
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
 #define LTD_CALL_PREFIX "CALL/"
 #define CITH_KW "cith"
-#define TRUE_KW "true"
-#define FALSE_KW "false"
+#define TRUE_KW "T"
+#define FALSE_KW "F"
 #define CALL_KW "CALL"
-#define TILA_NTH_KW "tilanth"
-#define TILA_SIZE_KW "tilasize"
+#define TILA_NTH_KW "TILA_NTH"
+#define TILA_SIZE_KW "TILA_SZ"
 
-#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&]+)"
+#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_]+)"
 
 #define COMMENT_OPENING "("		/* comment opening token */
 #define COMMENT_CLOSING ")"		/* comment closing token */

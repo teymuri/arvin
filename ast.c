@@ -84,29 +84,29 @@ GList *find_enclosure_link(GList *unit_link, GList *tl_ulink) {
 
 
 bool is_lambda4(struct Unit *u) {
-    return !strcmp(u->token.str, LAMBDA_KEYWORD);
+    return !strcmp(u->token.str, FUNCTION_KW);
 }
 
 
 bool is_lambda_node(GNode *node) {
-    return !strcmp(((unitp_t)node->data)->token.str, LAMBDA_KEYWORD);
+    return !strcmp(((unitp_t)node->data)->token.str, FUNCTION_KW);
 }
 bool is_association(struct Unit *c)
 {
-    return !strcmp(c->token.str, ASSOCIATION_KEYWORD);
+    return !strcmp(c->token.str, LET_KW);
 }
 
 bool is_let(struct Unit *u) {
-    return !strcmp(u->token.str, ASSOCIATION_KEYWORD);
+    return !strcmp(u->token.str, LET_KW);
 }
 
 
 bool is_assignment3(GList *link) {
-    return !strcmp(((unitp_t)link->data)->token.str, ASSIGNMENT_KEYWORD);
+    return !strcmp(((unitp_t)link->data)->token.str, DEFINE_KW);
 }
 
 bool is_assignment4(struct Unit *u) {
-    return !strcmp(u->token.str, ASSIGNMENT_KEYWORD);
+    return !strcmp(u->token.str, DEFINE_KW);
 }
 bool is_pass(struct Unit *u) {
     return !strcmp(u->token.str, FUNCALL_KEYWORD);
@@ -135,10 +135,13 @@ bool is_cpack(struct Unit *u) {
 bool is_cith(struct Unit *u) {
     return !strcmp(u->token.str, CITH_KW);
 }
-bool is_tila_nth(struct Unit *u)
+
+bool
+is_tila_nth(struct Unit *u)
 {
     return !strcmp(u->token.str, TILA_NTH_KW);
 }
+
 bool is_tila_size(struct Unit *u)
 {
     return !strcmp(u->token.str, TILA_SIZE_KW);
@@ -273,6 +276,7 @@ GNode *parse3(GList *ulink) {
             is_cith((unitp_t)enc_node->data) ||
             is_pret4((unitp_t)enc_node->data) ||
             is_tila_size((unitp_t)enc_node->data) ||
+            is_tila_nth((unitp_t)enc_node->data) ||
             is_ltd_call((unitp_t)enc_node->data)
             ) {
             if (((unitp_t)enc_node->data)->max_capa)
@@ -306,6 +310,9 @@ GNode *parse3(GList *ulink) {
             } else if (is_tila_size((unitp_t)ulink->data))
                 /* capa = list */
                 ((unitp_t)ulink->data)->max_capa = 1;
+            else if (is_tila_nth((unitp_t)ulink->data))
+                /* capa = nth, list */
+                ((unitp_t)ulink->data)->max_capa = 2;
             else if (is_ltd_call((unitp_t)ulink->data)) {
                 /* capa = the specified number of args */
                 char kwcp[strlen(((unitp_t)ulink->data)->token.str) + 1];
