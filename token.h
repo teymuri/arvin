@@ -7,7 +7,7 @@
 /* differentiate btwn assignment and association like W. Richard Stark pg. 97*/
 #define DEFINE_KW "DFN"		/* used to define symbols in the global environment */
 #define LET_KW "LET"
-#define FUNCTION_KW "FNC"
+#define FUNCTION_KW "FN"
 #define FUNCALL_KEYWORD "pass"
 #define CPACK_KW "cpack"
 #define PACK_BINDING_PREFIX '&'
