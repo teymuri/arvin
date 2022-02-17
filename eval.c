@@ -345,7 +345,7 @@ void eval_pass(struct Tila_data **result, GNode *node, GHashTable *env) {
 
 
 
-void eval_toplevel(struct Tila_data **result, GNode *root)
+void eval_toplvl(struct Tila_data **result, GNode *root)
 {
     guint size = g_node_n_children(root);
     for (guint i = 0; i < size - 1; i++)
@@ -394,7 +394,7 @@ struct Tila_data *eval3(GNode *node, GHashTable *env)
         }
     } else {			/* builtin stuff */
         if ((((unitp_t)node->data)->uuid == 0)) {
-            eval_toplevel(&result, node); /* toplevel uses it's own environment */
+            eval_toplvl(&result, node); /* toplevel uses it's own environment */
         } else if (is_pret4((unitp_t)node->data)) {
             eval_pret(&result, node, env);
         } else if (is_lambda4((unitp_t)node->data)) {

@@ -1,6 +1,6 @@
 DFN List FNC &args: args
 
-DFN Nth FNC nth: list: TILA_NTH nth list
+DFN Nth FNC nth: list: TL_NTH nth list
 (
 pret
   call nth
@@ -14,10 +14,7 @@ let l1: call list 100 200
     pret call nth 0 l2
 )
 
-CALL
-  FNC q: w: &e:
-    pret TILA_NTH TILA_NTH TILA_NTH 0 e e e
-  0 1 2 3 4 5 3.14 7 8 9 10
+(CALL/11 FNC q: w: &e: pret CALL/2 Nth CALL/2 Nth CALL/2 Nth 0 e e e 0 1 2 3 4 5 3.14 7 8 9 10)
 
 (define lst call list 1 2 3 4 5 6 7 8 9)
 

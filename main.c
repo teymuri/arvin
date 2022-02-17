@@ -10,28 +10,28 @@
 #include "eval.h"
 #include "print.h"
 
-#define GLOBAL_TOKEN_STRING "GTS"
-#define GLOBAL_UNIT_UUID 0
+#define TOPLVLTOKSTR "TLTS"     /* toplevel token string */
+#define TOPLVLUID 0             /* toplevel unit id */
 
 
 int main(int argc, char **argv)
 {
     /* struct Token toplevel_token = { */
-    /*     .str = GLOBAL_TOKEN_STRING, */
+    /*     .str = TOPLVLTOKSTR, */
     /*     .col_start_idx = -1, */
     /*     .column_end_idx = 100,		/\* ???????????????????????????????????????? set auf maximum*\/ */
     /*     .line = -1, */
     /*     .id = 0 */
     /* }; */
     
-    /* global unit */
-    struct Unit gunit = {
-        .uuid = GLOBAL_UNIT_UUID,
+    /* toplevel unit */
+    struct Unit tl_unit = {
+        .uuid = TOPLVLUID,
         .max_capa = -1,
         .arity = -1,
         .is_atomic = false,
         .token = {
-            .str = GLOBAL_TOKEN_STRING,
+            .str = TOPLVLTOKSTR,
             .col_start_idx = -1,
             .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
             .line = -1,
@@ -54,14 +54,14 @@ int main(int argc, char **argv)
   
     if (polished_tokens_count) {
         GList *unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
-        unit_link = g_list_prepend(unit_link, &gunit);
+        unit_link = g_list_prepend(unit_link, &tl_unit);
         GNode *ast3 = parse3(unit_link);
         print_ast3(ast3);
         post_parse_lambda_check(ast3);
         post_parse_pass_check(ast3);
         post_parse_let_check(ast3);
         print_ast3(ast3);
-        eval3(ast3, gunit.env);
+        eval3(ast3, tl_unit.env);
         /* print(e); */
     }
     exit(EXIT_SUCCESS);
