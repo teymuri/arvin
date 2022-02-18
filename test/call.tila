@@ -1,6 +1,14 @@
-DFN List FNC &args: args
+DFN List FN &args:= 1 2 3 args
+DFN Nth
+  FN nth:= 0 list:= CALL List 23 13 42 254
+    TL_NTH nth list
+pret CALL Nth list:= CALL/5 List 3 F 9 8 7 nth:= 1
 
-DFN Nth FNC nth: list: TL_NTH nth list
+
+(DFN X FN &r: r
+pret CALL Nth 1 CALL X 10 20
+DFN f FN x: pret x
+CALL f x:= 9)
 (
 pret
   call nth
@@ -29,4 +37,4 @@ let l1: call list 100 200
 (call nth call nth 0 lst)
 (pret tilanth tilanth 0 lst lst)
 
-pret CALL Nth 0 CALL/2 Nth 2 CALL List 1 2 CALL/1 List F 4 5 6 7 8
+(pret CALL Nth 0 CALL/2 Nth 2 CALL List 1 2 CALL/1 List F 4 5 6 7 8)

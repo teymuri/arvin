@@ -2,7 +2,7 @@
 #define LET_AST_H
 
 void post_parse_lambda_check(GNode *);
-void post_parse_pass_check(GNode *);
+void post_parse_call_check(GNode *);
 void post_parse_let_check(GNode *);
 bool is_let(struct Unit *);
 GNode *parse3(GList *atoms);

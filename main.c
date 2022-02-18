@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         GNode *ast3 = parse3(unit_link);
         print_ast3(ast3);
         post_parse_lambda_check(ast3);
-        post_parse_pass_check(ast3);
+        post_parse_call_check(ast3);
         post_parse_let_check(ast3);
         print_ast3(ast3);
         eval3(ast3, tl_unit.env);

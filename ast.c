@@ -111,7 +111,10 @@ bool is_assignment4(struct Unit *u) {
 bool is_pass(struct Unit *u) {
     return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
-bool is_call(struct Unit *u) {
+
+bool
+is_call(struct Unit *u)
+{
     return !strcmp(u->token.str, CALL_KW);
 }
 
@@ -163,6 +166,50 @@ bool maybe_binding4(struct Unit *u) {
     return unit_type(u) == NAME && str[strlen(str) - 1] == BINDING_SUFFIX;
 }
 
+/* **********mand/opt params */
+bool
+maybe_mand_param(struct Unit *u)
+{
+    char *str = u->token.str;
+    char *pos = strstr(str, MAND_PARAM_SFX);
+    return is_of_type(u, NAME) && /* unit is a kw */
+        /* and starting of substr (mand param sfx) is the last char */
+        ((size_t)(pos - str) == strlen(str) - 1) &&
+        /* and after mand param suffix comes nothing */
+        strlen(pos) == 1;
+}
+
+bool
+maybe_opt_param(struct Unit *u)
+{
+    char *str = u->token.str;
+    char *pos = strstr(str, OPT_PARAM_SFX);
+    return is_of_type(u, NAME) && /* unit is a kw */
+        /* and substr (opt param sfx) begins at the second char from
+         * the end of str */
+        ((size_t)(pos - str) == strlen(str) - 2) &&
+        /* and after it comes nothing (is only 2 chars long) */
+        strlen(pos) == 2;
+}
+
+bool
+maybe_rest_mand_param(struct Unit *u)
+{
+    return *u->token.str == REST_PARAM_PFX &&
+        maybe_mand_param(u);
+}
+
+bool
+maybe_rest_opt_param(struct Unit *u)
+{
+    return *u->token.str == REST_PARAM_PFX &&
+        maybe_opt_param(u);
+        
+}
+
+
+/* ************************ */
+
 bool maybe_pack_binding(struct Unit *u) {
     char *str = u->token.str;
     return unit_type(u) == NAME && /* ie not a numeric type */
@@ -182,8 +229,10 @@ bool need_block(struct Unit *u) {
     return is_assignment4(u) ||
         is_let(u) ||
         is_lambda4(u) ||
-        is_of_type(u, BINDING) ||
-        is_of_type(u, PACK_BINDING) ||
+        /* is_of_type(u, BINDING) || */
+        /* is_of_type(u, PACK_BINDING) || */
+        is_of_type(u, BOUND_BINDING) ||
+        is_of_type(u, BOUND_PACK_BINDING) ||
         is_pret4(u) ||
         is_pass(u) ||
         is_call(u) ||
@@ -197,25 +246,14 @@ bool need_block(struct Unit *u) {
 }
 
 
-GNode *find_parent_with_capa(GNode *node) {
+GNode *
+find_enc_node_with_capa(GNode *node)
+{
     do {
         node = node->parent;
         if (((unitp_t)node->data)->max_capa != 0)
             return node;
     } while (node);
-    return NULL;
-}
-
-
-struct Unit *find_prev_binding_unit(GList *unit_link) {
-    while (unit_link) {
-        if ((is_lambda4((unitp_t)unit_link->data) ||
-             is_let((unitp_t)unit_link->data) ||
-             is_pass((unitp_t)unit_link->data)) &&
-            ((unitp_t)unit_link->data)->max_capa)
-            return (unitp_t)unit_link->data;
-        else unit_link = unit_link->prev;
-    }
     return NULL;
 }
 
@@ -235,10 +273,16 @@ GNode *parse3(GList *ulink) {
     while (ulink) {
         
         /* first attempt to find the enclosing node of this unit link */
-        if ((maybe_binding4((unitp_t)ulink->data) ||
-             maybe_pack_binding((unitp_t)ulink->data)) &&
+        if ((maybe_rest_mand_param((unitp_t)ulink->data) ||
+             maybe_rest_opt_param((unitp_t)ulink->data) ||
+             maybe_mand_param((unitp_t)ulink->data) ||
+             maybe_opt_param((unitp_t)ulink->data) ||
+             maybe_binding4((unitp_t)ulink->data) ||
+             maybe_pack_binding((unitp_t)ulink->data)
+                ) &&
             curr_bind_unit &&
             is_enclosed_in4((unitp_t)ulink->data, curr_bind_unit))
+            /* then enc node is the current binding unit */
             enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, curr_bind_unit);
         else
             enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL,
@@ -246,7 +290,7 @@ GNode *parse3(GList *ulink) {
         /* if the computed enclosing node has no more capacity set the
            closest parent of it with capacity to be the enclosing node */
         if (((unitp_t)enc_node->data)->max_capa == 0)
-            enc_node = find_parent_with_capa(enc_node);
+            enc_node = find_enc_node_with_capa(enc_node);
         
         /* establish binding types based on the enclosing units and the unit's look */
         if (is_let((unitp_t)enc_node->data) ||
@@ -254,8 +298,22 @@ GNode *parse3(GList *ulink) {
             is_pass((unitp_t)enc_node->data) ||
             is_call((unitp_t)enc_node->data) ||
             is_ltd_call((unitp_t)enc_node->data)) {
+            if (maybe_rest_mand_param((unitp_t)ulink->data))
+                /* if unit is e.g. &rest: and it's inside one of the
+                 * above enclosing nodes, then make it of type ... */
+                ((unitp_t)ulink->data)->type = PACK_BINDING;
+            else if (maybe_rest_opt_param((unitp_t)ulink->data)) {
+                /* ((unitp_t)ulink->data)->is_atomic = false; */
+                ((unitp_t)ulink->data)->type = BOUND_PACK_BINDING;                                
+            } else if (maybe_mand_param((unitp_t)ulink->data)) {
+                /* ((unitp_t)ulink->data)->is_atomic = true; */
+                ((unitp_t)ulink->data)->type = BINDING;
+            } else if (maybe_opt_param((unitp_t)ulink->data)) {
+                /* ((unitp_t)ulink->data)->is_atomic = false; */
+                ((unitp_t)ulink->data)->type = BOUND_BINDING;                
+            }
             /* check pack binding before binding!!! every pack binding is also a binding */
-            if (maybe_pack_binding((unitp_t)ulink->data)) {
+            else if (maybe_pack_binding((unitp_t)ulink->data)) {
                 ((unitp_t)ulink->data)->is_atomic = false;
                 ((unitp_t)ulink->data)->type = PACK_BINDING; /* now unit IS pack binding! */
             } else if (maybe_binding4((unitp_t)ulink->data)) {
@@ -263,11 +321,11 @@ GNode *parse3(GList *ulink) {
                 ((unitp_t)ulink->data)->type = BINDING;
             }
         }
-        /* establish bound binding status of enclosing nodes */
-        if (is_of_type((unitp_t)enc_node->data, PACK_BINDING))
-            ((unitp_t)enc_node->data)->type = BOUND_PACK_BINDING;
-        else if (is_of_type((unitp_t)enc_node->data, BINDING))
-            ((unitp_t)enc_node->data)->type = BOUND_BINDING;
+        /* /\* establish bound binding status of enclosing nodes *\/ */
+        /* if (is_of_type((unitp_t)enc_node->data, PACK_BINDING)) */
+        /*     ((unitp_t)enc_node->data)->type = BOUND_PACK_BINDING; */
+        /* else if (is_of_type((unitp_t)enc_node->data, BINDING)) */
+        /*     ((unitp_t)enc_node->data)->type = BOUND_BINDING; */
         
         /* decrement maximum capacity of enclosing nodes with definite
          * amount of capacity if the unit takes up their capacity */
@@ -282,7 +340,10 @@ GNode *parse3(GList *ulink) {
             if (((unitp_t)enc_node->data)->max_capa)
                 ((unitp_t)enc_node->data)->max_capa--;
             else
-                enc_node = find_parent_with_capa(enc_node);
+                /* if the previous enclosing node's capacity is
+                 * exhausted, look for a top node with capa to be the
+                 * new enclosing node */
+                enc_node = find_enc_node_with_capa(enc_node);
         }
 
         if (need_block((unitp_t)ulink->data)) {
@@ -294,11 +355,9 @@ GNode *parse3(GList *ulink) {
             
             /* set the maximum absorption capacity for units with
              * definite amount of capacity */
-            if (is_of_type((unitp_t)ulink->data, BINDING)) {
-                /* capa = binding value (n.b.: pack binding has
-                 * indefinite capa ie -1, hence no touched at all!)*/
+            if (is_of_type((unitp_t)ulink->data, BOUND_BINDING)) /* boundpackbinding remains -1 */
                 ((unitp_t)ulink->data)->max_capa = 1;
-            } else if (is_assignment4((unitp_t)ulink->data)) {
+            else if (is_assignment4((unitp_t)ulink->data)) {
                 /* capa = name, data */
                 ((unitp_t)ulink->data)->max_capa = 2;
             } else if (is_cith((unitp_t)ulink->data)) {
@@ -339,12 +398,15 @@ GNode *parse3(GList *ulink) {
                    with parsing and detect it's parameter declerations. */
                 ((unitp_t)ulink->data)->arity = 0;
             else if (curr_bind_unit && is_lambda4(curr_bind_unit)) {
-                if (is_of_type((unitp_t)ulink->data, BINDING))
-                    /* if a simple binding increment lambda's arity */
+                if (is_of_type((unitp_t)ulink->data, BINDING) ||
+                    is_of_type((unitp_t)ulink->data, BOUND_BINDING))
+                    /* for a single parameter increment function's arity */
                     curr_bind_unit->arity++;
-                else if (is_of_type((unitp_t)ulink->data, PACK_BINDING))
-                    /* if encountered a pack binding lambda has indefinite artiy */
-                    curr_bind_unit->arity = -1;
+                /* if a rest parameter, leave the arity to remain -1 (indefinite/unlimited???) */
+                /* else if (is_of_type((unitp_t)ulink->data, PACK_BINDING) || */
+                /*          is_of_type((unitp_t)ulink->data, BOUND_PACK_BINDING)) */
+                /*     /\* if encountered a pack binding lambda has indefinite artiy *\/ */
+                /*     curr_bind_unit->arity = -1; */
             }
             
         } else {			/* an atomic unit */
@@ -382,14 +444,15 @@ GNode *parse3(GList *ulink) {
 
 
 
-void assert_lambda_param(GNode *node, GNode *last_child)
+void
+assert_func_param(GNode *node, GNode *last_child)
 {
-    if ((node != last_child &&
-         unit_type((unitp_t)node->data) != BINDING &&
-         unit_type((unitp_t)node->data) != BOUND_BINDING &&
-         unit_type((unitp_t)node->data) != PACK_BINDING &&
-         unit_type((unitp_t)node->data) != BOUND_PACK_BINDING)) {
-        fprintf(stderr, "invalid expression in place of binding\n");
+    if (node != last_child &&
+        unit_type((unitp_t)node->data) != BINDING &&
+        unit_type((unitp_t)node->data) != BOUND_BINDING &&
+        unit_type((unitp_t)node->data) != PACK_BINDING &&
+        unit_type((unitp_t)node->data) != BOUND_PACK_BINDING) {
+        fprintf(stderr, "invalid thing in place of parameter\n");
         print_node(node, NULL);
         exit(EXIT_FAILURE);
     }
@@ -402,10 +465,10 @@ gboolean sanify_lambda(GNode *node, gpointer data) {
             /* first assert that every child node except with the last one
                is a binding (ie a parameter decleration) */
             g_node_children_foreach(node, G_TRAVERSE_ALL,
-                                    (GNodeForeachFunc)assert_lambda_param,
+                                    (GNodeForeachFunc)assert_func_param,
                                     last_child);
             /* if the last node is a mandatory parameter (i.e. a parameter
-               without default value which i can take out as the lambda
+               without default value, which i could take out as the lambda
                expression), it is an error! */
             if (((unitp_t)last_child->data)->type == BINDING ||
                 unit_type((unitp_t)last_child->data) == PACK_BINDING) {
@@ -420,6 +483,7 @@ gboolean sanify_lambda(GNode *node, gpointer data) {
                 GNode *bound_value = g_node_last_child(last_child);
                 g_node_unlink(bound_value);
                 g_node_insert(node, -1, bound_value);
+                /* and reset the parameter types to their mandatory versions */
                 if (unit_type((unitp_t)last_child->data) == BOUND_BINDING)
                     ((unitp_t)last_child->data)->type = BINDING;
                 /* if we took the last and only child of the bound pack
@@ -459,8 +523,11 @@ void assert_bound_binding_node(GNode *node, GNode *last_child) {
         exit(EXIT_FAILURE);
     }
 }
-void assert_pass_binding(GNode *binding, GNode *lambda) {
-    if ((binding != lambda && unit_type((unitp_t)binding->data) == BINDING)) {
+
+void
+assert_call_param(GNode *binding, GNode *func_node)
+{
+    if ((binding != func_node && unit_type((unitp_t)binding->data) == BINDING)) {
         fprintf(stderr, "malformed argument passed\n");
         print_node(binding, NULL);
         fprintf(stderr, "is not bound\n");
@@ -469,17 +536,19 @@ void assert_pass_binding(GNode *binding, GNode *lambda) {
 }
 
 gboolean check_pass(GNode *node, gpointer data) {
-    if (is_pass((unitp_t)node->data)) {
+    if (is_call((unitp_t)node->data)) {
         if (g_node_n_children(node)) {
-            GNode *lambda_node = g_node_last_child(node);
+            /* GNode *func_node = g_node_last_child(node); */
+            GNode *func_node = g_node_nth_child(node, 0);
+            /* if (unit_type((unitp_t)func_node->data) != NAME) { */
+            /*     fprintf(stderr, "malformed pass\n"); */
+            /*     print_node(func_node, NULL); */
+            /*     fprintf(stderr, "is not a function\n"); */
+            /*     exit(EXIT_FAILURE); */
+            /* } */
             g_node_children_foreach(node, G_TRAVERSE_ALL,
-                                    (GNodeForeachFunc)assert_pass_binding, lambda_node);
-            if (unit_type((unitp_t)lambda_node->data) != NAME) {
-                fprintf(stderr, "malformed pass\n");
-                print_node(lambda_node, NULL);
-                fprintf(stderr, "is not a lambda\n");
-                exit(EXIT_FAILURE);
-            }
+                                    (GNodeForeachFunc)assert_call_param,
+                                    func_node);
         } else {
             fprintf(stderr, "pass braucht mind. eine expression: func!\n");
             exit(EXIT_FAILURE);
@@ -488,12 +557,12 @@ gboolean check_pass(GNode *node, gpointer data) {
     return false;
 }
 
-void post_parse_pass_check(GNode *root) {
-    puts("parse-time pass check");
+void post_parse_call_check(GNode *root) {
+    puts("parse-time call check");
     g_node_traverse(root, G_PRE_ORDER,
                     G_TRAVERSE_ALL, -1,
                     (GNodeTraverseFunc)check_pass, NULL);
-    puts("  pass checked");
+    puts("  call checked");
 }
 
 
@@ -508,7 +577,7 @@ void check_let_binding(GNode *node, GNode *last_child) {
         }
     } else {                    /* bindings */
         if (!is_of_type((unitp_t)node->data, BOUND_BINDING)) {
-            fprintf(stderr, "malformed let binding\n");
+            fprintf(stderr, "let binding not bound\n");
             print_node(node, NULL);
             exit(EXIT_FAILURE);                        
         }

@@ -18,14 +18,24 @@ char *binding_node_name(GNode *node) {
     struct Unit *u = ((unitp_t)node->data);
     char *s = u->token.str;
     char *name;
-    if (is_of_type(u, BINDING) || is_of_type(u, BOUND_BINDING)) {
+    if (is_of_type(u, BINDING)) {
         name = (char *)malloc(strlen(s));
         strncpy(name, s, strlen(s) - 1);
         name[strlen(s) - 1] = '\0';
-    } else if (is_of_type(u, PACK_BINDING) || is_of_type(u, BOUND_PACK_BINDING)) {
+    }
+    else if (is_of_type(u, BOUND_BINDING)) {
+        name = (char *)malloc(strlen(s)-1);
+        strncpy(name, s, strlen(s) - 2);
+        name[strlen(s) - 2] = '\0';
+    }
+    else if (is_of_type(u, PACK_BINDING)) {
         name = (char *)malloc(strlen(s)-1);
         strncpy(name, s+1, strlen(s) - 2);
         name[strlen(s) - 2] = '\0';
+    } else if (is_of_type(u, BOUND_PACK_BINDING)) {
+        name = (char *)malloc(strlen(s)-2);
+        strncpy(name, s+1, strlen(s) - 3);
+        name[strlen(s) - 3] = '\0';
     }
     return name;
 }
@@ -113,8 +123,10 @@ void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
     /* add parameters to env */
     for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
         GNode *binding = g_node_nth_child(node, i);
+        /* char *name = malloc(strlen(binding_node_name(binding))); */
         char *name = binding_node_name(binding);
-        lambda->param_list = g_list_append(lambda->param_list, (unitp_t)binding->data);
+        /* lambda->param_list = g_list_append(lambda->param_list, (unitp_t)binding->data); */
+        lambda->param_list = g_list_append(lambda->param_list, name);
         /* if it is an optional parameter save it's value */
         if (unit_type((unitp_t)binding->data) == BOUND_BINDING) {
             g_hash_table_insert(lambda->env, name, eval3(binding->children, lambda->env));
@@ -197,22 +209,24 @@ void eval_define(struct Tila_data **result, GNode *node, GHashTable *env) {
     set_data_slot(*result, data);
 }
 
-gint lambda_param_idx(GList *list, char *str) {
+gint find_param_idx(GList *param_lst_lnk, char *str) {
     bool found = false;
     gint idx = 0;
-    while (list) {
-        if (!strcmp(((unitp_t)list->data)->token.str, str)) {
+    while (param_lst_lnk) {
+        /* printf("<<< %s, %s|\n", (unitp_t)param_lst_lnk->data, str); */
+        if (!strcmp(param_lst_lnk->data, str)) {
             found = true;
             break;      
         }
-        list = list->next;
+        param_lst_lnk = param_lst_lnk->next;
         idx++;
     }
     if (found) return idx;
     else return -1;
 }
 
-GNode *nth_sibling(GNode *node, int n)
+GNode *
+nth_sibling(GNode *node, int n)
 {
     while (n-- && node->next)
         node = node->next;
@@ -236,8 +250,11 @@ eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
                                 eval3(nth_sibling(first_arg, arg_idx)->children, env)); /* nicht call_time env???? */
             
-            param_idx = lambda_param_idx(lambda_data->slots.tila_lambda->param_list,
-                                         ((unitp_t)nth_sibling(first_arg, arg_idx)->data)->token.str);
+            param_idx = find_param_idx(lambda_data->slots.tila_lambda->param_list,
+                                         binding_node_name(nth_sibling(first_arg, arg_idx))
+                                         /* ((unitp_t)nth_sibling(first_arg, arg_idx)->data)->token.str */
+                );
+            /* printf("!>>> %s %d\n", binding_node_name(nth_sibling(first_arg, arg_idx)), param_idx); */
 
             if (param_idx == -1) {
                 fprintf(stderr, "unknown parameter\n");
@@ -296,7 +313,7 @@ void eval_pass(struct Tila_data **result, GNode *node, GHashTable *env) {
                                 eval3(g_node_nth_child(node, idx)->children, env));
             /* update the index to reflect the position of current passed
                argument in the parameter list of the lambda */
-            gint in_lambda_idx = lambda_param_idx(x->slots.tila_lambda->param_list,
+            gint in_lambda_idx = find_param_idx(x->slots.tila_lambda->param_list,
                                                   ((unitp_t)g_node_nth_child(node, idx)->data)->token.str);;
             if (in_lambda_idx == -1) {
                 fprintf(stderr, "unknown parameter\n");
