@@ -1,1 +1,0 @@
-LET x:= 3 LET y:= x LET q:= y DFN  fnc  FN x:= 3 y:= 4 &rest: rest
