@@ -1,7 +1,9 @@
 Dfn list Fn &args: args Dfn nth Fn nth: lst: Tl_Nth nth lst pret
 Call/2 nth lst:= Call/5 list 3 F 9 8 7 nth:= 1 Dfn list Fn &args: args
-Dfn nth Fn nth: lst: Tl_Nth nth lst pret Call nth lst:= Call/5 list 3
-F 9 8 7 nth:= 1
+Dfn nth Fn nth: lst: Tl_Nth nth lst pret Call/2 nth lst:= Call/5 list
+3 F 9 8 7 nth:= 1 (und jetzt kommt size noch dazu) Dfn sz Fn lst:=
+Call/4 list 10 20 30 40 Tl_Sz lst pret Call/0 sz (und geiler Scheiss!!!)
+Dfn PI 3.14 pret PI pret Call sz Call list PI PI PI PI PI PI
 
 
 (DFN X FN &r: r
