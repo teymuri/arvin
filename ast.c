@@ -173,7 +173,7 @@ maybe_mand_param(struct Unit *u)
     char *str = u->token.str;
     return is_of_type(u, NAME) && /* unit is a kw */
         /* and last char is the suffix */
-        str[strlen(str) - 1] == MAND_PARAM_SFX;
+        *(str + (strlen(str) - 1)) == MAND_PARAM_SFX;
 }
 
 bool
