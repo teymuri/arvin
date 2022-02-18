@@ -13,7 +13,7 @@
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
 #define REST_PARAM_PFX '&'      /* rest parameter prefix */
-#define MAND_PARAM_SFX ":"        /* mandatory parameter suffix */
+#define MAND_PARAM_SFX ':'        /* mandatory parameter suffix */
 #define OPT_PARAM_SFX ":="        /* optional parameter suffix (default arg supplied) */
 #define LTD_CALL_PREFIX "CALL/"
 #define CITH_KW "cith"

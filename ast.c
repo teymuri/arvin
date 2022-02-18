@@ -171,12 +171,9 @@ bool
 maybe_mand_param(struct Unit *u)
 {
     char *str = u->token.str;
-    char *pos = strstr(str, MAND_PARAM_SFX);
     return is_of_type(u, NAME) && /* unit is a kw */
-        /* and starting of substr (mand param sfx) is the last char */
-        ((size_t)(pos - str) == strlen(str) - 1) &&
-        /* and after mand param suffix comes nothing */
-        strlen(pos) == 1;
+        /* and last char is the suffix */
+        str[strlen(str) - 1] == MAND_PARAM_SFX;
 }
 
 bool
