@@ -2,14 +2,13 @@ Dfn list Fn &args: args Dfn nth Fn nth: lst: Tl_Nth nth lst pret
 Call/2 nth lst:= Call/5 list 3 F 9 8 7 nth:= 1 Dfn list Fn &args: args
 Dfn nth Fn nth: lst: Tl_Nth nth lst pret Call/2 nth lst:= Call/5 list
 3 F 9 8 7 nth:= 1 (und jetzt kommt size noch dazu) Dfn sz Fn lst:=
-Call/4 list 10 20 30 40 Tl_Sz lst pret Call/0 sz (und geiler Scheiss!!!)
-Dfn PI 3.14 pret PI pret Call sz Call list PI PI PI PI PI PI
+Call/4 list 10 20 30 40 Tl_Sz lst pret Call/0 sz (und geiler
+Scheiss!!!)  Dfn PI 3.14 pret PI pret Tl_Sz Call/6 list PI PI PI
+PI PI PI Call/1 Fn a: b:= 200 pret b b:= 102 pret 1000000000
+    Dfn x Fn &r: r pret Call/2 nth 1 Call/2 x 10 20
+           Dfn f Fn x: pret x Call f x:= 9
 
 
-(DFN X FN &r: r
-pret CALL Nth 1 CALL X 10 20
-DFN f FN x: pret x
-CALL f x:= 9)
 (
 pret
   call nth
