@@ -30,6 +30,18 @@ bool is_enclosed_in4(struct Unit *a1, struct Unit *a2)
         a1->token.line >= a2->token.line;
 }
 
+bool
+is_enclosed_in5(struct Unit *a1, struct Unit *a2)
+{
+    if (a1->token.line == a2->token.line) {
+        return a1->token.col_start_idx > a2->token.col_start_idx;
+    } else if (a1->token.line > a2->token.line) {
+        return true;
+    } else return false;
+    /* return a1->token.col_start_idx > a2->token.col_start_idx && */
+    /*            a1->token.line >= a2->token.line; */
+}
+
 int bottom_line_number3(GList *list)
 {
     int line = -1;
@@ -96,7 +108,9 @@ bool is_association(struct Unit *c)
     return !strcmp(c->token.str, LET_KW);
 }
 
-bool is_let(struct Unit *u) {
+bool
+is_let(struct Unit *u)
+{
     return !strcmp(u->token.str, LET_KW);
 }
 
@@ -222,7 +236,9 @@ bool is_pret4(struct Unit *u) {
     return !strcmp(u->token.str, "pret");
 }
 
-bool need_block(struct Unit *u) {
+bool
+need_block(struct Unit *u)
+{
     return is_assignment4(u) ||
         is_let(u) ||
         is_lambda4(u) ||
@@ -244,7 +260,7 @@ bool need_block(struct Unit *u) {
 
 
 GNode *
-find_enc_node_with_capa(GNode *node)
+find_enc_node_with_cap(GNode *node)
 {
     do {
         node = node->parent;
@@ -253,9 +269,16 @@ find_enc_node_with_capa(GNode *node)
     } while (node);
     return NULL;
 }
-
-
-
+GList *
+find_enc_ulink(GList *ulink)
+{
+    do {
+        ulink = ulink->prev;
+        if (!((unitp_t)ulink->data)->is_atomic)
+            return ulink;
+    } while (ulink->prev);
+    return NULL;
+}
 /* goes through the atoms, root will be the container with tl_cons ... */
 GNode *parse3(GList *ulink) {
     
@@ -278,16 +301,16 @@ GNode *parse3(GList *ulink) {
              maybe_pack_binding((unitp_t)ulink->data)
                 ) &&
             curr_bind_unit &&
-            is_enclosed_in4((unitp_t)ulink->data, curr_bind_unit))
+            is_enclosed_in5((unitp_t)ulink->data, curr_bind_unit))
             /* then enc node is the current binding unit */
             enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, curr_bind_unit);
         else
             enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL,
-                                   (unitp_t)find_enclosure_link(ulink, tl_ulink)->data);
+                                   (unitp_t)find_enc_ulink(ulink)->data);
         /* if the computed enclosing node has no more capacity set the
            closest parent of it with capacity to be the enclosing node */
         if (((unitp_t)enc_node->data)->max_capa == 0)
-            enc_node = find_enc_node_with_capa(enc_node);
+            enc_node = find_enc_node_with_cap(enc_node);
         
         /* establish binding types based on the enclosing units and the unit's look */
         if (is_let((unitp_t)enc_node->data) ||
@@ -340,7 +363,7 @@ GNode *parse3(GList *ulink) {
                 /* if the previous enclosing node's capacity is
                  * exhausted, look for a top node with capa to be the
                  * new enclosing node */
-                enc_node = find_enc_node_with_capa(enc_node);
+                enc_node = find_enc_node_with_cap(enc_node);
         }
 
         if (need_block((unitp_t)ulink->data)) {

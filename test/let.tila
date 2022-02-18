@@ -1,6 +1,1 @@
-DFN List FN &args:= 1 2 3 args
-
-DFN Nth FN nth:= 0 list:= CALL/6 List 23 13 42 254 T F TL_NTH nth list
-
-
-LET x:= 1 y:= CALL/4 List x 2 1 0 pret CALL Nth list:= y
+LET x:= 3 LET y:= x LET q:= y DFN  fnc  FN x:= 3 y:= 4 &rest: rest
