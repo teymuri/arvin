@@ -95,7 +95,9 @@ GList *find_enclosure_link(GList *unit_link, GList *tl_ulink) {
 }
 
 
-bool is_lambda4(struct Unit *u) {
+bool
+is_lambda4(struct Unit *u)
+{
     return !strcmp(u->token.str, FUNCTION_KW);
 }
 
@@ -296,10 +298,7 @@ GNode *parse3(GList *ulink) {
         if ((maybe_rest_mand_param((unitp_t)ulink->data) ||
              maybe_rest_opt_param((unitp_t)ulink->data) ||
              maybe_mand_param((unitp_t)ulink->data) ||
-             maybe_opt_param((unitp_t)ulink->data) ||
-             maybe_binding4((unitp_t)ulink->data) ||
-             maybe_pack_binding((unitp_t)ulink->data)
-                ) &&
+             maybe_opt_param((unitp_t)ulink->data)) &&
             curr_bind_unit &&
             is_enclosed_in5((unitp_t)ulink->data, curr_bind_unit))
             /* then enc node is the current binding unit */
@@ -323,29 +322,13 @@ GNode *parse3(GList *ulink) {
                  * above enclosing nodes, then make it of type ... */
                 ((unitp_t)ulink->data)->type = PACK_BINDING;
             else if (maybe_rest_opt_param((unitp_t)ulink->data)) {
-                /* ((unitp_t)ulink->data)->is_atomic = false; */
                 ((unitp_t)ulink->data)->type = BOUND_PACK_BINDING;                                
             } else if (maybe_mand_param((unitp_t)ulink->data)) {
-                /* ((unitp_t)ulink->data)->is_atomic = true; */
                 ((unitp_t)ulink->data)->type = BINDING;
             } else if (maybe_opt_param((unitp_t)ulink->data)) {
-                /* ((unitp_t)ulink->data)->is_atomic = false; */
                 ((unitp_t)ulink->data)->type = BOUND_BINDING;                
             }
-            /* check pack binding before binding!!! every pack binding is also a binding */
-            else if (maybe_pack_binding((unitp_t)ulink->data)) {
-                ((unitp_t)ulink->data)->is_atomic = false;
-                ((unitp_t)ulink->data)->type = PACK_BINDING; /* now unit IS pack binding! */
-            } else if (maybe_binding4((unitp_t)ulink->data)) {
-                ((unitp_t)ulink->data)->is_atomic = false;
-                ((unitp_t)ulink->data)->type = BINDING;
-            }
         }
-        /* /\* establish bound binding status of enclosing nodes *\/ */
-        /* if (is_of_type((unitp_t)enc_node->data, PACK_BINDING)) */
-        /*     ((unitp_t)enc_node->data)->type = BOUND_PACK_BINDING; */
-        /* else if (is_of_type((unitp_t)enc_node->data, BINDING)) */
-        /*     ((unitp_t)enc_node->data)->type = BOUND_BINDING; */
         
         /* decrement maximum capacity of enclosing nodes with definite
          * amount of capacity if the unit takes up their capacity */
@@ -355,8 +338,7 @@ GNode *parse3(GList *ulink) {
             is_pret4((unitp_t)enc_node->data) ||
             is_tila_size((unitp_t)enc_node->data) ||
             is_tila_nth((unitp_t)enc_node->data) ||
-            is_ltd_call((unitp_t)enc_node->data)
-            ) {
+            is_ltd_call((unitp_t)enc_node->data)) {
             if (((unitp_t)enc_node->data)->max_capa)
                 ((unitp_t)enc_node->data)->max_capa--;
             else
@@ -364,6 +346,22 @@ GNode *parse3(GList *ulink) {
                  * exhausted, look for a top node with capa to be the
                  * new enclosing node */
                 enc_node = find_enc_node_with_cap(enc_node);
+        }
+
+        /* set arity */
+        if (is_lambda4((unitp_t)ulink->data)) {
+            /* we know at this point not much about the number of
+               parameters of this lambda, so set it to 0 (default arity
+               for lambda is 0 parameters). this can change as we go on
+               with parsing and detect it's parameter declerations. */
+            ((unitp_t)ulink->data)->arity = 0;
+        } else if (curr_bind_unit && is_lambda4(curr_bind_unit)) {
+            if (is_of_type((unitp_t)ulink->data, BINDING) ||
+                is_of_type((unitp_t)ulink->data, BOUND_BINDING))
+                curr_bind_unit->arity++;
+            else if (is_of_type((unitp_t)ulink->data, PACK_BINDING) ||
+                     is_of_type((unitp_t)ulink->data, BOUND_PACK_BINDING))
+                curr_bind_unit->arity = -1; /* unlimited arity */
         }
 
         if (need_block((unitp_t)ulink->data)) {
@@ -410,24 +408,7 @@ GNode *parse3(GList *ulink) {
                 is_let((unitp_t)ulink->data))
                 curr_bind_unit = (unitp_t)ulink->data;
             
-            /* set arity */
-            if (is_lambda4((unitp_t)ulink->data))
-                /* we know at this point not much about the number of
-                   parameters of this lambda, so set it to 0 (default arity
-                   for lambda is 0 parameters). this can change as we go on
-                   with parsing and detect it's parameter declerations. */
-                ((unitp_t)ulink->data)->arity = 0;
-            else if (curr_bind_unit && is_lambda4(curr_bind_unit)) {
-                if (is_of_type((unitp_t)ulink->data, BINDING) ||
-                    is_of_type((unitp_t)ulink->data, BOUND_BINDING))
-                    /* for a single parameter increment function's arity */
-                    curr_bind_unit->arity++;
-                /* if a rest parameter, leave the arity to remain -1 (indefinite/unlimited???) */
-                /* else if (is_of_type((unitp_t)ulink->data, PACK_BINDING) || */
-                /*          is_of_type((unitp_t)ulink->data, BOUND_PACK_BINDING)) */
-                /*     /\* if encountered a pack binding lambda has indefinite artiy *\/ */
-                /*     curr_bind_unit->arity = -1; */
-            }
+            
             
         } else {			/* an atomic unit */
             ((unitp_t)ulink->data)->is_atomic = true;

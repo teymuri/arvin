@@ -16,19 +16,11 @@
 
 int main(int argc, char **argv)
 {
-    /* struct Token toplevel_token = { */
-    /*     .str = TOPLVLTOKSTR, */
-    /*     .col_start_idx = -1, */
-    /*     .column_end_idx = 100,		/\* ???????????????????????????????????????? set auf maximum*\/ */
-    /*     .line = -1, */
-    /*     .id = 0 */
-    /* }; */
-    
     /* toplevel unit */
     struct Unit tl_unit = {
         .uuid = TOPLVLUID,
         .max_capa = -1,
-        .arity = -1,
+        .arity = -2,            /* invalid arity, not a function */
         .is_atomic = false,
         .token = {
             .str = TOPLVLTOKSTR,

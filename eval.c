@@ -123,9 +123,7 @@ void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
     /* add parameters to env */
     for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
         GNode *binding = g_node_nth_child(node, i);
-        /* char *name = malloc(strlen(binding_node_name(binding))); */
         char *name = binding_node_name(binding);
-        /* lambda->param_list = g_list_append(lambda->param_list, (unitp_t)binding->data); */
         lambda->param_list = g_list_append(lambda->param_list, name);
         /* if it is an optional parameter save it's value */
         if (unit_type((unitp_t)binding->data) == BOUND_BINDING) {
@@ -248,13 +246,10 @@ eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
         if (unit_type((unitp_t)nth_sibling(first_arg, arg_idx)->data) == BOUND_BINDING) {
             g_hash_table_insert(call_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
-                                eval3(nth_sibling(first_arg, arg_idx)->children, env)); /* nicht call_time env???? */
+                                eval3(nth_sibling(first_arg, arg_idx)->children, env));
             
             param_idx = find_param_idx(lambda_data->slots.tila_lambda->param_list,
-                                         binding_node_name(nth_sibling(first_arg, arg_idx))
-                                         /* ((unitp_t)nth_sibling(first_arg, arg_idx)->data)->token.str */
-                );
-            /* printf("!>>> %s %d\n", binding_node_name(nth_sibling(first_arg, arg_idx)), param_idx); */
+                                         binding_node_name(nth_sibling(first_arg, arg_idx)));
 
             if (param_idx == -1) {
                 fprintf(stderr, "unknown parameter\n");

@@ -1,4 +1,4 @@
-define list lambda &args: args
+(define list lambda &args: args
 define size lambda lst: tilasize lst
 define nth lambda i: lst: tilanth i lst
 
@@ -12,3 +12,9 @@ let
   define svn bsz
 
 pret svn
+)
+
+Dfn list Fn &args: args
+Dfn nth Fn n: lst: Tl_nth n lst
+pret Call nth 0 Call list 1 2 3 4 5
+
