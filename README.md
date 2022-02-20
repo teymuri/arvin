@@ -1,3 +1,15 @@
+# Tila
+
+Tila is an interpreted purely functional programming language.
+**Note**: Streem is still in the design stage. It's not working yet. Stay tuned.
+
+## Compiling
+### Dependencies
+    - gcc
+    - glib
+### Run make
+    `make`
+
 # LET Anatomie
 - ## Single Expressivity
   - ist eine ganz zentrale Eigenschaft der Sprache und entscheidender Faktor deren Syntax/Semnatik. U.a. haben `lambda` und `let` Konstrukte diese Eigenschaft. 
