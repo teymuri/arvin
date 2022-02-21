@@ -31,7 +31,7 @@ will print
 
 Functions are created with `Lambda`. A Lambda can have as many parameters as you like, but only one final expression which will be the value of the function when it is called. Lambda parameters are specified with a name and a trailing colon e.g. `PARAM:` or a name and a trailing colon followed by the equal sign `=` if the parameter should get a default argument, e.g. `PARAM:= PI`. 
 ```
-Define print_number Lambda num:= PI pret num
+Define print_number Lambda N:= PI pret N
 ```
 
 To call a function use the `Call/X` keyword, where `X` is the number of arguments we want to pass to the function:
@@ -46,7 +46,7 @@ will output:
 ```
 We can also specify parameter names for arguments when calling a function:
 ```
-Call/1 print_number num:= E
+Call/1 print_number N:= E
 ```
 evaluates to
 ```
