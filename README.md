@@ -12,7 +12,7 @@ Tila is a purely functional scripting language.
 ### Run make
 `make`
 
-### Examples
+## Examples
 Define identifiers with `Define`
 ```
 Define PI 3.1415 (every thing between parentheses is a comment)
@@ -77,7 +77,7 @@ lookup failed for
 ```
 
 ***
-### Contributing
+## Contributing
 
 Send a pull request to [Tila](https://gitlab.com/ertpoi/tila)
 
