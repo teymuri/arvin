@@ -2,7 +2,7 @@
 
 Tila is a purely functional scripting language.
 
-**Note**: Tila is still in the design stage. It's not working yet. Stay tuned.
+**Note**: _Tila is still in the design stage. It's not working yet, stay tuned..._ :-)
 
 ## Compiling
 ### Dependencies
@@ -76,3 +76,10 @@ will thus output an error like:
 lookup failed for
 | | [tokstr(YEAR) id(18) type(Name) nadd(0x563de7412000) uadd(0x563de7409020) sz(0) atom(1) arity(-2) maxcap(0)]
 ```
+
+***
+### Contributing
+
+Send a pull request to [Tila](https://gitlab.com/ertpoi/tila)
+
+(© 2021-2022 Amir Teymuri)
