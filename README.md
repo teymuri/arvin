@@ -53,7 +53,7 @@ evaluates to
 2.718200
 ```
 
-Local bindings can be created by the `Let` keyword, followed by any number of bindings in the form `NAME:= <expr>` and a single final expression to which the Let evaluates. Below we create a closure function which prints the value of the local binding `YEAR`:
+Local bindings can be created by the `Let` keyword, followed by any number of bindings in the form `NAME:= <expr>` and a single final expression to which the Let evaluates. Below we create a closure function with 0 parameters, which prints the value of the local binding `YEAR`:
 
 ```
 Let YEAR:= 2022 Define print_year Lambda pret YEAR
