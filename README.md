@@ -10,7 +10,7 @@ Tila is a purely functional scripting language.
 - glib
 
 ### Run make
-`make`
+`make` to create the binary in the source directory. Write your code to a file and execute the file with `./tila path/to/my/tila_file`.
 
 ## Examples
 Define identifiers with `Define`
