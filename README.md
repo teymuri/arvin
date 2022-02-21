@@ -53,7 +53,7 @@ evaluates to
 2.718200
 ```
 
-Local bindings can be created by the `Let` keyword, followed by any number of bindings in the form `NAME:= <expr>` and a single final expression to which the Let evaluates. Below we define a closure function with zero arity and name it `print_year`, which prints the value of the local binding `YEAR` when called:
+Local bindings can be created with the `Let` keyword, followed by any number of bindings in the form `NAME:= <expr>` and a single final expression to which the Let evaluates. Below we define a closure function with zero arity and name it `print_year`, which prints the value of the local binding `YEAR` when called:
 
 ```
 Let YEAR:= 2022 Define print_year Lambda pret YEAR
@@ -66,11 +66,11 @@ we get:
 ```
 2022
 ```
-Note that the binding `YEAR` exists only in the lexical environment of `print_year`:
+Note that the binding `YEAR` exists only in the lexical environment where `print_year` was defined and thus
 ```
 pret YEAR
 ```
-will thus output an error like:
+will break the execution with an error like:
 ```
 lookup failed for
 | | [tokstr(YEAR) id(18) type(Name) nadd(0x563de7412000) uadd(0x563de7409020) sz(0) atom(1) arity(-2) maxcap(0)]
