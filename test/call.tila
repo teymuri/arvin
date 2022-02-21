@@ -1,13 +1,13 @@
-Dfn list Fn &args: args Dfn nth Fn nth: lst: Tl_nth nth lst
+(Define list Lambda &args: args Define nth Lambda nth: lst: Tila_nth nth lst
    pret
-Call/2 nth lst:= Call/5 list 3 F 9 8 7 nth:= 1 Dfn list Fn &args: args
-Dfn nth Fn nth: lst: Tl_nth nth lst pret Call/2 nth lst:= Call/5 list
-3 F 9 8 7 nth:= 1 (und jetzt kommt size noch dazu) Dfn sz Fn lst:=
+Call/2 nth lst:= Call/5 list 3 F 9 8 7 nth:= 1 Define list Lambda &args: args
+Define nth Lambda nth: lst: Tila_nth nth lst pret Call/2 nth lst:= Call/5 list
+3 F 9 8 7 nth:= 1 (und jetzt kommt size noch dazu) Define sz Lambda lst:=
 Call/4 list 10 20 30 40 Tl_sz lst pret Call/0 sz (und geiler
-Scheiss!!!)  Dfn PI 3.14 pret PI pret Tl_sz Call/6 list PI PI PI
-PI PI PI Call/1 Fn a: b:= 200 pret b b:= 102 pret 1000000000
-    Dfn x Fn &r: r pret Call/2 nth 1 Call/2 x 10 20
-           Dfn f Fn x: pret x Call/1 f x:= 9
+Scheiss!!!)  Define PI 3.14 pret PI pret Tl_sz Call/6 list PI PI PI
+PI PI PI Call/1 Lambda a: b:= 200 pret b b:= 102 pret 1000000000
+    Define x Lambda &r: r pret Call/2 nth 1 Call/2 x 10 20
+           Define f Lambda x: pret x Call/1 f x:= 9
 
 
 
@@ -23,17 +23,18 @@ Let L1:= Call/2 list 100 200
     pret Call/2 nth 0 Call/2 nth 0 L2
 
 
-                                                                          Call/11 Fn q: w: &e: pret Call/2 nth Call/2 nth Call/2 nth 0 e e e 0 1 2 3 4 5 T 7 8 9 10
-Dfn LST Call/9 list 1 2 3 4 5 6 7 8 9 pret Call/2 nth Call/2 nth 3 LST LST
+                                                                          Call/11 Lambda q: w: &e: pret Call/2 nth Call/2 nth Call/2 nth 0 e e e 0 1 2 3 4 5 T 7 8 9 10
+Define LST Call/9 list 1 2 3 4 5 6 7 8 9 pret Call/2 nth Call/2 nth 3 LST LST)
 
-(pret
-  call nth
-    call nth
-      call nth 0 lst
-      lst
-    lst)
-(pret call nth call nth 0 lst lst)
-(call nth call nth 0 lst)
-(pret tilanth tilanth 0 lst lst)
+Define list Lambda &args: args Define nth Lambda nth: lst: Tila_nth nth lst
+Define LST Call/4 list 1 2 3 4
+(pret Call/2 nth Call/2 nth Call/2 nth 0 LST LST LST)
+Define lst Call/4 list 1 2 3 4
+pret Call nth Call nth 0 lst lst
+
+
+(pret call nth call nth 0 LST LST)
+(call nth call nth 0 LST)
+(pret tilanth tilanth 0 LST LST)
 
 (pret CALL Nth 0 CALL/2 Nth 2 CALL List 1 2 CALL/1 List F 4 5 6 7 8)

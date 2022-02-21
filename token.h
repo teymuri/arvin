@@ -5,9 +5,9 @@
 
 /* ******* reserved keywords, Named strings and characters ******** */
 /* differentiate btwn assignment and association like W. Richard Stark pg. 97*/
-#define DEFINE_KW "Dfn"		/* used to define symbols in the global environment */
+#define DEFINE_KW "Define"		/* used to define symbols in the global environment */
 #define LET_KW "Let"
-#define FUNCTION_KW "Fn"
+#define FUNCTION_KW "Lambda"
 #define FUNCALL_KEYWORD "pass"
 #define CPACK_KW "cpack"
 #define PACK_BINDING_PREFIX '&'
@@ -17,11 +17,11 @@
 #define OPT_PARAM_SFX ":="        /* optional parameter suffix (default arg supplied) */
 #define LTD_CALL_PREFIX "Call/"
 #define CITH_KW "cith"
-#define TRUE_KW "T"
-#define FALSE_KW "F"
+#define TRUE_KW "TRUE"
+#define FALSE_KW "FALSE"
 #define CALL_KW "Call"
-#define TILA_NTH_KW "Tl_nth"
-#define TILA_SIZE_KW "Tl_sz"
+#define TILA_NTH_KW "Tila_nth"
+#define TILA_SIZE_KW "Tila_size"
 
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_]+)"
 
