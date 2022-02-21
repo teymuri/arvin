@@ -26,11 +26,7 @@ Let L1:= Call/2 list 100 200
                                                                           Call/11 Lambda q: w: &e: pret Call/2 nth Call/2 nth Call/2 nth 0 e e e 0 1 2 3 4 5 T 7 8 9 10
 Define LST Call/9 list 1 2 3 4 5 6 7 8 9 pret Call/2 nth Call/2 nth 3 LST LST)
 
-Define list Lambda &args: args Define nth Lambda nth: lst: Tila_nth nth lst
-Define LST Call/4 list 1 2 3 4
-(pret Call/2 nth Call/2 nth Call/2 nth 0 LST LST LST)
-Define lst Call/4 list 1 2 3 4
-pret Call nth Call nth 0 lst lst
+Define list Lambda &ARGS: ARGS Define nth Lambda NTH: LST:= Call/2 list 10 20 Tila_nth NTH LST Define LST Call/4 list 1 2 3 4 pret Call/2 nth Call/2 nth Call/2 nth 0 LST LST LST pret Call nth Call nth 0 LST LST
 
 
 (pret call nth call nth 0 LST LST)
