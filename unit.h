@@ -7,7 +7,7 @@
 #include "type.h"
 #include "token.h"
 
-#define UNIT_FORMAT "[tokstr(%s) id(%zu) type(%s) nadd(%p) uadd(%p) sz(%d) atom(%d) arity(%d) maxcap(%d)]"
+#define UNIT_FORMAT "[tokstr(%s) tokln(%d) tokcols(%d) tokcole(%d) id(%zu) type(%s) nadd(%p) uadd(%p) sz(%d) atom(%d) arity(%d) maxcap(%d)]"
 
 struct Unit {
     size_t uuid;

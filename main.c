@@ -25,7 +25,7 @@ int main(int argc, char **argv)
         .token = {
             .str = TOPLVLTOKSTR,
             .col_start_idx = -1,
-            .column_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
+            .col_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
             .line = -1,
             .id = 0
         },
@@ -48,11 +48,11 @@ int main(int argc, char **argv)
         GList *unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
         unit_link = g_list_prepend(unit_link, &tl_unit);
         GNode *ast3 = parse3(unit_link);
-        /* print_ast3(ast3); */
+        print_ast3(ast3);
         post_parse_lambda_check(ast3);
         post_parse_call_check(ast3);
         post_parse_let_check(ast3);
-        /* print_ast3(ast3); */
+        print_ast3(ast3);
         eval3(ast3, tl_unit.env);
         /* print(e); */
     }

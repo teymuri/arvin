@@ -16,10 +16,17 @@ void print_indent(int i) {
 }
 
 
-gboolean print_node(GNode *node, gpointer data) {
+gboolean
+print_node(GNode *node, gpointer data)
+{
     print_indent((guint)g_node_depth(node) - 1);
     printf(UNIT_FORMAT,
            ((struct Unit *)node->data)->token.str,
+           /* token line starts at 0, subtract 1 to get the physical
+            * line number! */
+           ((struct Unit *)node->data)->token.line - 1,
+           ((struct Unit *)node->data)->token.col_start_idx,
+           ((struct Unit *)node->data)->token.col_end_idx,
            ((unitp_t)node->data)->uuid,
            stringify_type(unit_type((struct Unit *)node->data)),
            (gpointer)node,
@@ -32,7 +39,10 @@ gboolean print_node(GNode *node, gpointer data) {
     puts("");
     return false;
 }
-void print_ast3(GNode *root) {
+
+void
+print_ast3(GNode *root)
+{
     g_node_traverse(root, G_PRE_ORDER, G_TRAVERSE_ALL,
                     -1, (GNodeTraverseFunc)print_node, NULL);
 }

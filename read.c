@@ -166,7 +166,7 @@ struct Token *tokenize_line__Hp
             /* t.isprim = isprim(t.str); */
             t.id = __Tokid++;
             t.col_start_idx = offset + match[0].rm_so;
-            t.column_end_idx = t.col_start_idx + tokstrlen;
+            t.col_end_idx = t.col_start_idx + tokstrlen;
             t.line = ln;
             t.comment_index = 0;
             *(tokptr + *line_toks_count) = t;
