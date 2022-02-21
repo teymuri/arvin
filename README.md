@@ -77,8 +77,4 @@ lookup failed for
 ```
 
 ***
-## Contributing
-
-Send a pull request to [Tila](https://gitlab.com/ertpoi/tila)
-
 (© 2021-2022 Amir Teymuri)
