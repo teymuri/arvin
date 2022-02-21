@@ -76,4 +76,5 @@ lookup failed for
 | | [tokstr(YEAR) id(18) type(Name) nadd(0x563de7412000) uadd(0x563de7409020) sz(0) atom(1) arity(-2) maxcap(0)]
 ```
 
+***
 © 2021-2022 Amir Teymuri
