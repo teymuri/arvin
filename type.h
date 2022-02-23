@@ -21,7 +21,6 @@ enum Type {
 /* data structures of the landuage */
 
 struct Lambda {
-    int arity;
     GList *param_list;
     /* lambda environment is used at definition time  */
     GHashTable *env;

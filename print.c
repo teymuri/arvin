@@ -33,7 +33,6 @@ print_node(GNode *node, gpointer data)
            (gpointer)node->data,
            g_node_n_children(node),
            ((struct Unit *)node->data)->is_atomic,
-           ((struct Unit *)node->data)->arity,
            ((struct Unit *)node->data)->max_capa
         );
     puts("");

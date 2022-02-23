@@ -67,11 +67,6 @@ GList *unit_linked_list(struct Token toks[], size_t toks_n)
            different unsigned integers for different types (e.g. parameter
            bindings will get 1 etc.)*/
         unit->max_capa = -1;
-        /* arity will be set by the parser to either 0 or more for
-           functions with definite number of args, -1 for functions
-           with indefinite number of args (with &rest: param) and remains -2
-           (invalid arity: not a function) for everything else */
-        unit->arity = -2;       /* default = not a function */
         set_unit_value(unit);
         set_unit_type(unit);
         link = g_list_prepend(link, unit);

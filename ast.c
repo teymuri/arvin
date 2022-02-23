@@ -313,8 +313,6 @@ parse3(GList *ulink)
          * units and the unit's look */
         if (is_let((unitp_t)enc_node->data) ||
             is_lambda4((unitp_t)enc_node->data) ||
-            /* is_pass((unitp_t)enc_node->data) || */
-            /* is_call((unitp_t)enc_node->data) || */
             is_ltd_call((unitp_t)enc_node->data)) {
             if (maybe_rest_mand_param((unitp_t)ulink->data))
                 ((unitp_t)ulink->data)->type = PACK_BINDING;
@@ -332,7 +330,6 @@ parse3(GList *ulink)
         if (is_of_type((unitp_t)enc_node->data, BOUND_BINDING) ||
             is_of_type((unitp_t)enc_node->data, BOUND_PACK_BINDING) ||
             is_define((unitp_t)enc_node->data) ||
-            /* is_cith((unitp_t)enc_node->data) || */
             is_tila_show((unitp_t)enc_node->data) ||
             is_tila_size((unitp_t)enc_node->data) ||
             is_tila_nth((unitp_t)enc_node->data) ||
@@ -388,33 +385,15 @@ parse3(GList *ulink)
             ((unitp_t)ulink->data)->max_capa = arg_count + 1; /* arg_count = args, + 1 = fnc name */
         }
 
-        /* set the arity */
-        if (is_lambda4((unitp_t)ulink->data)) {
-            /* we know at this point not much about the number of
-               parameters of this lambda, so set it to 0 (default arity
-               for lambda is 0 parameters). this can change as we go on
-               with parsing and detect it's parameter declerations. */
-            ((unitp_t)ulink->data)->arity = 0;
-        } else if (curr_bind_unit && is_lambda4(curr_bind_unit)) {
-            if (is_of_type((unitp_t)ulink->data, BINDING) ||
-                is_of_type((unitp_t)ulink->data, BOUND_BINDING))
-                curr_bind_unit->arity++;
-            else if (is_of_type((unitp_t)ulink->data, PACK_BINDING) ||
-                     is_of_type((unitp_t)ulink->data, BOUND_PACK_BINDING))
-                curr_bind_unit->arity = -1; /* unlimited arity */
-        }
-
         if (need_block((unitp_t)ulink->data)) {            
             ((unitp_t)ulink->data)->is_atomic = false;            
             /* new block has it's own environment */
-            ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);            
+            ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
             /* set current binding unit */
             if (is_lambda4((unitp_t)ulink->data) ||
-                /* is_pass((unitp_t)ulink->data) || */
-                /* is_call((unitp_t)ulink->data) || */
                 is_ltd_call((unitp_t)ulink->data) ||
                 is_let((unitp_t)ulink->data))
-                curr_bind_unit = (unitp_t)ulink->data;
+                curr_bind_unit = (unitp_t)ulink->data;            
         } else {			/* an atomic unit */
             ((unitp_t)ulink->data)->is_atomic = true;
             ((unitp_t)ulink->data)->max_capa = 0;

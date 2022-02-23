@@ -144,7 +144,6 @@ eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env)
     lambda->env = clone_hash_table(env);
     lambda->node = node;
     lambda->param_list = NULL;
-    lambda->arity = ((unitp_t)node->data)->arity;
     /* add parameters to env */
     for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
         GNode *binding = g_node_nth_child(node, i);

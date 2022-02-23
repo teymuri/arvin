@@ -32,7 +32,6 @@ main(int argc, char **argv)
     struct Unit tl_unit = {
         .uuid = TOPLVLUID,
         .max_capa = -1,
-        .arity = -2,            /* invalid arity, not a function */
         .is_atomic = false,
         .token = {
             .str = TOPLVLTOKSTR,
