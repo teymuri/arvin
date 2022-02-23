@@ -56,28 +56,25 @@ void
 eval_tila_show(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *d = eval3(node->children, env);
-    /* puts(">"); */
     switch (d->type) {
     case INTEGER:
-        printf("%d", d->slots.tila_int);
+        printf("%d\n", d->slots.tila_int);
         (*result)->slots.tila_int = d->slots.tila_int;
         break;
     case FLOAT:
-        printf("%f", d->slots.tila_float);
+        printf("%f\n", d->slots.tila_float);
         (*result)->slots.tila_float = d->slots.tila_float;
         break;
     case BOOL:
-        printf("%s", d->slots.tila_bool ? TRUE_KW : FALSE_KW);
+        printf("%s\n", d->slots.tila_bool ? TRUE_KW : FALSE_KW);
         (*result)->slots.tila_bool = d->slots.tila_bool;
         break;
     case LAMBDA:
-        printf("tbi:lambda (to be implemented)");
+        printf("tbi:lambda (to be implemented)\n");
         (*result)->slots.tila_lambda = d->slots.tila_lambda;
         break;
     default: break;
     }
-    puts("");
-    /* puts("<"); */
 }
 
 gint get_param_index(GList *list, char *str) {
