@@ -134,7 +134,9 @@ void eval_tila_size(struct Tila_data **result, GNode *node, GHashTable *env)
 /* ***** end list ******* */
 
 
-void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
+void
+eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env)
+{
     (*result)->type = LAMBDA;
     struct Lambda *lambda = malloc(sizeof (struct Lambda));
     /* make a snapshot of the current environment at the time of
@@ -149,16 +151,13 @@ void eval_lambda(struct Tila_data **result, GNode *node, GHashTable *env) {
         char *name = binding_node_name(binding);
         lambda->param_list = g_list_append(lambda->param_list, name);
         /* if it is an optional parameter save it's value */
-        if (unit_type((unitp_t)binding->data) == BOUND_BINDING) {
+        if (unit_type((unitp_t)binding->data) == BOUND_BINDING ||
+            /* default arg to a rest param is a single list */
+            unit_type((unitp_t)binding->data) == BOUND_PACK_BINDING) {
             g_hash_table_insert(lambda->env, name, eval3(binding->children, lambda->env));
         } else if (unit_type((unitp_t)binding->data) == BINDING ||
                    unit_type((unitp_t)binding->data) == PACK_BINDING) {
             g_hash_table_insert(lambda->env, name, NULL);
-        } else if (unit_type((unitp_t)binding->data) == BOUND_PACK_BINDING) {
-            struct Tila_data *rest_args = malloc(sizeof (struct Tila_data));
-            /* 0tes Kind bis zum letzten Kind (mit allen seinen siblings) */
-            eval_tila_list(&rest_args, binding->children, lambda->env);
-            g_hash_table_insert(lambda->env, name, rest_args);
         }
     }
     (*result)->slots.tila_lambda = lambda;
@@ -434,7 +433,7 @@ eval3(GNode *node, GHashTable *env)
             eval_tila_show(&result, node, env);
         else if (is_lambda4((unitp_t)node->data)) {
             eval_lambda(&result, node, env);
-        } else if (is_assignment4((unitp_t)node->data)) { /* define */
+        } else if (is_define((unitp_t)node->data)) { /* define */
             eval_define(&result, node, env);
         } else if (is_pass((unitp_t)node->data)) {
             eval_pass(&result, node, env);

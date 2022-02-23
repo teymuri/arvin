@@ -115,14 +115,12 @@ is_let(struct Unit *u)
     return !strcmp(u->token.str, LET_KW);
 }
 
-
-bool is_assignment3(GList *link) {
-    return !strcmp(((unitp_t)link->data)->token.str, DEFINE_KW);
-}
-
-bool is_assignment4(struct Unit *u) {
+bool
+is_define(struct Unit *u)
+{
     return !strcmp(u->token.str, DEFINE_KW);
 }
+
 bool is_pass(struct Unit *u) {
     return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
@@ -239,7 +237,7 @@ is_tila_show(struct Unit *u)
 bool
 need_block(struct Unit *u)
 {
-    return is_assignment4(u) ||
+    return is_define(u) ||
         is_let(u) ||
         is_lambda4(u) ||
         /* is_of_type(u, BINDING) || */
@@ -279,9 +277,11 @@ find_enc_ulink(GList *ulink)
     } while (ulink->prev);
     return NULL;
 }
+
 /* goes through the atoms, root will be the container with tl_cons ... */
-GNode *parse3(GList *ulink) {
-    
+GNode *
+parse3(GList *ulink)
+{    
     GList *tl_ulink = ulink;      /* toplevel unit link */
     ulink = ulink->next;
     GNode *root = g_node_new((unitp_t)tl_ulink->data);
@@ -292,7 +292,7 @@ GNode *parse3(GList *ulink) {
     
     while (ulink) {
         
-        /* first attempt to find the enclosing node of this unit link */
+        /* 1.1. first attempt to find the enclosing node of this unit link */
         if ((maybe_rest_mand_param((unitp_t)ulink->data) ||
              maybe_rest_opt_param((unitp_t)ulink->data) ||
              maybe_mand_param((unitp_t)ulink->data) ||
@@ -304,35 +304,35 @@ GNode *parse3(GList *ulink) {
         else
             enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL,
                                    (unitp_t)find_enc_ulink(ulink)->data);
-        /* if the computed enclosing node has no more capacity set the
+        /* 1.2. if the computed enclosing node has no more capacity set the
            closest parent of it with capacity to be the enclosing node */
         if (((unitp_t)enc_node->data)->max_capa == 0)
             enc_node = find_enc_node_with_cap(enc_node);
         
-        /* establish binding types based on the enclosing units and the unit's look */
+        /* 2. establish definite binding types based on the enclosing
+         * units and the unit's look */
         if (is_let((unitp_t)enc_node->data) ||
             is_lambda4((unitp_t)enc_node->data) ||
-            is_pass((unitp_t)enc_node->data) ||
-            is_call((unitp_t)enc_node->data) ||
+            /* is_pass((unitp_t)enc_node->data) || */
+            /* is_call((unitp_t)enc_node->data) || */
             is_ltd_call((unitp_t)enc_node->data)) {
             if (maybe_rest_mand_param((unitp_t)ulink->data))
-                /* if unit is e.g. &rest: and it's inside one of the
-                 * above enclosing nodes, then make it of type ... */
                 ((unitp_t)ulink->data)->type = PACK_BINDING;
             else if (maybe_rest_opt_param((unitp_t)ulink->data)) {
-                ((unitp_t)ulink->data)->type = BOUND_PACK_BINDING;                                
+                ((unitp_t)ulink->data)->type = BOUND_PACK_BINDING;
             } else if (maybe_mand_param((unitp_t)ulink->data)) {
                 ((unitp_t)ulink->data)->type = BINDING;
             } else if (maybe_opt_param((unitp_t)ulink->data)) {
                 ((unitp_t)ulink->data)->type = BOUND_BINDING;                
             }
         }
-        
-        /* decrement maximum capacity of enclosing nodes with definite
-         * amount of capacity if the unit takes up their capacity */
+
+        /* 3. decrement maximum capacity of the enclosing node with definite
+         * amount of capacity if the unit takes up it's capacity */
         if (is_of_type((unitp_t)enc_node->data, BOUND_BINDING) ||
-            is_assignment4((unitp_t)enc_node->data) ||
-            is_cith((unitp_t)enc_node->data) ||
+            is_of_type((unitp_t)enc_node->data, BOUND_PACK_BINDING) ||
+            is_define((unitp_t)enc_node->data) ||
+            /* is_cith((unitp_t)enc_node->data) || */
             is_tila_show((unitp_t)enc_node->data) ||
             is_tila_size((unitp_t)enc_node->data) ||
             is_tila_nth((unitp_t)enc_node->data) ||
@@ -341,12 +341,54 @@ GNode *parse3(GList *ulink) {
                 ((unitp_t)enc_node->data)->max_capa--;
             else
                 /* if the previous enclosing node's capacity is
-                 * exhausted, look for a top node with capa to be the
+                 * exhausted (i.e. is 0), look for a top node with capa to be the
                  * new enclosing node */
                 enc_node = find_enc_node_with_cap(enc_node);
         }
+        
+        /* 4. set the maximum absorption capacity for this unit */
+        if (is_of_type((unitp_t)ulink->data, BOUND_BINDING))
+            ((unitp_t)ulink->data)->max_capa = 1;
+        else if (is_of_type((unitp_t)ulink->data, BOUND_PACK_BINDING)) {
+            if (is_lambda4((unitp_t)enc_node->data))
+                /* capa = list */
+                ((unitp_t)ulink->data)->max_capa = 1;
+            else if (is_ltd_call((unitp_t)enc_node->data)) {
+                /* the name of the rest param has already caused a
+                 * decrement of call's max capacity, so we put that 1
+                 * capacity back into the capacity of the rest
+                 * param. also the call itself will now have no more
+                 * capacity as all upcoming units will be absorbed by
+                 * the rest param. */
+                ((unitp_t)ulink->data)->max_capa = ((unitp_t)enc_node->data)->max_capa + 1;
+                ((unitp_t)enc_node->data)->max_capa = 0;
+            }
+        } else if (is_define((unitp_t)ulink->data)) {
+            /* capa = name, data */
+            ((unitp_t)ulink->data)->max_capa = 2;
+        } else if (is_cith((unitp_t)ulink->data)) {
+            /* capa = index, pack */
+            ((unitp_t)ulink->data)->max_capa = 2;
+        } else if (is_tila_show((unitp_t)ulink->data)) {
+            /* capa = thing */
+            ((unitp_t)ulink->data)->max_capa = 1;
+        } else if (is_tila_size((unitp_t)ulink->data))
+            /* capa = list */
+            ((unitp_t)ulink->data)->max_capa = 1;
+        else if (is_tila_nth((unitp_t)ulink->data))
+            /* capa = nth, list */
+            ((unitp_t)ulink->data)->max_capa = 2;
+        else if (is_ltd_call((unitp_t)ulink->data)) {
+            /* capa = the specified number of args */
+            char kwcp[strlen(((unitp_t)ulink->data)->token.str) + 1];
+            strcpy(kwcp, ((unitp_t)ulink->data)->token.str);
+            char *arg_tok = strtok(kwcp, "/");
+            arg_tok = strtok(NULL, "/");
+            int arg_count = atoi(arg_tok);
+            ((unitp_t)ulink->data)->max_capa = arg_count + 1; /* arg_count = args, + 1 = fnc name */
+        }
 
-        /* set arity */
+        /* set the arity */
         if (is_lambda4((unitp_t)ulink->data)) {
             /* we know at this point not much about the number of
                parameters of this lambda, so set it to 0 (default arity
@@ -362,52 +404,17 @@ GNode *parse3(GList *ulink) {
                 curr_bind_unit->arity = -1; /* unlimited arity */
         }
 
-        if (need_block((unitp_t)ulink->data)) {
-            
-            ((unitp_t)ulink->data)->is_atomic = false;
-            
+        if (need_block((unitp_t)ulink->data)) {            
+            ((unitp_t)ulink->data)->is_atomic = false;            
             /* new block has it's own environment */
-            ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
-            
-            /* set the maximum absorption capacity for units with
-             * definite amount of capacity */
-            if (is_of_type((unitp_t)ulink->data, BOUND_BINDING)) /* boundpackbinding remains -1 */
-                ((unitp_t)ulink->data)->max_capa = 1;
-            else if (is_assignment4((unitp_t)ulink->data)) {
-                /* capa = name, data */
-                ((unitp_t)ulink->data)->max_capa = 2;
-            } else if (is_cith((unitp_t)ulink->data)) {
-                /* capa = index, pack */
-                ((unitp_t)ulink->data)->max_capa = 2;
-            } else if (is_tila_show((unitp_t)ulink->data)) {
-                /* capa = thing */
-                ((unitp_t)ulink->data)->max_capa = 1;
-            } else if (is_tila_size((unitp_t)ulink->data))
-                /* capa = list */
-                ((unitp_t)ulink->data)->max_capa = 1;
-            else if (is_tila_nth((unitp_t)ulink->data))
-                /* capa = nth, list */
-                ((unitp_t)ulink->data)->max_capa = 2;
-            else if (is_ltd_call((unitp_t)ulink->data)) {
-                /* capa = the specified number of args */
-                char kwcp[strlen(((unitp_t)ulink->data)->token.str) + 1];
-                strcpy(kwcp, ((unitp_t)ulink->data)->token.str);
-                char *arg_tok = strtok(kwcp, "/");
-                arg_tok = strtok(NULL, "/");
-                int arg_count = atoi(arg_tok);
-                ((unitp_t)ulink->data)->max_capa = arg_count + 1; /* arg_count = args, + 1 = fnc name */
-            }
-            
+            ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);            
             /* set current binding unit */
             if (is_lambda4((unitp_t)ulink->data) ||
-                is_pass((unitp_t)ulink->data) ||
-                is_call((unitp_t)ulink->data) ||
+                /* is_pass((unitp_t)ulink->data) || */
+                /* is_call((unitp_t)ulink->data) || */
                 is_ltd_call((unitp_t)ulink->data) ||
                 is_let((unitp_t)ulink->data))
                 curr_bind_unit = (unitp_t)ulink->data;
-            
-            
-            
         } else {			/* an atomic unit */
             ((unitp_t)ulink->data)->is_atomic = true;
             ((unitp_t)ulink->data)->max_capa = 0;

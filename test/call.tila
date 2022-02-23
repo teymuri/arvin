@@ -1,28 +1,27 @@
-(Define list Lambda &args: args Define nth Lambda nth: lst: Tila_nth
-nth lst pret Call/2 nth lst:= Call/5 list 3 FALSE 9 8 7 nth:= 1 Define
+Define list Lambda &args: args Define nth Lambda nth: lst: Tila_nth
+nth lst Call/1 show Call/2 nth lst:= Call/5 list 3 FALSE 9 8 7 nth:= 1 Define
 list Lambda &args: args Define nth Lambda nth: lst: Tila_nth nth lst
-pret Call/2 nth lst:= Call/5 list 3 FALSE 9 8 7 nth:= 1 (und jetzt
+Call/1 show Call/2 nth lst:= Call/5 list 3 FALSE 9 8 7 nth:= 1 (und jetzt
 kommt size noch dazu) Define sz Lambda lst:= Call/4 list 10 20 30 40
-Tila_size lst pret Call/0 sz (und geiler Scheiss!!!)  Define PI 3.14
-pret PI pret Tila_size Call/6 list PI PI PI PI PI PI Call/1 Lambda a:
-b:= 200 pret b b:= 102 pret 1000000000 Define x Lambda &r: r pret
-Call/2 nth 1 Call/2 x 10 20 Define f Lambda x: pret x Call/1 f x:= 9
-pret Call/2 nth 1 Call/2 nth 1 Call/2 list Call/1 list 2022 Call/2
+Tila_size lst Call/1 show Call/0 sz (und geiler Scheiss!!!)  Define PI 3.14
+Call/1 show PI Call/1 show Tila_size Call/6 list PI PI PI PI PI PI Call/1 Lambda a:
+b:= 200 Call/1 show b b:= 102 Call/1 show 1000000000 Define x Lambda &r: r Call/1 show
+Call/2 nth 1 Call/2 x 10 20 Define f Lambda x: Call/1 show x Call/1 f x:= 9
+Call/1 show Call/2 nth 1 Call/2 nth 1 Call/2 list Call/1 list 2022 Call/2
 list 2023 2024 Let L1:= Call/2 list 100 200 L2:= Call/2 list L1 L1
-L3:= Call/2 list L1 L2 pret Call/2 nth 0 Call/2 nth 0 L2 Call/11
-Lambda q: w: &e: pret Call/2 nth Call/2 nth Call/2 nth 0 e e e 0 1 2 3
-4 5 TRUE 7 8 9 10 Define LST Call/9 list 1 2 3 4 5 6 7 8 9 pret Call/2
+L3:= Call/2 list L1 L2 Call/1 show Call/2 nth 0 Call/2 nth 0 L2 Call/11
+Lambda q: w: &e: Call/1 show Call/2 nth Call/2 nth Call/2 nth 0 e e e 0 1 2 3
+4 5 TRUE 7 8 9 10 Define LST Call/9 list 1 2 3 4 5 6 7 8 9 Call/1 show Call/2
 nth Call/2 nth 3 LST LST Define list Lambda &ARGS: ARGS Define nth
 Lambda NTH: LST:= Call/2 list 10 20 Tila_nth NTH LST Define LST Call/4
-list 1 2 3 4 pret Call/2 nth Call/2 nth Call/2 nth 0 LST LST LST pret
+list 1 2 3 4 Call/1 show Call/2 nth Call/2 nth Call/2 nth 0 LST LST LST Call/1 show
 Call/2 nth Call/2 nth 0 LST LST
 
-)
-(pret call nth call nth 0 LST LST)
+(Call/1 show call nth call nth 0 LST LST)
 (call nth call nth 0 LST)
-(pret tilanth tilanth 0 LST LST)
+(Call/1 show tilanth tilanth 0 LST LST)
 (
-pret
+Call/1 show
   Call/2 nth
     1 Call/2 nth
         1 Call/2 list
@@ -31,15 +30,15 @@ pret
 Let L1:= Call/2 list 100 200
     L2:= Call/2 list L1 L1
     L3:= Call/2 list L1 L2
-    pret Call/2 nth 0 Call/2 nth 0 L2
+    Call/1 show Call/2 nth 0 Call/2 nth 0 L2
 
 
 Define list Lambda &ARGS: ARGS Define nth Lambda NTH: LST: Tila_nth NTH LST
 )
 (
 Define LST Call/2 list 1 200
-pret Call nth Call nth 0 LST LST
+Call/1 show Call nth Call nth 0 LST LST
 
 Define f Lambda a:= 0 s: d: Call/3 list a s d
 Define F Call/2 f s:= 2 d:= 3
-pret Call/2 nth 0 F)
+Call/1 show Call/2 nth 0 F)

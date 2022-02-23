@@ -14,7 +14,7 @@ bool
 is_ltd_call(struct Unit *);
 
 bool is_let(struct Unit *);
-bool is_assignment4(struct Unit *);
+bool is_define(struct Unit *);
 bool is_pass(struct Unit *);
 bool is_true(struct Unit *);
 /* bool is_false(struct Unit *); */
