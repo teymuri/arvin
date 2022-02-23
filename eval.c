@@ -72,13 +72,14 @@ gint get_param_index(GList *list, char *str) {
 
 /* ******* begin list ******* */
 void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
-/* node = first item of the list */
+/* node is the first item to the list */
 {
     (*tdata)->type = LIST;
     struct List *list = (struct List *)malloc(sizeof (struct List));
     list->item = NULL;
     list->size = 0;
     while (node) {
+        /* each item of a list is evaluated at list creation-time */
         list->item = g_list_append(list->item, eval3(node, env));
         list->size++;
         node = node->next;      /* node's sibling */
