@@ -6,7 +6,6 @@
 #include "type.h"
 #include "token.h"
 #include "unit.h"
-#include "core.h"
 #include "print.h"
 
 #define LEAST_COL_START_IDX -2
@@ -231,11 +230,10 @@ bool maybe_pack_binding(struct Unit *u) {
         
 }
 
-bool is_pret(GList *unit) {
-    return !strcmp(((unitp_t)unit->data)->token.str, "pret");
-}
-bool is_pret4(struct Unit *u) {
-    return !strcmp(u->token.str, "pret");
+bool
+is_tila_show(struct Unit *u)
+{
+    return !strcmp(u->token.str, TILA_SHOW_KW);
 }
 
 bool
@@ -248,7 +246,7 @@ need_block(struct Unit *u)
         /* is_of_type(u, PACK_BINDING) || */
         is_of_type(u, BOUND_BINDING) ||
         is_of_type(u, BOUND_PACK_BINDING) ||
-        is_pret4(u) ||
+        is_tila_show(u) ||
         is_pass(u) ||
         is_call(u) ||
         is_ltd_call(u) ||
@@ -335,7 +333,7 @@ GNode *parse3(GList *ulink) {
         if (is_of_type((unitp_t)enc_node->data, BOUND_BINDING) ||
             is_assignment4((unitp_t)enc_node->data) ||
             is_cith((unitp_t)enc_node->data) ||
-            is_pret4((unitp_t)enc_node->data) ||
+            is_tila_show((unitp_t)enc_node->data) ||
             is_tila_size((unitp_t)enc_node->data) ||
             is_tila_nth((unitp_t)enc_node->data) ||
             is_ltd_call((unitp_t)enc_node->data)) {
@@ -381,7 +379,7 @@ GNode *parse3(GList *ulink) {
             } else if (is_cith((unitp_t)ulink->data)) {
                 /* capa = index, pack */
                 ((unitp_t)ulink->data)->max_capa = 2;
-            } else if (is_pret4((unitp_t)ulink->data)) {
+            } else if (is_tila_show((unitp_t)ulink->data)) {
                 /* capa = thing */
                 ((unitp_t)ulink->data)->max_capa = 1;
             } else if (is_tila_size((unitp_t)ulink->data))

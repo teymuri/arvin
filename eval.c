@@ -6,7 +6,6 @@
 #include "type.h"
 #include "token.h"
 #include "unit.h"
-#include "core.h"
 #include "ast.h"
 #include "print.h"
 
@@ -52,9 +51,35 @@ GHashTable *clone_hash_table(GHashTable *ht) {
 
 struct Tila_data *eval3(GNode *, GHashTable *);
 
-void eval_pret(struct Tila_data **result, GNode *root, GHashTable *env) {
-    *result = pret(eval3(root->children, env));
+
+void
+eval_tila_show(struct Tila_data **result, GNode *node, GHashTable *env)
+{
+    struct Tila_data *d = eval3(node->children, env);
+    /* puts(">"); */
+    switch (d->type) {
+    case INTEGER:
+        printf("%d", d->slots.tila_int);
+        (*result)->slots.tila_int = d->slots.tila_int;
+        break;
+    case FLOAT:
+        printf("%f", d->slots.tila_float);
+        (*result)->slots.tila_float = d->slots.tila_float;
+        break;
+    case BOOL:
+        printf("%s", d->slots.tila_bool ? TRUE_KW : FALSE_KW);
+        (*result)->slots.tila_bool = d->slots.tila_bool;
+        break;
+    case LAMBDA:
+        printf("tbi:lambda (to be implemented)");
+        (*result)->slots.tila_lambda = d->slots.tila_lambda;
+        break;
+    default: break;
+    }
+    puts("");
+    /* puts("<"); */
 }
+
 gint get_param_index(GList *list, char *str) {
   bool found = false;
   gint idx = 0;
@@ -408,9 +433,9 @@ struct Tila_data *eval3(GNode *node, GHashTable *env)
     } else {			/* builtin stuff */
         if ((((unitp_t)node->data)->uuid == 0)) {
             eval_toplvl(&result, node); /* toplevel uses it's own environment */
-        } else if (is_pret4((unitp_t)node->data)) {
-            eval_pret(&result, node, env);
-        } else if (is_lambda4((unitp_t)node->data)) {
+        } else if (is_tila_show((unitp_t)node->data))
+            eval_tila_show(&result, node, env);
+        else if (is_lambda4((unitp_t)node->data)) {
             eval_lambda(&result, node, env);
         } else if (is_assignment4((unitp_t)node->data)) { /* define */
             eval_define(&result, node, env);

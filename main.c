@@ -1,8 +1,12 @@
-
-
+#define _GNU_SOURCE
+#include <stdlib.h>
 #include <stdio.h>
 #include <glib.h>
 #include <stdbool.h>
+#include <fts.h>
+
+#include <errno.h>
+#include <unistd.h>
 #include "read.h"
 #include "unit.h"
 #include "ast.h"
@@ -14,8 +18,16 @@
 #define TOPLVLUID 0             /* toplevel unit id */
 
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
+    size_t all_tokens_count;
+    struct Token *toks;
+    size_t polished_tokens_count;
+    struct Token *polished_tokens;
+    GList *unit_link;
+    GNode *ast3;
+    
     /* toplevel unit */
     struct Unit tl_unit = {
         .uuid = TOPLVLUID,
@@ -35,26 +47,70 @@ int main(int argc, char **argv)
         .ival = 0,			/* ival */
         .fval = 0.0			/* fval */
     };
-  
-    size_t all_tokens_count = 0;
-    struct Token *toks = tokenize_source__Hp(argv[1], &all_tokens_count);
-    size_t polished_tokens_count = 0;	/*  */
-    struct Token *polished_tokens = polish_tokens(toks, &polished_tokens_count, all_tokens_count);
-  
-    /* fortfahren nur wenn vom Quelcode nach dem Entfernen von
-       Kommentaren was übrig geblieben ist */
-  
+    /* load the core into the toplevel environment */
+    char *load_paths[] = { "./core", NULL };
+    FTS *ftsp = fts_open(load_paths, FTS_LOGICAL, NULL);
+    if (ftsp == NULL) {
+        perror("fts_open");
+        exit(EXIT_FAILURE);
+    }
+    while (1) {
+        FTSENT *ent = fts_read(ftsp); // get next entry (could be file or directory).
+        if (ent == NULL) {
+            if (errno == 0)
+                break; // No more items, bail out of while loop
+            else
+            {
+                // fts_read() had an error.
+                perror("fts_read");
+                exit(EXIT_FAILURE);
+            }
+        }			
+        // Given a "entry", determine if it is a file or directory
+        if(ent->fts_info == FTS_D)   // We are entering into a directory
+            printf("Loading %s\n", ent->fts_name);
+        else if(ent->fts_info == FTS_F) {
+            printf("Loading %s\n", ent->fts_path);
+            char *real_path = realpath("/home/amir/Tila/core/list.tila", NULL);
+            /* load core file */
+            all_tokens_count = 0;
+            toks = tokenize_source__Hp(real_path, &all_tokens_count);
+            polished_tokens_count = 0;	/*  */
+            polished_tokens = polish_tokens(toks, &polished_tokens_count, all_tokens_count);
+            if (polished_tokens_count) {
+                unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
+                unit_link = g_list_prepend(unit_link, &tl_unit);
+                ast3 = parse3(unit_link);
+                /* print_ast3(ast3); */
+                post_parse_lambda_check(ast3);
+                post_parse_call_check(ast3);
+                post_parse_let_check(ast3);
+                /* print_ast3(ast3); */
+                eval3(ast3, tl_unit.env);
+                /* print(e); */
+            }
+            free(real_path);
+        }
+    }
+    // close fts and check for error closing.
+    if (fts_close(ftsp) == -1) perror("fts_close");
+
+    /* load argv[1] */
+    all_tokens_count = 0;
+    toks = tokenize_source__Hp(argv[1], &all_tokens_count);
+    polished_tokens_count = 0;	/*  */
+    polished_tokens = polish_tokens(toks, &polished_tokens_count, all_tokens_count);
     if (polished_tokens_count) {
-        GList *unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
+        unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
         unit_link = g_list_prepend(unit_link, &tl_unit);
-        GNode *ast3 = parse3(unit_link);
-        print_ast3(ast3);
+        ast3 = parse3(unit_link);
+        /* print_ast3(ast3); */
         post_parse_lambda_check(ast3);
         post_parse_call_check(ast3);
         post_parse_let_check(ast3);
         print_ast3(ast3);
         eval3(ast3, tl_unit.env);
         /* print(e); */
-    }
+    }    
     exit(EXIT_SUCCESS);
 }

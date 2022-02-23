@@ -21,7 +21,7 @@ Call/2 nth Call/2 nth 0 LST LST
 (pret call nth call nth 0 LST LST)
 (call nth call nth 0 LST)
 (pret tilanth tilanth 0 LST LST)
-
+(
 pret
   Call/2 nth
     1 Call/2 nth
@@ -35,11 +35,11 @@ Let L1:= Call/2 list 100 200
 
 
 Define list Lambda &ARGS: ARGS Define nth Lambda NTH: LST: Tila_nth NTH LST
-
+)
 (
 Define LST Call/2 list 1 200
-pret Call nth Call nth 0 LST LST)
+pret Call nth Call nth 0 LST LST
 
 Define f Lambda a:= 0 s: d: Call/3 list a s d
 Define F Call/2 f s:= 2 d:= 3
-pret Call/2 nth 0 F
+pret Call/2 nth 0 F)

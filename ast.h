@@ -6,7 +6,7 @@ void post_parse_call_check(GNode *);
 void post_parse_let_check(GNode *);
 bool is_let(struct Unit *);
 GNode *parse3(GList *atoms);
-bool is_pret4(struct Unit *);
+
 bool is_lambda4(struct Unit *);
 bool is_call(struct Unit *);
 
@@ -26,4 +26,5 @@ bool is_cpack(struct Unit *);
 bool is_cith(struct Unit *);
 bool is_tila_nth(struct Unit *);
 bool is_tila_size(struct Unit *);
+bool is_tila_show(struct Unit *);
 #endif	/* LET_AST_H */
