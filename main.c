@@ -4,9 +4,9 @@
 #include <glib.h>
 #include <stdbool.h>
 #include <fts.h>
-
 #include <errno.h>
 #include <unistd.h>
+#include <limits.h>
 #include "read.h"
 #include "unit.h"
 #include "ast.h"
@@ -48,7 +48,11 @@ main(int argc, char **argv)
         .fval = 0.0			/* fval */
     };
     /* load the core into the toplevel environment */
-    char *load_paths[] = { "./core", NULL };
+    char core_dir_path[PATH_MAX];
+    char *curr_dir = get_current_dir_name();
+    strcat(core_dir_path, curr_dir);
+    strcat(core_dir_path, "/core");
+    char *load_paths[] = {core_dir_path, NULL};
     FTS *ftsp = fts_open(load_paths, FTS_LOGICAL, NULL);
     if (ftsp == NULL) {
         perror("fts_open");
@@ -71,7 +75,7 @@ main(int argc, char **argv)
             printf("Loading %s\n", ent->fts_name);
         else if(ent->fts_info == FTS_F) {
             printf("Loading %s\n", ent->fts_path);
-            char *real_path = realpath("/home/amir/Tila/core/list.tila", NULL);
+            char *real_path = realpath(ent->fts_path, NULL);
             /* load core file */
             all_tokens_count = 0;
             toks = tokenize_source__Hp(real_path, &all_tokens_count);
@@ -92,10 +96,11 @@ main(int argc, char **argv)
             free(real_path);
         }
     }
+    free(curr_dir);
     // close fts and check for error closing.
     if (fts_close(ftsp) == -1) perror("fts_close");
 
-    /* load argv[1] */
+    /* load the script argv[1] */
     all_tokens_count = 0;
     toks = tokenize_source__Hp(argv[1], &all_tokens_count);
     polished_tokens_count = 0;	/*  */

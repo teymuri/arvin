@@ -237,7 +237,6 @@ gint find_param_idx(GList *param_lst_lnk, char *str) {
     bool found = false;
     gint idx = 0;
     while (param_lst_lnk) {
-        /* printf("<<< %s, %s|\n", (unitp_t)param_lst_lnk->data, str); */
         if (!strcmp(param_lst_lnk->data, str)) {
             found = true;
             break;      
@@ -392,7 +391,8 @@ void eval_toplvl(struct Tila_data **result, GNode *root)
     *result = eval3(g_node_nth_child(root, size - 1), ((unitp_t)root->data)->env);
 }
 
-struct Tila_data *eval3(GNode *node, GHashTable *env)
+struct Tila_data *
+eval3(GNode *node, GHashTable *env)
 {
     struct Tila_data *result = malloc(sizeof (struct Tila_data));
     if (((unitp_t)node->data)->is_atomic) {

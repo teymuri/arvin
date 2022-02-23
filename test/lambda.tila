@@ -1,1 +1,2 @@
-Call/2 show Call/2 nth 0 Call/4 list 10 20 30 40 50
+
+Let X:= 34 Y:= 35 Call/1 show X:= Call/2 nth 1 Call/4 list X 30 Y 40
