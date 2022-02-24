@@ -1,10 +1,1 @@
-
-
-
-(Define L Call/3 list &REST:= 1 2 3 4
-Call/1 show Call/1 size L)
-
-
-
-
-Call/1 show Call/2 nth 3 Call/4 Lambda &REST:= Call/2 list 10 20 REST &REST:= 30 40 50 60
+Call/1 show Call/1 size Call/1 list 1

@@ -27,4 +27,5 @@ bool is_cith(struct Unit *);
 bool is_tila_nth(struct Unit *);
 bool is_tila_size(struct Unit *);
 bool is_tila_show(struct Unit *);
+bool is_tila_list(struct Unit *);
 #endif	/* LET_AST_H */

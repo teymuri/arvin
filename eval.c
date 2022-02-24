@@ -12,7 +12,6 @@
 
 void eval_cpack(struct Tila_data **, GNode *, GHashTable *, guint, guint);
 
-
 char *binding_node_name(GNode *node) {
     struct Unit *u = ((unitp_t)node->data);
     char *s = u->token.str;
@@ -94,10 +93,12 @@ gint get_param_index(GList *list, char *str) {
 }
 
 /* ******* begin list ******* */
-void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
+
+void
+eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env)
 /* node is the first item to the list */
 {
-    (*tdata)->type = LIST;
+    (*result)->type = LIST;
     struct List *list = (struct List *)malloc(sizeof (struct List));
     list->item = NULL;
     list->size = 0;
@@ -107,7 +108,7 @@ void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
         list->size++;
         node = node->next;      /* node's sibling */
     }
-    (*tdata)->slots.tila_list = list;
+    (*result)->slots.tila_list = list;
 }
 
 void
@@ -116,7 +117,6 @@ eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env)
     guint idx = eval3(g_node_nth_child(node, 0), env)->slots.tila_int;
     struct List *list = eval3(g_node_nth_child(node, 1), env)->slots.tila_list;
     struct Tila_data *data = g_list_nth(list->item, idx)->data; /* item = first link of list */
-    /* (*result)->type = data->type; */
     set_data(*result, data);
 }
 
@@ -198,16 +198,6 @@ void eval_unnamed_rest_args(struct Tila_data **result, GNode *node, GHashTable *
     }
     (*result)->type = PACK;
     (*result)->slots.pack = pack;
-}
-
-void eval_cith(struct Tila_data **result, GNode *node, GHashTable *env) {
-    struct Tila_data *idx_data = eval3(g_node_nth_child(node, 0), env);
-    struct Tila_data *pack_data = eval3(g_node_nth_child(node, 1), env);
-    guint idx = (guint)idx_data->slots.tila_int;
-    GList *pack = pack_data->slots.pack;
-    struct Tila_data *data = g_list_nth(pack, idx)->data;
-    /* (*result)->type = data->type; */
-    set_data(*result, data);
 }
 
 void eval_let(struct Tila_data **result, GNode *node, GHashTable *env) {
@@ -415,7 +405,6 @@ eval3(GNode *node, GHashTable *env)
             GNode *nodecp = node; /* copy node for print_node belowv */
             do {
                 if ((tdata = g_hash_table_lookup(env, wanted_kw))) {
-                    /* result->type = tdata->type; */
                     set_data(result, tdata);
                     break;
                 }
@@ -443,15 +432,18 @@ eval3(GNode *node, GHashTable *env)
             eval_let(&result, node, env);
         } else if (is_cpack((unitp_t)node->data)) {
             eval_cpack(&result, node, env, 0, 0);
-        } else if (is_cith((unitp_t)node->data)) {
-            eval_cith(&result, node, env);
-        } else if (is_call((unitp_t)node->data) ||
+        }  else if (is_call((unitp_t)node->data) ||
                    is_ltd_call((unitp_t)node->data))
             eval_call(&result, node, env);
         else if (is_tila_nth((unitp_t)node->data))
             eval_tila_nth(&result, node, env);
         else if (is_tila_size((unitp_t)node->data))
             eval_tila_size(&result, node, env);
+        else if (is_tila_list((unitp_t)node->data))
+            /* Tila_list is used ONLY as default argument the &REST:=
+             * param of the list function to get an empty list. NEVER
+             * use it anywhere else! */
+            eval_tila_list(&result, node->children, env);
     }
     return result;
 }

@@ -1,4 +1,4 @@
-Define list Lambda &REST: REST
+Define list Lambda &REST:= Tila_list REST
 
 Define 1LIST Call/1 list 1000
 Define 2LIST Call/2 list 1000 2000

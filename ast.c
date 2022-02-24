@@ -152,16 +152,25 @@ bool is_cith(struct Unit *u) {
     return !strcmp(u->token.str, CITH_KW);
 }
 
+/* ******** List begin ************ */
 bool
 is_tila_nth(struct Unit *u)
 {
     return !strcmp(u->token.str, TILA_NTH_KW);
 }
 
-bool is_tila_size(struct Unit *u)
+bool
+is_tila_list(struct Unit *u)
+{
+    return !strcmp(u->token.str, TILA_LIST_KW);
+}
+
+bool
+is_tila_size(struct Unit *u)
 {
     return !strcmp(u->token.str, TILA_SIZE_KW);
 }
+/* ******** list end *********** */
 
 /* booleans */
 bool is_true(struct Unit *u) {
@@ -245,12 +254,12 @@ need_block(struct Unit *u)
         is_of_type(u, BOUND_BINDING) ||
         is_of_type(u, BOUND_PACK_BINDING) ||
         is_tila_show(u) ||
-        is_pass(u) ||
+        /* is_pass(u) || */
         is_call(u) ||
         is_ltd_call(u) ||
-        is_cpack(u) ||
-        /* is_tila_list(u) || */
-        is_cith(u) ||
+        /* is_cpack(u) || */
+        is_tila_list(u) ||
+        /* is_cith(u) || */
         is_tila_nth(u) ||
         is_tila_size(u)
         ;
@@ -333,6 +342,7 @@ parse3(GList *ulink)
             is_tila_show((unitp_t)enc_node->data) ||
             is_tila_size((unitp_t)enc_node->data) ||
             is_tila_nth((unitp_t)enc_node->data) ||
+            /* is_tila_list((unitp_t)enc_node->data) || */
             is_ltd_call((unitp_t)enc_node->data)) {
             if (((unitp_t)enc_node->data)->max_capa)
                 ((unitp_t)enc_node->data)->max_capa--;
@@ -375,6 +385,10 @@ parse3(GList *ulink)
         else if (is_tila_nth((unitp_t)ulink->data))
             /* capa = nth, list */
             ((unitp_t)ulink->data)->max_capa = 2;
+        else if (is_tila_list((unitp_t)ulink->data))
+            /* no capa, Tila_list is used ONLY as default arg to
+             * list's &REST:= param! */
+            ((unitp_t)ulink->data)->max_capa = 0;
         else if (is_ltd_call((unitp_t)ulink->data)) {
             /* capa = the specified number of args */
             char kwcp[strlen(((unitp_t)ulink->data)->token.str) + 1];
