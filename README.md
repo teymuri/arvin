@@ -2,7 +2,7 @@
 
 Tila is a purely functional scripting language.
 
-**Warning**: Tila is in it's design stage and still very much a work in progress. If you find errors don't grumble - [create an issue](https://gitlab.com/ertpoi/tila/-/issues?sort=created_date&state=opened) :-)
+**Warning**: Tila is still in it's design stage and very much a work in progress. If you find errors don't grumble - [create an issue](https://gitlab.com/ertpoi/tila/-/issues?sort=created_date&state=opened) :-)
 
 
 ## Compiling
