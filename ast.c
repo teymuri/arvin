@@ -188,6 +188,31 @@ bool maybe_binding4(struct Unit *u) {
     return unit_type(u) == NAME && str[strlen(str) - 1] == BINDING_SUFFIX;
 }
 
+/* conditional */
+bool
+is_cond(struct Unit *u)
+{
+    return !strcmp(u->token.str, COND_KW);
+}
+
+bool
+is_cond_if(struct Unit *u)
+{
+    return !strcmp(u->token.str, COND_IF_KW);
+}
+
+bool
+is_cond_then(struct Unit *u)
+{
+    return !strcmp(u->token.str, COND_THEN_KW);
+}
+
+bool
+is_cond_else(struct Unit *u)
+{
+    return !strcmp(u->token.str, COND_ELSE_KW);
+}
+
 /* **********mand/opt params */
 bool
 maybe_mand_param(struct Unit *u)
@@ -261,7 +286,11 @@ need_block(struct Unit *u)
         is_tila_list(u) ||
         /* is_cith(u) || */
         is_tila_nth(u) ||
-        is_tila_size(u)
+        is_tila_size(u) ||
+        is_cond(u) ||
+        is_cond_if(u) ||
+        is_cond_then(u) ||
+        is_cond_else(u)
         ;
 }
 
@@ -343,7 +372,11 @@ parse3(GList *ulink)
             is_tila_size((unitp_t)enc_node->data) ||
             is_tila_nth((unitp_t)enc_node->data) ||
             /* is_tila_list((unitp_t)enc_node->data) || */
-            is_ltd_call((unitp_t)enc_node->data)) {
+            is_ltd_call((unitp_t)enc_node->data) ||
+            is_cond_if((unitp_t)enc_node->data) ||
+            is_cond_then((unitp_t)enc_node->data) ||
+            is_cond_else((unitp_t)enc_node->data)
+            ) {
             if (((unitp_t)enc_node->data)->max_capa)
                 ((unitp_t)enc_node->data)->max_capa--;
             else
@@ -368,7 +401,7 @@ parse3(GList *ulink)
                  * capacity as all upcoming units will be absorbed by
                  * the rest param. */
                 ((unitp_t)ulink->data)->max_capa = ((unitp_t)enc_node->data)->max_capa + 1;
-                ((unitp_t)enc_node->data)->max_capa = 0;
+                ((unitp_t)enc_node->data)->max_capa = 0; /* suddenly, no decrementing! */
             }
         } else if (is_define((unitp_t)ulink->data)) {
             /* capa = name, data */
@@ -397,13 +430,20 @@ parse3(GList *ulink)
             arg_tok = strtok(NULL, "/");
             int arg_count = atoi(arg_tok);
             ((unitp_t)ulink->data)->max_capa = arg_count + 1; /* arg_count = args, + 1 = fnc name */
+        } else if (is_cond_if((unitp_t)ulink->data) ||
+                   is_cond_then((unitp_t)ulink->data))
+            /* capa = expression */
+            ((unitp_t)ulink->data)->max_capa = 1;
+        else if (is_cond_else((unitp_t)ulink->data)) {
+            ((unitp_t)ulink->data)->max_capa = 1;
+            ((unitp_t)enc_node->data)->max_capa = 0; /* suddenly, no decrementing! */
         }
-
+        
         if (need_block((unitp_t)ulink->data)) {            
             ((unitp_t)ulink->data)->is_atomic = false;            
             /* new block has it's own environment */
             ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
-            /* set current binding unit */
+            /* set current binding unit (if it makes bindings bing: boundbinf:= etc.) */
             if (is_lambda4((unitp_t)ulink->data) ||
                 is_ltd_call((unitp_t)ulink->data) ||
                 is_let((unitp_t)ulink->data))

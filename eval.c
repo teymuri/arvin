@@ -92,8 +92,26 @@ gint get_param_index(GList *list, char *str) {
   else return -1;
 }
 
-/* ******* begin list ******* */
+void
+eval_cond(struct Tila_data **result, GNode *node, GHashTable *env)
+{
+    struct Tila_data *d;
+    for (guint i = 0; i < g_node_n_children(node); i += 2) {
+        if (is_cond_if((unitp_t)g_node_nth_child(node, i)->data)) {
+            if (eval3(g_node_nth_child(node, i)->children, env)->slots.tila_bool) {
+                d = eval3(g_node_nth_child(node, i + 1)->children, env); /* then */
+                set_data(*result, d);
+                break;
+            }
+        } else {
+            d = eval3(g_node_nth_child(node, i)->children, env);
+            set_data(*result, d);
+            break;
+        }
+    }
+}
 
+/* ******* begin list ******* */
 void
 eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env)
 /* node is the first item to the list */
@@ -444,6 +462,8 @@ eval3(GNode *node, GHashTable *env)
              * param of the list function to get an empty list. NEVER
              * use it anywhere else! */
             eval_tila_list(&result, node->children, env);
+        else if (is_cond((unitp_t)node->data))
+            eval_cond(&result, node, env);
     }
     return result;
 }

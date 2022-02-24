@@ -1,0 +1,5 @@
+Call/1 show
+       Cond If False Then 100
+            If False Then 200
+            If True Then Call/1 size 4LIST
+            Else 11

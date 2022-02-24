@@ -51,7 +51,8 @@ void set_unit_value(struct Unit *c)
    valgrind --tool=memcheck --leak-check=yes --show-reachable=yes ./-
 */
 
-GList *unit_linked_list(struct Token toks[], size_t toks_n)
+GList *
+unit_linked_list(struct Token toks[], size_t toks_n)
 {
     GList *link = NULL; /* the return singly linked list */
     struct Unit *unit = NULL;

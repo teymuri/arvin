@@ -28,4 +28,8 @@ bool is_tila_nth(struct Unit *);
 bool is_tila_size(struct Unit *);
 bool is_tila_show(struct Unit *);
 bool is_tila_list(struct Unit *);
+bool is_cond(struct Unit *);
+bool is_cond_if(struct Unit *);
+bool is_cond_then(struct Unit *);
+bool is_cond_else(struct Unit *);
 #endif	/* LET_AST_H */

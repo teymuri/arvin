@@ -5,26 +5,32 @@
 
 /* ******* reserved keywords, Named strings and characters ******** */
 /* differentiate btwn assignment and association like W. Richard Stark pg. 97*/
+/* Deprecated (delete) */
+#define FUNCALL_KEYWORD "pass"
+#define CPACK_KW "cpack"
+#define CITH_KW "cith"
+
 #define DEFINE_KW "Define"		/* used to define symbols in the global environment */
 #define LET_KW "Let"
 #define FUNCTION_KW "Lambda"
-#define FUNCALL_KEYWORD "pass"
-#define CPACK_KW "cpack"
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
 #define REST_PARAM_PFX '&'      /* rest parameter prefix */
 #define MAND_PARAM_SFX ':'        /* mandatory parameter suffix */
 #define OPT_PARAM_SFX ":="        /* optional parameter suffix (default arg supplied) */
 #define LTD_CALL_PREFIX "Call/"
-#define CITH_KW "cith"
-#define TRUE_KW "TRUE"
-#define FALSE_KW "FALSE"
+#define TRUE_KW "True"
+#define FALSE_KW "False"
 #define CALL_KW "Call"
 #define TILA_NTH_KW "Tila_nth"
 #define TILA_SIZE_KW "Tila_size"
 #define TILA_SHOW_KW "Tila_show"
 #define TILA_LIST_KW "Tila_list"
-
+#define COND_KW "Cond"
+#define COND_IF_KW "If"
+#define COND_THEN_KW "Then"
+#define COND_ELSE_KW "Else"
+/*  */
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_]+)"
 
 #define COMMENT_OPENING "("		/* comment opening token */
