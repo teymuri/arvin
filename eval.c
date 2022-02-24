@@ -56,22 +56,23 @@ void
 eval_tila_show(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *d = eval3(node->children, env);
+    set_data(*result, d);
     switch (d->type) {
     case INTEGER:
         printf("%d\n", d->slots.tila_int);
-        (*result)->slots.tila_int = d->slots.tila_int;
+        /* (*result)->slots.tila_int = d->slots.tila_int; */
         break;
     case FLOAT:
         printf("%f\n", d->slots.tila_float);
-        (*result)->slots.tila_float = d->slots.tila_float;
+        /* (*result)->slots.tila_float = d->slots.tila_float; */
         break;
     case BOOL:
         printf("%s\n", d->slots.tila_bool ? TRUE_KW : FALSE_KW);
-        (*result)->slots.tila_bool = d->slots.tila_bool;
+        /* (*result)->slots.tila_bool = d->slots.tila_bool; */
         break;
     case LAMBDA:
         printf("tbi:lambda (to be implemented)\n");
-        (*result)->slots.tila_lambda = d->slots.tila_lambda;
+        /* (*result)->slots.tila_lambda = d->slots.tila_lambda; */
         break;
     default: break;
     }
@@ -109,14 +110,16 @@ void eval_tila_list(struct Tila_data **tdata, GNode *node, GHashTable *env)
     (*tdata)->slots.tila_list = list;
 }
 
-void eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env)
+void
+eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     guint idx = eval3(g_node_nth_child(node, 0), env)->slots.tila_int;
     struct List *list = eval3(g_node_nth_child(node, 1), env)->slots.tila_list;
     struct Tila_data *data = g_list_nth(list->item, idx)->data; /* item = first link of list */
-    (*result)->type = data->type;
-    set_data_slot(*result, data);
+    /* (*result)->type = data->type; */
+    set_data(*result, data);
 }
+
 void eval_tila_size(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *d = eval3(node->children, env);
@@ -203,8 +206,8 @@ void eval_cith(struct Tila_data **result, GNode *node, GHashTable *env) {
     guint idx = (guint)idx_data->slots.tila_int;
     GList *pack = pack_data->slots.pack;
     struct Tila_data *data = g_list_nth(pack, idx)->data;
-    (*result)->type = data->type;
-    set_data_slot(*result, data);
+    /* (*result)->type = data->type; */
+    set_data(*result, data);
 }
 
 void eval_let(struct Tila_data **result, GNode *node, GHashTable *env) {
@@ -224,8 +227,8 @@ void eval_define(struct Tila_data **result, GNode *node, GHashTable *env) {
     /* definitions are always saved in the global environment, no
        matter in which environment we are currently */
     g_hash_table_insert(((unitp_t)g_node_get_root(node)->data)->env, name, data);
-    (*result)->type = data->type;
-    set_data_slot(*result, data);
+    /* (*result)->type = data->type; */
+    set_data(*result, data);
 }
 
 gint find_param_idx(GList *param_lst_lnk, char *str) {
@@ -412,8 +415,8 @@ eval3(GNode *node, GHashTable *env)
             GNode *nodecp = node; /* copy node for print_node belowv */
             do {
                 if ((tdata = g_hash_table_lookup(env, wanted_kw))) {
-                    result->type = tdata->type;
-                    set_data_slot(result, tdata);
+                    /* result->type = tdata->type; */
+                    set_data(result, tdata);
                     break;
                 }
             } while ((node = node->parent) && (env = ((unitp_t)node->data)->env));

@@ -27,14 +27,32 @@ bool is_of_type(struct Unit *u, enum Type t) {
 
 /* sets the appropriate slot of the destination data based on the slot
  * of the source data */
-void set_data_slot(struct Tila_data *dest, struct Tila_data *src) {
+void set_data(struct Tila_data *dest, struct Tila_data *src) {
     switch (src->type) {
-    case INTEGER: dest->slots.tila_int = src->slots.tila_int; break;
-    case FLOAT: dest->slots.tila_float = src->slots.tila_float; break;
-    case LAMBDA: dest->slots.tila_lambda = src->slots.tila_lambda; break;
-    case BOOL: dest->slots.tila_bool = src->slots.tila_bool; break;
-    case PACK: dest->slots.pack = src->slots.pack; break;
-    case LIST: dest->slots.tila_list = src->slots.tila_list; break;
+    case INTEGER:
+        dest->type = INTEGER;
+        dest->slots.tila_int = src->slots.tila_int;
+        break;
+    case FLOAT:
+        dest->type = FLOAT;
+        dest->slots.tila_float = src->slots.tila_float;
+        break;
+    case LAMBDA:
+        dest->type = LAMBDA;
+        dest->slots.tila_lambda = src->slots.tila_lambda;
+        break;
+    case BOOL:
+        dest->type = BOOL;
+        dest->slots.tila_bool = src->slots.tila_bool;
+        break;
+    case PACK:
+        dest->type = PACK;
+        dest->slots.pack = src->slots.pack;
+        break;
+    case LIST:
+        dest->type = LIST;
+        dest->slots.tila_list = src->slots.tila_list;
+        break;
     default: break;
     }
 }

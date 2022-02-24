@@ -46,7 +46,7 @@ struct Tila_data {
 };
 
 char *stringify_type(enum Type);
-void set_data_slot(struct Tila_data *, struct Tila_data *);
+void set_data(struct Tila_data *, struct Tila_data *);
 
 
 #endif	/* TILA_TYPE_H */
