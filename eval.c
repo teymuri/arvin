@@ -95,19 +95,23 @@ gint get_param_index(GList *list, char *str) {
 void
 eval_cond(struct Tila_data **result, GNode *node, GHashTable *env)
 {
+    guint clause_count = g_node_n_children(node);
     struct Tila_data *d;
-    for (guint i = 0; i < g_node_n_children(node); i += 2) {
-        if (is_cond_if((unitp_t)g_node_nth_child(node, i)->data)) {
-            if (eval3(g_node_nth_child(node, i)->children, env)->slots.tila_bool) {
-                d = eval3(g_node_nth_child(node, i + 1)->children, env); /* then */
-                set_data(*result, d);
-                break;
-            }
-        } else {
-            d = eval3(g_node_nth_child(node, i)->children, env);
+    guint i = 0;
+    for (; i < clause_count - 1; i += 2) {
+        if (eval3(g_node_nth_child(node, i)->children, env)->slots.tila_bool) {
+            /* eval the corresponding Then clause and quit */
+            d = eval3(g_node_nth_child(node, i + 1)->children, env);
             set_data(*result, d);
             break;
         }
+    }
+    /* else eval the last (Else) clause ONLY if traveled
+     * unsuccessfully through every clause, but not if landed here
+     * because of the above break! */
+    if (i == clause_count - 1) {
+        d = eval3(g_node_nth_child(node, clause_count - 1)->children, env);
+        set_data(*result, d);        
     }
 }
 
