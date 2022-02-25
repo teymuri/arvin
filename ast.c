@@ -37,8 +37,6 @@ is_enclosed_in5(struct Unit *a1, struct Unit *a2)
     } else if (a1->token.line > a2->token.line) {
         return true;
     } else return false;
-    /* return a1->token.col_start_idx > a2->token.col_start_idx && */
-    /*            a1->token.line >= a2->token.line; */
 }
 
 int bottom_line_number3(GList *list)
@@ -124,12 +122,6 @@ is_define(struct Unit *u)
 bool is_pass(struct Unit *u) {
     return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
-
-/* bool */
-/* is_call(struct Unit *u) */
-/* { */
-/*     return !strcmp(u->token.str, CALL_KW); */
-/* } */
 
 bool starts_with(const char *a, const char *b)
 {

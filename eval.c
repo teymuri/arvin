@@ -56,22 +56,19 @@ eval_tila_show(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *d = eval3(node->children, env);
     set_data(*result, d);
+    printf("=> ");
     switch (d->type) {
     case INTEGER:
         printf("%d\n", d->slots.tila_int);
-        /* (*result)->slots.tila_int = d->slots.tila_int; */
         break;
     case FLOAT:
         printf("%f\n", d->slots.tila_float);
-        /* (*result)->slots.tila_float = d->slots.tila_float; */
         break;
     case BOOL:
         printf("%s\n", d->slots.tila_bool ? TRUE_KW : FALSE_KW);
-        /* (*result)->slots.tila_bool = d->slots.tila_bool; */
         break;
     case LAMBDA:
         printf("tbi:lambda (to be implemented)\n");
-        /* (*result)->slots.tila_lambda = d->slots.tila_lambda; */
         break;
     default: break;
     }
@@ -239,7 +236,6 @@ void eval_define(struct Tila_data **result, GNode *node, GHashTable *env) {
     /* definitions are always saved in the global environment, no
        matter in which environment we are currently */
     g_hash_table_insert(((unitp_t)g_node_get_root(node)->data)->env, name, data);
-    /* (*result)->type = data->type; */
     set_data(*result, data);
 }
 
@@ -457,7 +453,6 @@ eval3(GNode *node, GHashTable *env)
         }  else if (is_call((unitp_t)node->data)) {
             for (int i = 0; i < ((unitp_t)node->data)->call_rep_cnt; i++)
                 eval_call(&result, node, env);
-            printf("->%d\n", ((unitp_t)node->data)->call_rep_cnt);
         }
             
         else if (is_tila_nth((unitp_t)node->data))
