@@ -454,9 +454,12 @@ eval3(GNode *node, GHashTable *env)
             eval_let(&result, node, env);
         } else if (is_cpack((unitp_t)node->data)) {
             eval_cpack(&result, node, env, 0, 0);
-        }  else if (is_call((unitp_t)node->data) ||
-                   is_call((unitp_t)node->data))
-            eval_call(&result, node, env);
+        }  else if (is_call((unitp_t)node->data)) {
+            for (int i = 0; i < ((unitp_t)node->data)->call_rep_cnt; i++)
+                eval_call(&result, node, env);
+            printf("->%d\n", ((unitp_t)node->data)->call_rep_cnt);
+        }
+            
         else if (is_tila_nth((unitp_t)node->data))
             eval_tila_nth(&result, node, env);
         else if (is_tila_size((unitp_t)node->data))

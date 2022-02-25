@@ -15,6 +15,7 @@ struct Unit {
     /* maximum absorption capacity: -1 = indefinite capacity, 0 = no
        capacity, else definite capacity*/
     int max_capa;
+    int call_rep_cnt;
     struct Token token;
     enum Type type;
     bool is_atomic;

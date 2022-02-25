@@ -438,6 +438,7 @@ parse3(GList *ulink)
             }
             printf("%d %d\n", arg_cnt, rep_cnt);
             ((unitp_t)ulink->data)->max_capa = arg_cnt + 1; /* arg_cnt = args, + 1 = fnc name */
+            ((unitp_t)ulink->data)->call_rep_cnt = rep_cnt;
         } else if (is_cond_if((unitp_t)ulink->data) ||
                    is_cond_then((unitp_t)ulink->data))
             /* capa = expression */
