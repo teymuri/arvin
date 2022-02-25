@@ -125,11 +125,11 @@ bool is_pass(struct Unit *u) {
     return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
 
-bool
-is_call(struct Unit *u)
-{
-    return !strcmp(u->token.str, CALL_KW);
-}
+/* bool */
+/* is_call(struct Unit *u) */
+/* { */
+/*     return !strcmp(u->token.str, CALL_KW); */
+/* } */
 
 bool starts_with(const char *a, const char *b)
 {
@@ -138,9 +138,9 @@ bool starts_with(const char *a, const char *b)
 }
 
 bool
-is_ltd_call(struct Unit *u)
+is_call(struct Unit *u)
 {
-    return starts_with(u->token.str, LTD_CALL_PREFIX);
+    return starts_with(u->token.str, CALL_PRFX);
 }
 
 
@@ -280,8 +280,8 @@ need_block(struct Unit *u)
         is_of_type(u, BOUND_PACK_BINDING) ||
         is_tila_show(u) ||
         /* is_pass(u) || */
+        /* is_call(u) || */
         is_call(u) ||
-        is_ltd_call(u) ||
         /* is_cpack(u) || */
         is_tila_list(u) ||
         /* is_cith(u) || */
@@ -351,7 +351,7 @@ parse3(GList *ulink)
          * units and the unit's look */
         if (is_let((unitp_t)enc_node->data) ||
             is_lambda4((unitp_t)enc_node->data) ||
-            is_ltd_call((unitp_t)enc_node->data)) {
+            is_call((unitp_t)enc_node->data)) {
             if (maybe_rest_mand_param((unitp_t)ulink->data))
                 ((unitp_t)ulink->data)->type = PACK_BINDING;
             else if (maybe_rest_opt_param((unitp_t)ulink->data)) {
@@ -372,7 +372,7 @@ parse3(GList *ulink)
             is_tila_size((unitp_t)enc_node->data) ||
             is_tila_nth((unitp_t)enc_node->data) ||
             /* is_tila_list((unitp_t)enc_node->data) || */
-            is_ltd_call((unitp_t)enc_node->data) ||
+            is_call((unitp_t)enc_node->data) ||
             is_cond_if((unitp_t)enc_node->data) ||
             is_cond_then((unitp_t)enc_node->data) ||
             is_cond_else((unitp_t)enc_node->data)
@@ -393,7 +393,7 @@ parse3(GList *ulink)
             if (is_lambda4((unitp_t)enc_node->data))
                 /* capa = list */
                 ((unitp_t)ulink->data)->max_capa = 1;
-            else if (is_ltd_call((unitp_t)enc_node->data)) {
+            else if (is_call((unitp_t)enc_node->data)) {
                 /* the name of the rest param has already caused a
                  * decrement of call's max capacity, so we put that 1
                  * capacity back into the capacity of the rest
@@ -422,14 +422,22 @@ parse3(GList *ulink)
             /* no capa, Tila_list is used ONLY as default arg to
              * list's &REST:= param! */
             ((unitp_t)ulink->data)->max_capa = 0;
-        else if (is_ltd_call((unitp_t)ulink->data)) {
-            /* capa = the specified number of args */
+        else if (is_call((unitp_t)ulink->data)) {
+            /* capa = the specified number of args to the function */
+            int arg_cnt = 0, rep_cnt = 0; /* args count, repeats count */
+            char *call_info_ptr;
             char kwcp[strlen(((unitp_t)ulink->data)->token.str) + 1];
             strcpy(kwcp, ((unitp_t)ulink->data)->token.str);
-            char *arg_tok = strtok(kwcp, "/");
-            arg_tok = strtok(NULL, "/");
-            int arg_count = atoi(arg_tok);
-            ((unitp_t)ulink->data)->max_capa = arg_count + 1; /* arg_count = args, + 1 = fnc name */
+            /* the first 5 chars are just the "Call@", start scanning from the
+             * arg count's first char */
+            if ((call_info_ptr = strtok(kwcp + 5, CALL_RPT_PFX))) {
+                arg_cnt = atoi(call_info_ptr);
+            }
+            if ((call_info_ptr = strtok(NULL, CALL_DELIMIT))) {
+                rep_cnt = atoi(call_info_ptr);
+            }
+            printf("%d %d\n", arg_cnt, rep_cnt);
+            ((unitp_t)ulink->data)->max_capa = arg_cnt + 1; /* arg_cnt = args, + 1 = fnc name */
         } else if (is_cond_if((unitp_t)ulink->data) ||
                    is_cond_then((unitp_t)ulink->data))
             /* capa = expression */
@@ -445,7 +453,7 @@ parse3(GList *ulink)
             ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
             /* set current binding unit (if it makes bindings bing: boundbinf:= etc.) */
             if (is_lambda4((unitp_t)ulink->data) ||
-                is_ltd_call((unitp_t)ulink->data) ||
+                is_call((unitp_t)ulink->data) ||
                 is_let((unitp_t)ulink->data))
                 curr_bind_unit = (unitp_t)ulink->data;            
         } else {			/* an atomic unit */

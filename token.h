@@ -18,10 +18,17 @@
 #define REST_PARAM_PFX '&'      /* rest parameter prefix */
 #define MAND_PARAM_SFX ':'        /* mandatory parameter suffix */
 #define OPT_PARAM_SFX ":="        /* optional parameter suffix (default arg supplied) */
-#define LTD_CALL_PREFIX "Call/"
+/* call prefix */
+#define CALL_PRFX "Call"
+/* call delimiters: @ number of args # number of repeats */
+#define CALL_DELIMIT "@#"
+/* specifying number of args to call */
+#define CALL_ARG_PFX "@"
+/* specifying number of calls */
+#define CALL_RPT_PFX "#"
 #define TRUE_KW "True"
 #define FALSE_KW "False"
-#define CALL_KW "Call"
+/* #define CALL_KW "Call" */
 #define TILA_NTH_KW "Tila_nth"
 #define TILA_SIZE_KW "Tila_size"
 #define TILA_SHOW_KW "Tila_show"
@@ -31,7 +38,7 @@
 #define COND_THEN_KW "Then"
 #define COND_ELSE_KW "Else"
 /*  */
-#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_]+)"
+#define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_@#]+)"
 
 #define COMMENT_OPENING "("		/* comment opening token */
 #define COMMENT_CLOSING ")"		/* comment closing token */

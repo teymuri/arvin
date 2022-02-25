@@ -1,4 +1,5 @@
-Call/1 show Call/2 nth Call/1 show 5 5LIST
+(Call@1 show Call@2 nth Call@1 show 5 5LIST)
+Call@100#9 show 4
 
 
 (Call/1 show

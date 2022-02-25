@@ -11,7 +11,7 @@ bool is_lambda4(struct Unit *);
 bool is_call(struct Unit *);
 
 bool
-is_ltd_call(struct Unit *);
+is_call(struct Unit *);
 
 bool is_let(struct Unit *);
 bool is_define(struct Unit *);

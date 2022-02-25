@@ -455,7 +455,7 @@ eval3(GNode *node, GHashTable *env)
         } else if (is_cpack((unitp_t)node->data)) {
             eval_cpack(&result, node, env, 0, 0);
         }  else if (is_call((unitp_t)node->data) ||
-                   is_ltd_call((unitp_t)node->data))
+                   is_call((unitp_t)node->data))
             eval_call(&result, node, env);
         else if (is_tila_nth((unitp_t)node->data))
             eval_tila_nth(&result, node, env);
