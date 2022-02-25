@@ -424,7 +424,7 @@ parse3(GList *ulink)
             ((unitp_t)ulink->data)->max_capa = 0;
         else if (is_call((unitp_t)ulink->data)) {
             /* capa = the specified number of args to the function */
-            int arg_cnt = 0, rep_cnt = 0; /* args count, repeats count */
+            int arg_cnt = 0, rep_cnt = 1; /* args count, repeats count */
             char *call_info_ptr;
             char kwcp[strlen(((unitp_t)ulink->data)->token.str) + 1];
             strcpy(kwcp, ((unitp_t)ulink->data)->token.str);
@@ -436,7 +436,6 @@ parse3(GList *ulink)
             if ((call_info_ptr = strtok(NULL, CALL_DELIMIT))) {
                 rep_cnt = atoi(call_info_ptr);
             }
-            printf("%d %d\n", arg_cnt, rep_cnt);
             ((unitp_t)ulink->data)->max_capa = arg_cnt + 1; /* arg_cnt = args, + 1 = fnc name */
             ((unitp_t)ulink->data)->call_rep_cnt = rep_cnt;
         } else if (is_cond_if((unitp_t)ulink->data) ||
