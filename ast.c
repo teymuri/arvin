@@ -417,16 +417,20 @@ parse3(GList *ulink)
         else if (is_call((unitp_t)ulink->data)) {
             /* capa = the specified number of args to the function */
             int arg_cnt = 0, rep_cnt = 1; /* args count, repeats count */
-            char *call_info_ptr;
-            char kwcp[strlen(((unitp_t)ulink->data)->token.str) + 1];
-            strcpy(kwcp, ((unitp_t)ulink->data)->token.str);
-            /* the first 5 chars are just the "Call@", start scanning from the
-             * arg count's first char */
-            if ((call_info_ptr = strtok(kwcp + 5, CALL_RPT_PFX))) {
-                arg_cnt = atoi(call_info_ptr);
-            }
-            if ((call_info_ptr = strtok(NULL, CALL_DELIMIT))) {
-                rep_cnt = atoi(call_info_ptr);
+            size_t len = strlen(((unitp_t)ulink->data)->token.str);
+            if (len > 4) {      /* else an empty 'Call': stick to defaults */
+                char *call_info_ptr;
+                char tokcpy[len + 1];
+                strcpy(tokcpy, ((unitp_t)ulink->data)->token.str);
+                /* the first 4 chars are just the "Call", start
+                 * scanning from '@' (don't scan from after '@' as its
+                 * allowed that there remains empty i.e. without args count) */
+                if ((call_info_ptr = strtok(tokcpy + 4, CALL_DELIM))) {
+                    arg_cnt = atoi(call_info_ptr);
+                    if ((call_info_ptr = strtok(NULL, CALL_DELIM))) {
+                        rep_cnt = atoi(call_info_ptr);
+                    }
+                }                
             }
             ((unitp_t)ulink->data)->max_capa = arg_cnt + 1; /* arg_cnt = args, + 1 = fnc name */
             ((unitp_t)ulink->data)->call_rep_cnt = rep_cnt;

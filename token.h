@@ -21,7 +21,7 @@
 /* call prefix */
 #define CALL_PRFX "Call"
 /* call delimiters: @ number of args # number of repeats */
-#define CALL_DELIMIT "@#"
+#define CALL_DELIM "@#"
 /* specifying number of args to call */
 #define CALL_ARG_PFX "@"
 /* specifying number of calls */

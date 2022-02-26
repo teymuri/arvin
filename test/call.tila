@@ -1,6 +1,6 @@
 (Call@1 show Call@2 nth Call@1 show 5 5LIST)
-Call@1#2 show 9
 
+Call#2 show 2
 
 (Call/1 show
        Call/2 nth
