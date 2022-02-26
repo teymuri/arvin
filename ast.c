@@ -308,6 +308,45 @@ find_enc_ulink(GList *ulink)
     return NULL;
 }
 
+void
+digest_call(char *str, int *arg_cnt, int *rpt_cnt)
+{
+    size_t len = strlen(str);
+    char *arg_pfx_ptr = strchr(str, CALL_ARG_PFX);
+    char *rpt_pfx_ptr = strchr(str, CALL_RPT_PFX);
+    char *null_ptr = strchr(str, '\0');
+    if (len > 4) {      /* else an empty 'Call': stick to the defaults */
+        if (arg_pfx_ptr && rpt_pfx_ptr) {
+            if (rpt_pfx_ptr > arg_pfx_ptr) {
+                char arg_buf[rpt_pfx_ptr - arg_pfx_ptr];
+                strncpy(arg_buf, arg_pfx_ptr + 1, rpt_pfx_ptr - arg_pfx_ptr - 1);
+                arg_buf[rpt_pfx_ptr-arg_pfx_ptr]='\0';
+                char rpt_buf[null_ptr-rpt_pfx_ptr];
+                strncpy(rpt_buf,rpt_pfx_ptr+1,null_ptr-rpt_pfx_ptr);
+                *arg_cnt = atoi(arg_buf);
+                *rpt_cnt = atoi(rpt_buf);
+            } else {
+                char rpt_buf[arg_pfx_ptr-rpt_pfx_ptr];
+                strncpy(rpt_buf,rpt_pfx_ptr+1,arg_pfx_ptr-rpt_pfx_ptr-1);
+                rpt_buf[arg_pfx_ptr-rpt_pfx_ptr]='\0';
+                char arg_buf[null_ptr-arg_pfx_ptr];
+                strncpy(arg_buf,arg_pfx_ptr+1,null_ptr-arg_pfx_ptr);
+                *arg_cnt = atoi(arg_buf);
+                *rpt_cnt = atoi(rpt_buf);
+            }
+        } else if (arg_pfx_ptr) {
+            char arg_buf[null_ptr-arg_pfx_ptr];
+            strncpy(arg_buf,arg_pfx_ptr+1,null_ptr-arg_pfx_ptr);
+            *arg_cnt = atoi(arg_buf);                    
+        } else if (rpt_pfx_ptr) {
+            char rpt_buf[null_ptr-rpt_pfx_ptr];
+            strncpy(rpt_buf,rpt_pfx_ptr+1,null_ptr-rpt_pfx_ptr);
+            *rpt_cnt = atoi(rpt_buf);                    
+        }                
+    }
+
+}
+
 /* goes through the atoms, root will be the container with tl_cons ... */
 GNode *
 parse3(GList *ulink)
@@ -416,24 +455,10 @@ parse3(GList *ulink)
             ((unitp_t)ulink->data)->max_capa = 0;
         else if (is_call((unitp_t)ulink->data)) {
             /* capa = the specified number of args to the function */
-            int arg_cnt = 0, rep_cnt = 1; /* args count, repeats count */
-            size_t len = strlen(((unitp_t)ulink->data)->token.str);
-            if (len > 4) {      /* else an empty 'Call': stick to defaults */
-                char *call_info_ptr;
-                char tokcpy[len + 1];
-                strcpy(tokcpy, ((unitp_t)ulink->data)->token.str);
-                /* the first 4 chars are just the "Call", start
-                 * scanning from '@' (don't scan from after '@' as its
-                 * allowed that there remains empty i.e. without args count) */
-                if ((call_info_ptr = strtok(tokcpy + 4, CALL_DELIM))) {
-                    arg_cnt = atoi(call_info_ptr);
-                    if ((call_info_ptr = strtok(NULL, CALL_DELIM))) {
-                        rep_cnt = atoi(call_info_ptr);
-                    }
-                }                
-            }
+            int arg_cnt = 0, rpt_cnt = 1; /* args count, repeatitions count */
+            digest_call(((unitp_t)ulink->data)->token.str, &arg_cnt, &rpt_cnt);
             ((unitp_t)ulink->data)->max_capa = arg_cnt + 1; /* arg_cnt = args, + 1 = fnc name */
-            ((unitp_t)ulink->data)->call_rep_cnt = rep_cnt;
+            ((unitp_t)ulink->data)->call_rep_cnt = rpt_cnt;
         } else if (is_cond_if((unitp_t)ulink->data) ||
                    is_cond_then((unitp_t)ulink->data))
             /* capa = expression */

@@ -20,12 +20,10 @@
 #define OPT_PARAM_SFX ":="        /* optional parameter suffix (default arg supplied) */
 /* call prefix */
 #define CALL_PRFX "Call"
-/* call delimiters: @ number of args # number of repeats */
-#define CALL_DELIM "@#"
 /* specifying number of args to call */
-#define CALL_ARG_PFX "@"
+#define CALL_ARG_PFX '@'
 /* specifying number of calls */
-#define CALL_RPT_PFX "#"
+#define CALL_RPT_PFX '#'
 #define TRUE_KW "True"
 #define FALSE_KW "False"
 /* #define CALL_KW "Call" */
