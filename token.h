@@ -24,7 +24,7 @@
 #define CALL_ARG_PFX '@'
 /* specifying number of calls */
 #define CALL_RPT_PFX '#'
-#define CALL_UNLIM_ARG_CHAR '&'
+#define CALL_ULTD_ARG_CHAR '&'
 #define TRUE_KW "True"
 #define FALSE_KW "False"
 /* #define CALL_KW "Call" */
