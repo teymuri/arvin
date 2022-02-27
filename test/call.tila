@@ -1,10 +1,7 @@
-(Call@1 show Call@2 nth Call@1 show 5 5LIST)
+(0 arity)
+Define 0ar Lambda Call@1 show 0
+Call#2 0ar 1 2
+Call#3@2 show DATA:= 1000 2 3
 
-Define f Lambda Call#3@1 show 2
-Call f 1 2 3 4 Call@1 show 100000 Call#3 f 5 6 7 8
-
-(Call/1 show
-       Call/2 nth
-              Call/1 show 2
-              (Tila_show 2)
-              Call/3 list 10 20 30)
+(Define unknown_arity Lambda &rest: Call@1 show Call@1 size rest
+Call unknown_arity)

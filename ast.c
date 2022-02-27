@@ -311,11 +311,10 @@ find_enc_ulink(GList *ulink)
 void
 digest_call(char *str, int *arg_cnt, int *rpt_cnt)
 {
-    size_t len = strlen(str);
     char *arg_pfx_ptr = strchr(str, CALL_ARG_PFX);
     char *rpt_pfx_ptr = strchr(str, CALL_RPT_PFX);
     char *null_ptr = strchr(str, '\0');
-    if (len > 4) {      /* else an empty 'Call': stick to the defaults */
+    if (strlen(str) > 4) {      /* else an empty 'Call': stick to the defaults */
         if (arg_pfx_ptr && rpt_pfx_ptr) {
             if (rpt_pfx_ptr > arg_pfx_ptr) {
                 char arg_buf[rpt_pfx_ptr - arg_pfx_ptr];
@@ -336,11 +335,11 @@ digest_call(char *str, int *arg_cnt, int *rpt_cnt)
             }
         } else if (arg_pfx_ptr) {
             char arg_buf[null_ptr-arg_pfx_ptr];
-            strncpy(arg_buf,arg_pfx_ptr+1,null_ptr-arg_pfx_ptr);
+            strncpy(arg_buf, arg_pfx_ptr + 1, null_ptr - arg_pfx_ptr);
             *arg_cnt = atoi(arg_buf);                    
         } else if (rpt_pfx_ptr) {
-            char rpt_buf[null_ptr-rpt_pfx_ptr];
-            strncpy(rpt_buf,rpt_pfx_ptr+1,null_ptr-rpt_pfx_ptr);
+            char rpt_buf[null_ptr - rpt_pfx_ptr];
+            strncpy(rpt_buf, rpt_pfx_ptr + 1, null_ptr - rpt_pfx_ptr);
             *rpt_cnt = atoi(rpt_buf);                    
         }                
     }
