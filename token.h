@@ -36,7 +36,7 @@
 #define COND_IF_KW "If"
 #define COND_THEN_KW "Then"
 #define COND_ELSE_KW "Else"
-#define TILA_ADD "Tl_add"
+#define TILA_ADD "Add"
 /*  */
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_@#]+)"
 
