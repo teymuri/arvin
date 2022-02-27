@@ -324,7 +324,7 @@ digest_call(char *str, int *arg_cnt, int *rpt_cnt)
                 strncpy(rpt_buf, rpt_pfx_ptr + 1, null_ptr - rpt_pfx_ptr);
                 /* if specified args num is '&' set args count to -2,
                  * this will be incremented back in eval_call
-                 * resulting in -1 (i.e. unlimited maxcap) */
+                 * resulting in the unlimited maxcap -1 */
                 *arg_cnt = (strlen(arg_buf) == 1 && *arg_buf == CALL_ULTD_ARG_CHAR) ? -2 : atoi(arg_buf);
                 *rpt_cnt = atoi(rpt_buf);
             } else {
