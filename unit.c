@@ -63,11 +63,11 @@ unit_linked_list(struct Token toks[], size_t toks_n)
         /* uuid 0 is reserved for the toplevel unit, so start with 1 */
         unit->uuid = s + 1;
         unit->token = toks[s];
-        /* maximum absorption of -1 means undefined, i.e. can take as much
-           as you want. This will be reset later in parser to possinly
-           different unsigned integers for different types (e.g. parameter
-           bindings will get 1 etc.)*/
-        unit->max_capa = -1;
+        /* maximum absorption of -1 means undefined, i.e. will capture
+           ALL coming units! This will be reset later in parser to
+           possinly different unsigned integers for different types
+           (e.g. parameter bindings will get 1 etc.)*/
+        unit->max_cap = -1;
         set_unit_value(unit);
         set_unit_type(unit);
         link = g_list_prepend(link, unit);

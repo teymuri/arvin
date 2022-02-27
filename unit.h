@@ -14,7 +14,7 @@ struct Unit {
     GNode *lambda_expr;
     /* maximum absorption capacity: -1 = indefinite capacity, 0 = no
        capacity, else definite capacity*/
-    int max_capa;
+    int max_cap;
     int call_rep_cnt;
     struct Token token;
     enum Type type;

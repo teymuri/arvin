@@ -31,7 +31,7 @@ main(int argc, char **argv)
     /* toplevel unit */
     struct Unit tl_unit = {
         .uuid = TOPLVLUID,
-        .max_capa = -1,
+        .max_cap = -1,
         .is_atomic = false,
         .token = {
             .str = TOPLVLTOKSTR,

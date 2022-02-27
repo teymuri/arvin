@@ -292,7 +292,7 @@ find_enc_node_with_cap(GNode *node)
 {
     do {
         node = node->parent;
-        if (((unitp_t)node->data)->max_capa != 0)
+        if (((unitp_t)node->data)->max_cap != 0)
             return node;
     } while (node);
     return NULL;
@@ -374,7 +374,7 @@ parse3(GList *ulink)
                                    (unitp_t)find_enc_ulink(ulink)->data);
         /* 1.2. if the computed enclosing node has no more capacity set the
            closest parent of it with capacity to be the enclosing node */
-        if (((unitp_t)enc_node->data)->max_capa == 0)
+        if (((unitp_t)enc_node->data)->max_cap == 0)
             enc_node = find_enc_node_with_cap(enc_node);
         
         /* 2. establish definite binding types based on the enclosing
@@ -407,8 +407,8 @@ parse3(GList *ulink)
             is_cond_then((unitp_t)enc_node->data) ||
             is_cond_else((unitp_t)enc_node->data)
             ) {
-            if (((unitp_t)enc_node->data)->max_capa)
-                ((unitp_t)enc_node->data)->max_capa--;
+            if (((unitp_t)enc_node->data)->max_cap)
+                ((unitp_t)enc_node->data)->max_cap--;
             else
                 /* if the previous enclosing node's capacity is
                  * exhausted (i.e. is 0), look for a top node with capa to be the
@@ -418,11 +418,11 @@ parse3(GList *ulink)
         
         /* 4. set the maximum absorption capacity for this unit */
         if (is_of_type((unitp_t)ulink->data, BOUND_BINDING))
-            ((unitp_t)ulink->data)->max_capa = 1;
+            ((unitp_t)ulink->data)->max_cap = 1;
         else if (is_of_type((unitp_t)ulink->data, BOUND_PACK_BINDING)) {
             if (is_lambda4((unitp_t)enc_node->data))
                 /* capa = list */
-                ((unitp_t)ulink->data)->max_capa = 1;
+                ((unitp_t)ulink->data)->max_cap = 1;
             else if (is_call((unitp_t)enc_node->data)) {
                 /* the name of the rest param has already caused a
                  * decrement of call's max capacity, so we put that 1
@@ -430,41 +430,41 @@ parse3(GList *ulink)
                  * param. also the call itself will now have no more
                  * capacity as all upcoming units will be absorbed by
                  * the rest param. */
-                ((unitp_t)ulink->data)->max_capa = ((unitp_t)enc_node->data)->max_capa + 1;
-                ((unitp_t)enc_node->data)->max_capa = 0; /* suddenly, no decrementing! */
+                ((unitp_t)ulink->data)->max_cap = ((unitp_t)enc_node->data)->max_cap + 1;
+                ((unitp_t)enc_node->data)->max_cap = 0; /* suddenly, no decrementing! */
             }
         } else if (is_define((unitp_t)ulink->data)) {
             /* capa = name, data */
-            ((unitp_t)ulink->data)->max_capa = 2;
+            ((unitp_t)ulink->data)->max_cap = 2;
         } else if (is_cith((unitp_t)ulink->data)) {
             /* capa = index, pack */
-            ((unitp_t)ulink->data)->max_capa = 2;
+            ((unitp_t)ulink->data)->max_cap = 2;
         } else if (is_tila_show((unitp_t)ulink->data)) {
             /* capa = thing */
-            ((unitp_t)ulink->data)->max_capa = 1;
+            ((unitp_t)ulink->data)->max_cap = 1;
         } else if (is_tila_size((unitp_t)ulink->data))
             /* capa = list */
-            ((unitp_t)ulink->data)->max_capa = 1;
+            ((unitp_t)ulink->data)->max_cap = 1;
         else if (is_tila_nth((unitp_t)ulink->data))
             /* capa = nth, list */
-            ((unitp_t)ulink->data)->max_capa = 2;
+            ((unitp_t)ulink->data)->max_cap = 2;
         else if (is_tila_list((unitp_t)ulink->data))
             /* no capa, Tila_list is used ONLY as default arg to
              * list's &REST:= param! */
-            ((unitp_t)ulink->data)->max_capa = 0;
+            ((unitp_t)ulink->data)->max_cap = 0;
         else if (is_call((unitp_t)ulink->data)) {
             /* capa = the specified number of args to the function */
             int arg_cnt = 0, rpt_cnt = 1; /* args count, repeatitions count */
             digest_call(((unitp_t)ulink->data)->token.str, &arg_cnt, &rpt_cnt);
-            ((unitp_t)ulink->data)->max_capa = arg_cnt + 1; /* arg_cnt = args, + 1 = fnc name */
+            ((unitp_t)ulink->data)->max_cap = arg_cnt + 1; /* arg_cnt = args, + 1 = fnc name */
             ((unitp_t)ulink->data)->call_rep_cnt = rpt_cnt;
         } else if (is_cond_if((unitp_t)ulink->data) ||
                    is_cond_then((unitp_t)ulink->data))
             /* capa = expression */
-            ((unitp_t)ulink->data)->max_capa = 1;
+            ((unitp_t)ulink->data)->max_cap = 1;
         else if (is_cond_else((unitp_t)ulink->data)) {
-            ((unitp_t)ulink->data)->max_capa = 1;
-            ((unitp_t)enc_node->data)->max_capa = 0; /* suddenly, no decrementing! */
+            ((unitp_t)ulink->data)->max_cap = 1;
+            ((unitp_t)enc_node->data)->max_cap = 0; /* suddenly, no decrementing! */
         }
         
         if (need_block((unitp_t)ulink->data)) {            
@@ -478,7 +478,7 @@ parse3(GList *ulink)
                 curr_bind_unit = (unitp_t)ulink->data;            
         } else {			/* an atomic unit */
             ((unitp_t)ulink->data)->is_atomic = true;
-            ((unitp_t)ulink->data)->max_capa = 0;
+            ((unitp_t)ulink->data)->max_cap = 0;
             /* is the unit true or false? set it's boolean type */
             if (is_bool(((unitp_t)ulink->data)))
                 ((unitp_t)ulink->data)->type = BOOL;
@@ -497,7 +497,7 @@ parse3(GList *ulink)
              unit_type((unitp_t)ulink->data) != BOUND_BINDING &&
              unit_type((unitp_t)ulink->data) != PACK_BINDING &&
              unit_type((unitp_t)ulink->data) != BOUND_PACK_BINDING)) {
-            ((unitp_t)enc_node->data)->max_capa = 0;
+            ((unitp_t)enc_node->data)->max_cap = 0;
             curr_bind_unit = NULL;
         }
         
