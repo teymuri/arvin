@@ -460,7 +460,7 @@ parse3(GList *ulink)
             /* capa = nth, list */
             ((unitp_t)ulink->data)->max_cap = 2;
         else if (is_tila_list((unitp_t)ulink->data))
-            /* no capa, Tl_list is used ONLY as default arg to
+            /* no capa, List is used ONLY as default arg to
              * list's &REST:= param! */
             ((unitp_t)ulink->data)->max_cap = 0;
         else if (is_call((unitp_t)ulink->data)) {

@@ -416,7 +416,7 @@ eval3(GNode *node, GHashTable *env)
         else if (is_tila_size((unitp_t)node->data))
             eval_tila_size(&result, node, env);
         else if (is_tila_list((unitp_t)node->data))
-            /* Tl_list is used ONLY as default argument the &REST:=
+            /* List is used ONLY as default argument the &REST:=
              * param of the list function to get an empty list. NEVER
              * use it anywhere else! */
             eval_tila_list(&result, node->children, env);
