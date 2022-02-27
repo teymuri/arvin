@@ -28,14 +28,15 @@
 #define TRUE_KW "True"
 #define FALSE_KW "False"
 /* #define CALL_KW "Call" */
-#define TILA_NTH_KW "Tila_nth"
-#define TILA_SIZE_KW "Tila_size"
-#define TILA_SHOW_KW "Tila_show"
-#define TILA_LIST_KW "Tila_list"
+#define TILA_NTH_KW "Tl_nth"
+#define TILA_SIZE_KW "Tl_size"
+#define TILA_SHOW_KW "Tl_show"
+#define TILA_LIST_KW "Tl_list"
 #define COND_KW "Cond"
 #define COND_IF_KW "If"
 #define COND_THEN_KW "Then"
 #define COND_ELSE_KW "Else"
+#define TILA_ADD "Tl_add"
 /*  */
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_@#]+)"
 

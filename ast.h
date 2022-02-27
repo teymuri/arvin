@@ -1,5 +1,5 @@
-#ifndef LET_AST_H
-#define LET_AST_H
+#ifndef TILA_AST_H
+#define TILA_AST_H
 
 void post_parse_lambda_check(GNode *);
 void post_parse_call_check(GNode *);
@@ -32,4 +32,5 @@ bool is_cond(struct Unit *);
 bool is_cond_if(struct Unit *);
 bool is_cond_then(struct Unit *);
 bool is_cond_else(struct Unit *);
-#endif	/* LET_AST_H */
+bool is_tila_add(struct Unit *);
+#endif	/* TILA_AST_H */

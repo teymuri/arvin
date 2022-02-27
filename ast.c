@@ -143,6 +143,13 @@ bool is_cpack(struct Unit *u) {
 bool is_cith(struct Unit *u) {
     return !strcmp(u->token.str, CITH_KW);
 }
+/* ********** math begin ********** */
+bool
+is_tila_add(struct Unit *u)
+{
+    return !strcmp(u->token.str, TILA_ADD);
+}
+/* ********** math end ********** */
 
 /* ******** List begin ************ */
 bool
@@ -282,7 +289,8 @@ need_block(struct Unit *u)
         is_cond(u) ||
         is_cond_if(u) ||
         is_cond_then(u) ||
-        is_cond_else(u)
+        is_cond_else(u) ||
+        is_tila_add(u)
         ;
 }
 
@@ -407,7 +415,8 @@ parse3(GList *ulink)
             is_call((unitp_t)enc_node->data) ||
             is_cond_if((unitp_t)enc_node->data) ||
             is_cond_then((unitp_t)enc_node->data) ||
-            is_cond_else((unitp_t)enc_node->data)
+            is_cond_else((unitp_t)enc_node->data) ||
+            is_tila_add((unitp_t)enc_node->data)
             ) {
             if (((unitp_t)enc_node->data)->max_cap)
                 ((unitp_t)enc_node->data)->max_cap--;
@@ -451,7 +460,7 @@ parse3(GList *ulink)
             /* capa = nth, list */
             ((unitp_t)ulink->data)->max_cap = 2;
         else if (is_tila_list((unitp_t)ulink->data))
-            /* no capa, Tila_list is used ONLY as default arg to
+            /* no capa, Tl_list is used ONLY as default arg to
              * list's &REST:= param! */
             ((unitp_t)ulink->data)->max_cap = 0;
         else if (is_call((unitp_t)ulink->data)) {
@@ -467,7 +476,9 @@ parse3(GList *ulink)
         else if (is_cond_else((unitp_t)ulink->data)) {
             ((unitp_t)ulink->data)->max_cap = 1;
             ((unitp_t)enc_node->data)->max_cap = 0; /* suddenly, no decrementing! */
-        }
+        } else if (is_tila_add((unitp_t)ulink->data))
+            /* capacity = num1, num2 */
+            ((unitp_t)ulink->data)->max_cap = 2;
         
         if (need_block((unitp_t)ulink->data)) {            
             ((unitp_t)ulink->data)->is_atomic = false;            

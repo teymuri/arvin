@@ -111,7 +111,30 @@ eval_cond(struct Tila_data **result, GNode *node, GHashTable *env)
         set_data(*result, d);        
     }
 }
-
+/* ******** math begin ******** */
+void
+eval_tila_add(struct Tila_data **result, GNode *node, GHashTable *env)
+{
+    struct Tila_data *num1 = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *num2 = eval3(g_node_nth_child(node, 1), env);
+    if (num1->type == INTEGER && num2->type == INTEGER) {
+        (*result)->type = INTEGER;
+        (*result)->slots.tila_int = num1->slots.tila_int + num2->slots.tila_int;
+    } else {
+        (*result)->type = FLOAT;
+        if (num1->type == FLOAT && num2->type == INTEGER)
+            (*result)->slots.tila_float = num1->slots.tila_float + num2->slots.tila_int;
+        else if (num1->type == INTEGER && num2->type == FLOAT)
+            (*result)->slots.tila_float = num1->slots.tila_int + num2->slots.tila_float;
+        else if (num1->type == FLOAT && num2->type == FLOAT)
+            (*result)->slots.tila_float = num1->slots.tila_float + num2->slots.tila_float;
+        else {
+            fprintf(stderr, "non-num to add\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+/* ******** math end ******** */
 /* ******* begin list ******* */
 void
 eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env)
@@ -393,12 +416,14 @@ eval3(GNode *node, GHashTable *env)
         else if (is_tila_size((unitp_t)node->data))
             eval_tila_size(&result, node, env);
         else if (is_tila_list((unitp_t)node->data))
-            /* Tila_list is used ONLY as default argument the &REST:=
+            /* Tl_list is used ONLY as default argument the &REST:=
              * param of the list function to get an empty list. NEVER
              * use it anywhere else! */
             eval_tila_list(&result, node->children, env);
         else if (is_cond((unitp_t)node->data))
             eval_cond(&result, node, env);
+        else if (is_tila_add((unitp_t)node->data))
+            eval_tila_add(&result, node, env);
     }
     return result;
 }
