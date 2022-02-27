@@ -416,9 +416,12 @@ eval3(GNode *node, GHashTable *env)
         else if (is_tila_size((unitp_t)node->data))
             eval_tila_size(&result, node, env);
         else if (is_tila_list((unitp_t)node->data))
-            /* List is used ONLY as default argument the &REST:=
-             * param of the list function to get an empty list. NEVER
-             * use it anywhere else! */
+            /* List is used in the core ONLY as default argument the
+             * &ITEMS:= param of the list function to get an empty
+             * list. although invoking it would simply result in an
+             * empty list (as it's max capacity is 0 it cant take any
+             * args) try NOT to use it elsewhere as it's internal and
+             * can change without notice! */
             eval_tila_list(&result, node->children, env);
         else if (is_cond((unitp_t)node->data))
             eval_cond(&result, node, env);

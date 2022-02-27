@@ -31,6 +31,7 @@
 #define TILA_NTH_KW "Nth"
 #define TILA_SIZE_KW "Size"
 #define TILA_SHOW_KW "Show"
+/* List denotes an empty list, it has max capacity of 0 elements */
 #define TILA_LIST_KW "List"
 #define COND_KW "Cond"
 #define COND_IF_KW "If"

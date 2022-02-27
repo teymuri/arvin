@@ -448,20 +448,20 @@ parse3(GList *ulink)
             /* capa = name, data */
             ((unitp_t)ulink->data)->max_cap = 2;
         } else if (is_cith((unitp_t)ulink->data)) {
-            /* capa = index, pack */
+            /* captures: index  pack */
             ((unitp_t)ulink->data)->max_cap = 2;
         } else if (is_tila_show((unitp_t)ulink->data)) {
-            /* capa = thing */
+            /* captures: a single data */
             ((unitp_t)ulink->data)->max_cap = 1;
         } else if (is_tila_size((unitp_t)ulink->data))
             /* capa = list */
             ((unitp_t)ulink->data)->max_cap = 1;
         else if (is_tila_nth((unitp_t)ulink->data))
-            /* capa = nth, list */
+            /* captures: nth, list */
             ((unitp_t)ulink->data)->max_cap = 2;
         else if (is_tila_list((unitp_t)ulink->data))
             /* no capa, List is used ONLY as default arg to
-             * list's &REST:= param! */
+             * list's &ITEMS:= param! */
             ((unitp_t)ulink->data)->max_cap = 0;
         else if (is_call((unitp_t)ulink->data)) {
             /* capa = the specified number of args to the function */
