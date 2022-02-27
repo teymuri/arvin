@@ -1,7 +1,10 @@
 (0 arity)
-Define 0ar Lambda Call@1 show 0
+(Define 0ar Lambda Call@1 show 0
 Call#2 0ar 1 2
-Call#3@2 show DATA:= 1000 2 3
+Call#3@2 show DATA:= 1000 2 3)
 
 (Define unknown_arity Lambda &rest: Call@1 show Call@1 size rest
-Call unknown_arity)
+Call unknown_arity &rest:= 10 20)
+
+Define a Lambda &rest: rest
+Call a

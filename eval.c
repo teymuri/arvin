@@ -324,70 +324,6 @@ eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
     *result = eval3(g_node_last_child(lambda_data->slots.tila_lambda->node), call_env);
 }
 
-void eval_pass(struct Tila_data **result, GNode *node, GHashTable *env) {
-    GNode *lambda_node = g_node_last_child(node);
-    /* populate lambda environment */
-    struct Tila_data *x = eval3(lambda_node, env);
-    /* make a copy of the lambda env */
-    GHashTable *call_env = clone_hash_table(x->slots.tila_lambda->env);
-    /* iterate over passed arguments */
-    gint idx = 0;			/* gint because of g_node_child_index update later */
-    while (idx < (gint)g_node_n_children(node) - 1) {
-        if (unit_type((unitp_t)g_node_nth_child(node, idx)->data) == BOUND_BINDING) {
-            g_hash_table_insert(call_env,
-                                binding_node_name(g_node_nth_child(node, idx)),
-                                eval3(g_node_nth_child(node, idx)->children, env));
-            /* update the index to reflect the position of current passed
-               argument in the parameter list of the lambda */
-            gint in_lambda_idx = find_param_idx(x->slots.tila_lambda->param_list,
-                                                  ((unitp_t)g_node_nth_child(node, idx)->data)->token.str);;
-            if (in_lambda_idx == -1) {
-                fprintf(stderr, "unknown parameter\n");
-                print_node(g_node_nth_child(node, idx), NULL);
-                fprintf(stderr, "passed to\n");
-                print_node(x->slots.tila_lambda->node, NULL);
-                exit(EXIT_FAILURE);
-            } else if (in_lambda_idx > idx) {
-                if (unit_type((unitp_t)g_node_nth_child(node, idx+1)->data) == BOUND_BINDING) {
-                    idx++;
-                } else idx = in_lambda_idx;
-            } else idx++;
-        } else if (unit_type((unitp_t)g_node_nth_child(node, idx)->data) == BOUND_PACK_BINDING) {
-            struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
-            eval_cpack(&rest_params,
-                            g_node_nth_child(node, idx),
-                            call_env, 0, 0);
-            g_hash_table_insert(call_env,
-                                binding_node_name(g_node_nth_child(node, idx)),
-                                rest_params);
-            break;       /* out of parameter processing, &rest: must be the last! */
-        } else {			/* just an expression or multiple expressions, not a binding (para->arg) */
-            if (unit_type((unitp_t)g_node_nth_child(x->slots.tila_lambda->node, idx)->data) == PACK_BINDING ||
-                unit_type((unitp_t)g_node_nth_child(x->slots.tila_lambda->node, idx)->data) == BOUND_PACK_BINDING) {
-                /* es ist pack binding ohne keyword */
-                struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
-                eval_cpack(&rest_params,
-                                node,
-                                call_env,
-                                idx,
-                                g_node_n_children(node) - 1);
-                g_hash_table_insert(call_env,
-                                    binding_node_name(g_node_nth_child(x->slots.tila_lambda->node, idx)),
-                                    rest_params);
-                break;                  /* last param, get out!!! */
-            } else {
-                char *bname = binding_node_name(g_node_nth_child(x->slots.tila_lambda->node, idx));
-                g_hash_table_insert(call_env, bname,
-                                    eval3(g_node_nth_child(node, idx), env));
-                idx++;        
-            }
-        }
-    }
-    *result = eval3(g_node_last_child(x->slots.tila_lambda->node), call_env);
-}
-
-
-
 void eval_toplvl(struct Tila_data **result, GNode *root)
 {
     guint size = g_node_n_children(root);
@@ -444,8 +380,6 @@ eval3(GNode *node, GHashTable *env)
             eval_lambda(&result, node, env);
         } else if (is_define((unitp_t)node->data)) { /* define */
             eval_define(&result, node, env);
-        } else if (is_pass((unitp_t)node->data)) {
-            eval_pass(&result, node, env);
         } else if (is_let((unitp_t)node->data)) {
             eval_let(&result, node, env);
         } else if (is_cpack((unitp_t)node->data)) {
@@ -453,8 +387,7 @@ eval3(GNode *node, GHashTable *env)
         }  else if (is_call((unitp_t)node->data)) {
             for (int i = 0; i < ((unitp_t)node->data)->call_rep_cnt; i++)
                 eval_call(&result, node, env);
-        }
-            
+        }            
         else if (is_tila_nth((unitp_t)node->data))
             eval_tila_nth(&result, node, env);
         else if (is_tila_size((unitp_t)node->data))
