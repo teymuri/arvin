@@ -3,8 +3,12 @@
 Call#2 0ar 1 2
 Call#3@2 show DATA:= 1000 2 3)
 
-Define unknown_arity Lambda &rest:= Call@3 list 1 2 3 Call@1 show Call@1 size rest
-Call@5 unknown_arity &rest:= 1 2 3 4 5 6 7 8 9 0 Call@1010 unknown_arity &rest:= 1 2 3 4 5 6 7 8 9 0 1 2 3 4
+Define unknown_arity Lambda &rest:= Call@3 list 1 2 3 Call@1 show
+Call@1 size rest Call@5 unknown_arity &rest:= 1 2 3 4 5 6 7 8 9 0
+Call@& unknown_arity &rest:= 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17
+18 19 20
+
+
 
 
 (Define a Lambda &rest: rest)

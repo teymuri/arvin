@@ -319,10 +319,13 @@ digest_call(char *str, int *arg_cnt, int *rpt_cnt)
             if (rpt_pfx_ptr > arg_pfx_ptr) {
                 char arg_buf[rpt_pfx_ptr - arg_pfx_ptr];
                 strncpy(arg_buf, arg_pfx_ptr + 1, rpt_pfx_ptr - arg_pfx_ptr - 1);
-                arg_buf[rpt_pfx_ptr-arg_pfx_ptr]='\0';
-                char rpt_buf[null_ptr-rpt_pfx_ptr];
-                strncpy(rpt_buf,rpt_pfx_ptr+1,null_ptr-rpt_pfx_ptr);
-                *arg_cnt = atoi(arg_buf);
+                arg_buf[rpt_pfx_ptr - arg_pfx_ptr] = '\0';
+                char rpt_buf[null_ptr - rpt_pfx_ptr];
+                strncpy(rpt_buf, rpt_pfx_ptr + 1, null_ptr - rpt_pfx_ptr);
+                /* if specified args num is '&' set args count to -2,
+                 * this will be incremented back in eval_call
+                 * resulting in -1 (i.e. unlimited maxcap) */
+                *arg_cnt = (strlen(arg_buf) == 1 && *arg_buf == CALL_UNLIM_ARG_CHAR) ? -2 : atoi(arg_buf);
                 *rpt_cnt = atoi(rpt_buf);
             } else {
                 char rpt_buf[arg_pfx_ptr-rpt_pfx_ptr];
@@ -330,20 +333,19 @@ digest_call(char *str, int *arg_cnt, int *rpt_cnt)
                 rpt_buf[arg_pfx_ptr-rpt_pfx_ptr]='\0';
                 char arg_buf[null_ptr-arg_pfx_ptr];
                 strncpy(arg_buf,arg_pfx_ptr+1,null_ptr-arg_pfx_ptr);
-                *arg_cnt = atoi(arg_buf);
+                *arg_cnt = (strlen(arg_buf) == 1 && *arg_buf == CALL_UNLIM_ARG_CHAR) ? -2 : atoi(arg_buf);
                 *rpt_cnt = atoi(rpt_buf);
             }
         } else if (arg_pfx_ptr) {
             char arg_buf[null_ptr-arg_pfx_ptr];
             strncpy(arg_buf, arg_pfx_ptr + 1, null_ptr - arg_pfx_ptr);
-            *arg_cnt = atoi(arg_buf);                    
+            *arg_cnt = (strlen(arg_buf) == 1 && *arg_buf == CALL_UNLIM_ARG_CHAR) ? -2 : atoi(arg_buf);
         } else if (rpt_pfx_ptr) {
             char rpt_buf[null_ptr - rpt_pfx_ptr];
             strncpy(rpt_buf, rpt_pfx_ptr + 1, null_ptr - rpt_pfx_ptr);
             *rpt_cnt = atoi(rpt_buf);                    
         }                
     }
-
 }
 
 /* goes through the atoms, root will be the container with tl_cons ... */
