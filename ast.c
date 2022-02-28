@@ -151,6 +151,14 @@ is_tila_add(struct Unit *u)
 }
 /* ********** math end ********** */
 
+/* ******* hof begin ********* */
+bool
+is_tila_fold(struct Unit *u)
+{
+    return !strcmp(u->token.str, TILA_LFOLD);
+}
+/* ******* hof end ********* */
+
 /* ******** List begin ************ */
 bool
 is_tila_nth(struct Unit *u)
@@ -290,7 +298,8 @@ need_block(struct Unit *u)
         is_cond_if(u) ||
         is_cond_then(u) ||
         is_cond_else(u) ||
-        is_tila_add(u)
+        is_tila_add(u) ||
+        is_tila_fold(u)
         ;
 }
 
@@ -416,7 +425,8 @@ parse3(GList *ulink)
             is_cond_if((unitp_t)enc_node->data) ||
             is_cond_then((unitp_t)enc_node->data) ||
             is_cond_else((unitp_t)enc_node->data) ||
-            is_tila_add((unitp_t)enc_node->data)
+            is_tila_add((unitp_t)enc_node->data) ||
+            is_tila_fold((unitp_t)enc_node->data)
             ) {
             if (((unitp_t)enc_node->data)->max_cap)
                 ((unitp_t)enc_node->data)->max_cap--;
@@ -468,7 +478,7 @@ parse3(GList *ulink)
             int arg_cnt = 0, rpt_cnt = 1; /* args count, repeatitions count */
             digest_call(((unitp_t)ulink->data)->token.str, &arg_cnt, &rpt_cnt);
             ((unitp_t)ulink->data)->max_cap = arg_cnt + 1; /* arg_cnt = args, + 1 = fnc name */
-            ((unitp_t)ulink->data)->call_rep_cnt = rpt_cnt;
+            ((unitp_t)ulink->data)->call_rpt_cnt = rpt_cnt;
         } else if (is_cond_if((unitp_t)ulink->data) ||
                    is_cond_then((unitp_t)ulink->data))
             /* capa = expression */
@@ -479,6 +489,9 @@ parse3(GList *ulink)
         } else if (is_tila_add((unitp_t)ulink->data))
             /* capacity = num1, num2 */
             ((unitp_t)ulink->data)->max_cap = 2;
+        else if (is_tila_fold((unitp_t)ulink->data))
+            /* captures: id, list, fn */
+            ((unitp_t)ulink->data)->max_cap = 3;
         
         if (need_block((unitp_t)ulink->data)) {            
             ((unitp_t)ulink->data)->is_atomic = false;            

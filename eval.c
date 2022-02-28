@@ -9,7 +9,7 @@
 #include "ast.h"
 #include "print.h"
 
-
+void eval_call(struct Tila_data **, GNode *, GHashTable *);
 void eval_cpack(struct Tila_data **, GNode *, GHashTable *, guint, guint);
 
 char *binding_node_name(GNode *node) {
@@ -111,6 +111,34 @@ eval_cond(struct Tila_data **result, GNode *node, GHashTable *env)
         set_data(*result, d);        
     }
 }
+
+/* ******** hof begin ******** */
+void
+eval_fold_call(struct Tila_data **result,
+               struct Tila_data *arg1,
+               struct Tila_data *arg2,
+               struct Tila_data *lambda,
+               GHashTable *env)
+{
+    GHashTable *call_env = clone_hash_table(lambda->slots.tila_lambda->env);
+    g_hash_table_insert(call_env,
+                        binding_node_name(g_node_nth_child(lambda->slots.tila_lambda->node, 0)),
+                        arg1);
+    g_hash_table_insert(call_env,
+                        binding_node_name(g_node_nth_child(lambda->slots.tila_lambda->node, 1)),
+                        arg2);
+    *result = eval3(g_node_last_child(lambda->slots.tila_lambda->node), call_env);
+}
+
+void
+eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
+{
+    struct Tila_data *id = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *list = eval3(g_node_nth_child(node, 1), env);
+    struct Tila_data *lambda = eval3(g_node_nth_child(node, 2), env);
+    eval_fold_call(result, id, list, lambda, env);
+}
+/* ******** hof end ******** */
 /* ******** math begin ******** */
 void
 eval_tila_add(struct Tila_data **result, GNode *node, GHashTable *env)
@@ -385,6 +413,10 @@ eval3(GNode *node, GHashTable *env)
                     set_data(result, tdata);
                     break;
                 }
+                /* the && env = ... here is just for the purpose of
+                 * the assignment itself (supposing the node
+                 * assignment and check part happened to be
+                 * successful) and not really a condition check */
             } while ((node = node->parent) && (env = ((unitp_t)node->data)->env));
             if (!node) {
                 fprintf(stderr, "lookup failed for\n");
@@ -408,7 +440,7 @@ eval3(GNode *node, GHashTable *env)
         } else if (is_cpack((unitp_t)node->data)) {
             eval_cpack(&result, node, env, 0, 0);
         }  else if (is_call((unitp_t)node->data)) {
-            for (int i = 0; i < ((unitp_t)node->data)->call_rep_cnt; i++)
+            for (int i = 0; i < ((unitp_t)node->data)->call_rpt_cnt; i++)
                 eval_call(&result, node, env);
         }            
         else if (is_tila_nth((unitp_t)node->data))
@@ -427,6 +459,8 @@ eval3(GNode *node, GHashTable *env)
             eval_cond(&result, node, env);
         else if (is_tila_add((unitp_t)node->data))
             eval_tila_add(&result, node, env);
+        else if (is_tila_fold((unitp_t)node->data))
+            eval_tila_lfold(&result, node, env);
     }
     return result;
 }

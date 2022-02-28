@@ -1,0 +1,2 @@
+Define f Lambda x: y: Show y
+Lfold 1 Show 2 f
