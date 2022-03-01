@@ -1,5 +1,6 @@
 
-(Call@1 show Add 1 2)
-(show)
-list
-(Show Exp 2 3)
+Call@1 show Add 1 2
+
+Call@1 show Exp 2 3
+Call@1 show Exp 3 2
+Call@1 show Exp 4 3

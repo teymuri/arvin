@@ -47,11 +47,12 @@ main(int argc, char **argv)
         .fval = 0.0			/* fval */
     };
     /* load core into the toplevel environment */
-    char core_dir_path[PATH_MAX];
     char *curr_dir = get_current_dir_name();
-    strcat(core_dir_path, curr_dir);
-    strcat(core_dir_path, "/core");
-    char *load_paths[] = {core_dir_path, NULL};
+    char *core_rel_path = "/core";
+    char core_abs_path[strlen(curr_dir) + strlen(core_rel_path) + 1];
+    strcat(core_abs_path, curr_dir);
+    strcat(core_abs_path, "/core");
+    char *load_paths[] = {core_abs_path, NULL};
     FTS *ftsp = fts_open(load_paths, FTS_LOGICAL, NULL);
     if (ftsp == NULL) {
         perror("fts_open");
