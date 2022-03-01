@@ -1,1 +1,6 @@
+Define add Lambda X: Y: Add X Y
+Define mul Lambda X: Y: Mul X Y
+Define + Lambda &NS: Lfold 0 NS add
+Define * Lambda &NS: Lfold 1 NS mul
+
 Define show Lambda DATA: Show DATA

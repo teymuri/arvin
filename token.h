@@ -38,6 +38,7 @@
 #define COND_THEN_KW "Then"
 #define COND_ELSE_KW "Else"
 #define TILA_ADD "Add"
+#define TILA_MUL "Mul"
 #define TILA_EXPT "Exp"
 #define TILA_LFOLD "Lfold"
 /*  */

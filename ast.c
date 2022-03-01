@@ -151,6 +151,12 @@ is_tila_add(struct Unit *u)
 }
 
 bool
+is_tila_mul(struct Unit *u)
+{
+    return !strcmp(u->token.str, TILA_MUL);
+}
+
+bool
 is_tila_expt(struct Unit *u)
 {
     return !strcmp(u->token.str, TILA_EXPT);
@@ -307,6 +313,7 @@ need_block(struct Unit *u)
         is_cond_then(u) ||
         is_cond_else(u) ||
         is_tila_add(u) ||
+        is_tila_mul(u) ||
         is_tila_expt(u) ||
         is_tila_fold(u)
         ;
@@ -435,6 +442,7 @@ parse3(GList *ulink)
             is_cond_then((unitp_t)enc_node->data) ||
             is_cond_else((unitp_t)enc_node->data) ||
             is_tila_add((unitp_t)enc_node->data) ||
+            is_tila_mul((unitp_t)enc_node->data) ||            
             is_tila_fold((unitp_t)enc_node->data) ||
             is_tila_expt((unitp_t)enc_node->data)
             ) {
@@ -496,7 +504,8 @@ parse3(GList *ulink)
         else if (is_cond_else((unitp_t)ulink->data)) {
             ((unitp_t)ulink->data)->max_cap = 1;
             ((unitp_t)enc_node->data)->max_cap = 0; /* suddenly, no decrementing! */
-        } else if (is_tila_add((unitp_t)ulink->data))
+        } else if (is_tila_add((unitp_t)ulink->data) ||
+                   is_tila_mul((unitp_t)ulink->data))
             /* capacity = num1, num2 */
             ((unitp_t)ulink->data)->max_cap = 2;
         else if (is_tila_fold((unitp_t)ulink->data))
