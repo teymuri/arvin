@@ -1,6 +1,15 @@
 
+(
 Call@1 show Add 1 2
-
 Call@1 show Exp 2 3
 Call@1 show Exp 3 2
-Call@1 show Exp 4 3
+Define f Lambda Show Exp 4 3
+Define f1 Lambda x: Exp 4 x
+Call#20 f
+Define xxx Lambda Show Call@1 f1 x:= 10
+Call#3 xxx)
+
+(5^4^3^2)
+(Show Exp 5 Exp 4 Exp 3 2)
+
+Show Exp 4 9

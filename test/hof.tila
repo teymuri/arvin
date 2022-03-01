@@ -1,2 +1,6 @@
-Define f Lambda x: y: Show y
-Lfold 1 Show 2 f
+Define L Call@5 list 1 2 3 4 5
+
+Lfold .1 L Lambda x: y: Show Add y x
+Show Lfold 0.5
+Call@3 list 10 20 30
+Lambda a: s: Add a s

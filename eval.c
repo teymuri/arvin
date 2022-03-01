@@ -114,12 +114,10 @@ eval_cond(struct Tila_data **result, GNode *node, GHashTable *env)
 }
 
 /* ******** hof begin ******** */
-void
-eval_fold_call(struct Tila_data **result,
-               struct Tila_data *arg1,
+struct Tila_data *
+eval_fold_call(struct Tila_data *arg1,
                struct Tila_data *arg2,
-               struct Tila_data *lambda,
-               GHashTable *env)
+               struct Tila_data *lambda)
 {
     GHashTable *call_env = clone_hash_table(lambda->slots.tila_lambda->env);
     g_hash_table_insert(call_env,
@@ -128,18 +126,23 @@ eval_fold_call(struct Tila_data **result,
     g_hash_table_insert(call_env,
                         binding_node_name(g_node_nth_child(lambda->slots.tila_lambda->node, 1)),
                         arg2);
-    *result = eval3(g_node_last_child(lambda->slots.tila_lambda->node), call_env);
+    return eval3(g_node_last_child(lambda->slots.tila_lambda->node), call_env);
 }
 
 void
 eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct Tila_data *id = eval3(g_node_nth_child(node, 0), env);
-    struct Tila_data *list = eval3(g_node_nth_child(node, 1), env);
+    struct Tila_data *init = eval3(g_node_nth_child(node, 0), env);
+    struct List *list = eval3(g_node_nth_child(node, 1), env)->slots.tila_list;
     struct Tila_data *lambda = eval3(g_node_nth_child(node, 2), env);
-    eval_fold_call(result, id, list, lambda, env);
+    while (list->item) {
+        init = eval_fold_call(init, list->item->data, lambda);
+        list->item = list->item->next;
+    }
+    set_data(*result, init);
 }
 /* ******** hof end ******** */
+
 /* ******** math begin ******** */
 void
 eval_tila_expt(struct Tila_data **result, GNode *node, GHashTable *env)
