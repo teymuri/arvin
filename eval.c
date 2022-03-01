@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <glib.h>
+#include <math.h>
 #include "type.h"
 #include "token.h"
 #include "unit.h"
@@ -140,6 +141,29 @@ eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
 }
 /* ******** hof end ******** */
 /* ******** math begin ******** */
+void
+eval_tila_expt(struct Tila_data **result, GNode *node, GHashTable *env)
+{
+    struct Tila_data *base = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *expt = eval3(g_node_nth_child(node, 1), env);
+    if (base->type == INTEGER && expt->type == INTEGER) {
+        (*result)->type = INTEGER;
+        (*result)->slots.tila_int = (int)powf(base->slots.tila_int, expt->slots.tila_int);
+    } else {
+        (*result)->type = FLOAT;
+        if (base->type == FLOAT && expt->type == INTEGER)
+            (*result)->slots.tila_float = base->slots.tila_float + expt->slots.tila_int;
+        else if (base->type == INTEGER && expt->type == FLOAT)
+            (*result)->slots.tila_float = base->slots.tila_int + expt->slots.tila_float;
+        else if (base->type == FLOAT && expt->type == FLOAT)
+            (*result)->slots.tila_float = base->slots.tila_float + expt->slots.tila_float;
+        else {
+            fprintf(stderr, "non-num to add\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
 void
 eval_tila_add(struct Tila_data **result, GNode *node, GHashTable *env)
 {
@@ -459,6 +483,8 @@ eval3(GNode *node, GHashTable *env)
             eval_cond(&result, node, env);
         else if (is_tila_add((unitp_t)node->data))
             eval_tila_add(&result, node, env);
+        else if (is_tila_expt((unitp_t)node->data))
+            eval_tila_expt(&result, node, env);
         else if (is_tila_fold((unitp_t)node->data))
             eval_tila_lfold(&result, node, env);
     }

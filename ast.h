@@ -33,5 +33,6 @@ bool is_cond_if(struct Unit *);
 bool is_cond_then(struct Unit *);
 bool is_cond_else(struct Unit *);
 bool is_tila_add(struct Unit *);
+bool is_tila_expt(struct Unit *);
 bool is_tila_fold(struct Unit *);
 #endif	/* TILA_AST_H */
