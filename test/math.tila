@@ -1,3 +1,5 @@
 
-(Call@1 show Add 1 2.345)
-Show Exp 2 3
+(Call@1 show Add 1 2)
+(show)
+list
+(Show Exp 2 3)

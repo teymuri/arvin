@@ -46,7 +46,7 @@ main(int argc, char **argv)
         .ival = 0,			/* ival */
         .fval = 0.0			/* fval */
     };
-    /* load the core into the toplevel environment */
+    /* load core into the toplevel environment */
     char core_dir_path[PATH_MAX];
     char *curr_dir = get_current_dir_name();
     strcat(core_dir_path, curr_dir);
