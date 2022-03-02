@@ -129,17 +129,45 @@ eval_fold_call(struct Tila_data *arg1,
     return eval3(g_node_last_child(lambda->slots.tila_lambda->node), call_env);
 }
 
+guint
+min_sublist_size(struct List list)
+{
+    guint lst_len;
+    guint min = G_MAXUINT;
+    while (list.item) {
+        lst_len = ((struct Tila_data *)list.item->data)->slots.tila_list->size;
+        if (lst_len < min)
+            min = lst_len;
+        list.item = list.item->next;
+    }
+    return min;
+}
+
 void
 eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct Tila_data *init = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *id = eval3(g_node_nth_child(node, 0), env);
+    /* list is a list of lists */
     struct List *list = eval3(g_node_nth_child(node, 1), env)->slots.tila_list;
-    struct Tila_data *lambda = eval3(g_node_nth_child(node, 2), env);
-    while (list->item) {
-        init = eval_fold_call(init, list->item->data, lambda);
-        list->item = list->item->next;
+    GList *lstitmcp = list->item;
+    struct Lambda *lambda = eval3(g_node_nth_child(node, 2), env)->slots.tila_lambda;
+    GHashTable *call_env = clone_hash_table(lambda->env);
+    guint i = min_sublist_size(*list);
+    while (i--) {
+        g_hash_table_insert(call_env,
+                            binding_node_name(g_node_nth_child(lambda->node, 0)),
+                            id);
+        for (int j = 0; j < list->size; j++) {
+            g_hash_table_insert(call_env,
+                                binding_node_name(g_node_nth_child(lambda->node, j+1)),
+                                ((struct Tila_data *)list->item->data)->slots.tila_list->item->data);
+            ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
+            list->item = list->item->next;
+        }
+        id = eval3(g_node_last_child(lambda->node), call_env);
+        list->item = lstitmcp;
     }
-    set_data(*result, init);
+    set_data(*result, id);
 }
 /* ******** hof end ******** */
 
