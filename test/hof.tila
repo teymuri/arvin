@@ -1,11 +1,22 @@
-Define fn Lambda a: s: d: f: Call@4 + a s d f
-Define x Lambda a: s: d: Add a Add s d
-Define x1 Lambda a: s: d: f: Mul f Mul a Mul s d
-
+(Define fn Lambda a: s: d: Call@3 + a s d)
+Define a Lambda a: s: d: f: Add a Add s Add d f
+Define m Lambda a: s: d: f: Mul a Mul s Mul d f
+(
 Show
-  Lfold 10
+  Lfold .5
     Call@3 list
          Call@2 list 2 2
-         Call@1 list 2 
          Call@2 list 2 2
-         +
+         Call@2 list 2 2
+
+m)
+
+Define x Lambda a: s: d: Add a Add s d
+Define xx Lambda &r: Show Nth 0 r
+Show  Lfold 0.5 Call@2 list Call@1 list 1 Call@1 list 1 x
+Show Lfold 2 Call@3 list
+                    Call@1 list Lfold 0.5 Call@2 list Call@1 list 1 Call@1 list 1 x
+                    Call@1 list 10
+                    Call@1 list 10
+       m
+

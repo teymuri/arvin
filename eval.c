@@ -10,6 +10,7 @@
 #include "ast.h"
 #include "print.h"
 
+void eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env);
 void eval_call(struct Tila_data **, GNode *, GHashTable *);
 void eval_cpack(struct Tila_data **, GNode *, GHashTable *, guint, guint);
 
@@ -143,6 +144,33 @@ min_sublist_size(struct List list)
     return min;
 }
 
+/* void */
+/* eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env) */
+/* { */
+/*     struct Tila_data *id = eval3(g_node_nth_child(node, 0), env); */
+/*     /\* list is a list of lists *\/ */
+/*     struct List *list = eval3(g_node_nth_child(node, 1), env)->slots.tila_list; */
+/*     GList *lstitmcp = list->item; */
+/*     struct Lambda *lambda = eval3(g_node_nth_child(node, 2), env)->slots.tila_lambda; */
+/*     GHashTable *call_env = clone_hash_table(lambda->env); */
+/*     guint i = min_sublist_size(*list); */
+/*     while (i--) { */
+/*         g_hash_table_insert(call_env, */
+/*                             binding_node_name(g_node_nth_child(lambda->node, 0)), */
+/*                             id); */
+/*         for (int j = 0; j < list->size; j++) { */
+/*             g_hash_table_insert(call_env, */
+/*                                 binding_node_name(g_node_nth_child(lambda->node, j+1)), */
+/*                                 ((struct Tila_data *)list->item->data)->slots.tila_list->item->data); */
+/*             ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next; */
+/*             list->item = list->item->next; */
+/*         } */
+/*         id = eval3(g_node_last_child(lambda->node), call_env); */
+/*         list->item = lstitmcp; */
+/*     } */
+/*     set_data(*result, id); */
+/* } */
+
 void
 eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
 {
@@ -152,23 +180,75 @@ eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
     GList *lstitmcp = list->item;
     struct Lambda *lambda = eval3(g_node_nth_child(node, 2), env)->slots.tila_lambda;
     GHashTable *call_env = clone_hash_table(lambda->env);
-    guint i = min_sublist_size(*list);
-    while (i--) {
-        g_hash_table_insert(call_env,
-                            binding_node_name(g_node_nth_child(lambda->node, 0)),
-                            id);
-        for (int j = 0; j < list->size; j++) {
-            g_hash_table_insert(call_env,
-                                binding_node_name(g_node_nth_child(lambda->node, j+1)),
-                                ((struct Tila_data *)list->item->data)->slots.tila_list->item->data);
-            ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
-            list->item = list->item->next;
+    guint minsz = min_sublist_size(*list);
+    GNode *n;
+    guint param_idx = 0;
+    while (minsz--) {
+        while (param_idx < g_list_length(lambda->param_list)) {
+            if (unit_type((unitp_t)g_node_nth_child(lambda->node, param_idx)->data) == PACK_BINDING ||
+                unit_type((unitp_t)g_node_nth_child(lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
+                /* dann bauen wir aus den items eine liste rest args */
+                /* n = g_node_new(param_idx ? ((struct Tila_data *)list->item->data)->slots.tila_list->item->data : id); */
+                guint pmidx_cp = param_idx;
+                n = g_node_new(pmidx_cp ? ((struct Tila_data *)list->item->data)->slots.tila_list->item->data : id);
+                if (pmidx_cp) {
+                    ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
+                    list->item = list->item->next;
+                }
+                pmidx_cp++;
+                
+                for (; pmidx_cp < (guint)list->size; pmidx_cp++) {
+                    g_node_insert(n, -1, g_node_new(pmidx_cp ? ((struct Tila_data *)list->item->data)->slots.tila_list->item->data : id));
+                    /* g_node_insert(n, -1, g_node_new(pmidx_cp ? list->item->data : id)); */
+                    if (pmidx_cp) {
+                        ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
+                        list->item = list->item->next;                        
+                    }
+                }
+                struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
+                eval_tila_list(&rest_params, n, env);
+                g_hash_table_insert(call_env,
+                                    binding_node_name(g_node_nth_child(lambda->node, param_idx)),
+                                    rest_params);
+                break;
+            } else {
+                g_hash_table_insert(call_env,
+                                    binding_node_name(g_node_nth_child(lambda->node, param_idx)),
+                                    param_idx ? ((struct Tila_data *)list->item->data)->slots.tila_list->item->data : id);
+                if (param_idx) {
+                    ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
+                    list->item = list->item->next;
+                }
+            }
+            param_idx++;
         }
         id = eval3(g_node_last_child(lambda->node), call_env);
         list->item = lstitmcp;
+        param_idx = 0;
     }
+
+
+    /* for (guint i = 0; i < min_sublist_size(*list); i++) { */
+    /*      { */
+    /*         n = g_node_new(NULL); */
+    /*     } */
+    /*      g_hash_table_insert(call_env, */
+    /*                         binding_node_name(g_node_nth_child(lambda->node, 0)), */
+    /*                         id); */
+    /*     for (int j = 0; j < list->size; j++) { */
+    /*         g_hash_table_insert(call_env, */
+    /*                             binding_node_name(g_node_nth_child(lambda->node, j+1)), */
+    /*                             ((struct Tila_data *)list->item->data)->slots.tila_list->item->data); */
+    /*         ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next; */
+    /*         list->item = list->item->next; */
+    /*     } */
+    /*     id = eval3(g_node_last_child(lambda->node), call_env); */
+    /*     list->item = lstitmcp; */
+    /* } */
     set_data(*result, id);
 }
+
+
 /* ******** hof end ******** */
 
 /* ******** math begin ******** */
