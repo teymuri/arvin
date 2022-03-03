@@ -1,4 +1,4 @@
-Define list Lambda &REST:= List REST
+Define list Lambda &XS:= List XS
 
 Define 1LIST Call@1 list 1000
 Define 2LIST Call@2 list 1000 2000
