@@ -1,24 +1,35 @@
+Define lfold Lambda lst: id: fn: Lfold lst id fn
+
 (Define fn Lambda a: s: d: Call@3 + a s d)
 Define a Lambda a: s: d: f: Add a Add s Add d f
 Define m Lambda a: s: d: f: Mul a Mul s Mul d f
 
 Show
-  Lfold 1
+  Call@3 lfold
     Call@3 list
          Call@2 list 2 2
          Call@2 list 2 2
-         Call@2 list 2 2
+         Call@2 list 2 2 1
 *
 
 Define x Lambda a: s: d: Add a Add s d
 Define xx Lambda &r: Show Nth 1 r
-Show  Lfold 0.5 Call@2 list Call@1 list 1 Call@1 list 1 x
-Show Lfold 2 Call@3 list
-                    Call@1 list Lfold 0.5 Call@2 list Call@1 list 1 Call@1 list 1 x
+Show  Lfold Call@2 list Call@1 list 1 Call@1 list 1 .5 x
+Show Lfold Call@3 list
+                    Call@1 list Lfold Call@2 list Call@1 list 1 Call@1 list 1 .5 x
                     Call@1 list 10
                     Call@1 list 10
-       m
+       2 m
 
 
-Show Lfold 1 Call@2 list Call@3 list 10 20 30 Call@3 list 100 200 300
+Show Lfold Call@2 list Call@3 list 10 20 30 Call@3 list 100 200 300 1
 Lambda &r: Show Nth 1 r
+
+(Define f Lambda a: s: &d: Show Nth Add a s d
+Call@3 lfold
+   Call@3 list
+          Call@2 list 0 1
+          Call@2 list 0 0
+          Call@2 list 1 100
+          0
+   f)

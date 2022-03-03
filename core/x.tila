@@ -1,6 +1,6 @@
 Define add Lambda X: Y: Add X Y
 Define mul Lambda X: Y: Mul X Y
-Define + Lambda &NS: Lfold 0 Call@1 list NS add
-Define * Lambda &NS: Lfold 1 Call@1 list NS mul
+Define + Lambda &NS: Lfold Call@1 list NS 0 add
+Define * Lambda &NS: Lfold Call@1 list NS 1 mul
 
 Define show Lambda DATA: Show DATA

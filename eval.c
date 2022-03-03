@@ -149,9 +149,9 @@ min_sublist_size(struct List list)
 void
 eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct Tila_data *id = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *id = eval3(g_node_nth_child(node, 1), env);
     /* list is a list of lists */
-    struct List *list = eval3(g_node_nth_child(node, 1), env)->slots.tila_list;
+    struct List *list = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
     GList *lstitmcp = list->item;
     struct Lambda *lambda = eval3(g_node_nth_child(node, 2), env)->slots.tila_lambda;
     GHashTable *call_env = clone_hash_table(lambda->env);
