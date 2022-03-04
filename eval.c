@@ -10,7 +10,7 @@
 #include "ast.h"
 #include "print.h"
 
-void eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env, bool);
+void eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env);
 void eval_call(struct Tila_data **, GNode *, GHashTable *);
 void eval_cpack(struct Tila_data **, GNode *, GHashTable *, guint, guint);
 
@@ -131,48 +131,59 @@ min_sublist_size(struct List list)
     return min;
 }
 
+void
+pack_evaled_list(struct Tila_data **result, GNode *node)
+{
+    (*result)->type = LIST;
+    struct List *list = (struct List *)malloc(sizeof (struct List));
+    list->item = NULL;
+    list->size = 0;
+    while (node) {
+        list->item = g_list_append(list->item, (struct Tila_data *)node->data);
+        list->size++;
+        node = node->next;      /* node's sibling */
+    }
+    (*result)->slots.tila_list = list;
+}
 
 void
 eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct Tila_data *acc = eval3(g_node_nth_child(node, 1), env);
     /* list is a list of lists */
     struct List *list = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
-    GList *lstitmcp = list->item;
+    GList *list_item_cp = list->item;
+    struct Tila_data *acc = eval3(g_node_nth_child(node, 1), env);
     struct Lambda *lambda = eval3(g_node_nth_child(node, 2), env)->slots.tila_lambda;
     GHashTable *call_env = clone_hash_table(lambda->env);
     guint minsz = min_sublist_size(*list);
-    GNode *n;
     guint param_idx = 0;
-    guint param_idx_cp;
     while (minsz--) {
         while (param_idx < g_list_length(lambda->param_list)) {
             if (unit_type((unitp_t)g_node_nth_child(lambda->node, param_idx)->data) == PACK_BINDING ||
                 unit_type((unitp_t)g_node_nth_child(lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
-                param_idx_cp = param_idx;
-                n = g_node_new(NULL);
-                g_node_insert(n, -1,g_node_new(param_idx_cp ? (struct Tila_data *)(((struct Tila_data *)list->item->data)->slots.tila_list->item->data) : acc));
-                if (param_idx_cp != 0) {
+                GNode *args_node = g_node_new(NULL);
+                g_node_insert(args_node, -1,
+                              g_node_new(param_idx ? ((struct Tila_data *)list->item->data)->slots.tila_list->item->data : acc));
+                if (param_idx) {
                     ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
                     list->item = list->item->next;
-                    param_idx_cp++;                    
                 }
-                while (list->item) {      /* param_idx_cp < (guint)list->size */
-                    g_node_insert(n, -1, g_node_new((struct Tila_data *)(((struct Tila_data *)list->item->data)->slots.tila_list->item->data)));
+                while (list->item) {
+                    g_node_insert(args_node, -1, g_node_new(((struct Tila_data *)list->item->data)->slots.tila_list->item->data));
                     ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
                     list->item = list->item->next;
-                    /* param_idx_cp++; */
                 }
-                struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
-                eval_tila_list(&rest_params, n->children, env, true);
+                struct Tila_data *rest_args = malloc(sizeof (struct Tila_data));
+                pack_evaled_list(&rest_args, args_node->children);
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda->node, param_idx)),
-                                    rest_params);
+                                    rest_args);
+                g_node_destroy(args_node);
                 break;
             } else {
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda->node, param_idx)),
-                                    param_idx ? (struct Tila_data *)(((struct Tila_data *)list->item->data)->slots.tila_list->item->data) : acc);
+                                    param_idx ? ((struct Tila_data *)list->item->data)->slots.tila_list->item->data : acc);
                 if (param_idx) {
                     ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
                     list->item = list->item->next;
@@ -181,9 +192,8 @@ eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
             param_idx++;
         }
         acc = eval3(g_node_last_child(lambda->node), call_env);
-        list->item = lstitmcp;
+        list->item = list_item_cp;
         param_idx = 0;
-        n = NULL;
     }
     set_data(*result, acc);
 }
@@ -265,7 +275,7 @@ eval_tila_mul(struct Tila_data **result, GNode *node, GHashTable *env)
 /* ******** math end ******** */
 /* ******* begin list ******* */
 void
-eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env, bool nodes_r_evaled)
+eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env)
 /* node is the first item to the list */
 {
     (*result)->type = LIST;
@@ -274,7 +284,7 @@ eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env, bool nod
     list->size = 0;
     while (node) {
         /* each item of a list is evaluated at list creation-time */
-        list->item = g_list_append(list->item, nodes_r_evaled ? (struct Tila_data *)node->data : eval3(node, env));
+        list->item = g_list_append(list->item, eval3(node, env));
         list->size++;
         node = node->next;      /* node's sibling */
     }
@@ -444,23 +454,23 @@ eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
                 param_idx++;
             }
         } else if (is_of_type((unitp_t)nth_sibling(first_arg, arg_idx)->data, BOUND_PACK_BINDING)) {
-            struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
+            struct Tila_data *rest_args = malloc(sizeof (struct Tila_data));
             /* named rest args */
             /* eval the passed arguments in the  */
-            eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx)->children, env, false);
+            eval_tila_list(&rest_args, nth_sibling(first_arg, arg_idx)->children, env);
             g_hash_table_insert(call_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
-                                rest_params);
+                                rest_args);
             break;       /* out of parameter processing, &rest: must be the last! */
         } else {			/* just an expression or multiple expressions, not a binding (para->arg) */
             if (unit_type((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data) == PACK_BINDING ||
                 unit_type((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
                 /* reached rest args without param name */
-                struct Tila_data *rest_params = malloc(sizeof (struct Tila_data));
-                eval_tila_list(&rest_params, nth_sibling(first_arg, arg_idx), env, false);
+                struct Tila_data *rest_args = malloc(sizeof (struct Tila_data));
+                eval_tila_list(&rest_args, nth_sibling(first_arg, arg_idx), env);
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)),
-                                    rest_params);
+                                    rest_args);
                 break;                  /* last param, get out!!! */
             } else {
                 g_hash_table_insert(call_env,
@@ -554,7 +564,7 @@ eval3(GNode *node, GHashTable *env)
              * empty list (as it's max capacity is 0 it cant take any
              * args) try NOT to use it elsewhere as it's internal and
              * can change without notice! */
-            eval_tila_list(&result, node->children, env, false);
+            eval_tila_list(&result, node->children, env);
         else if (is_cond((unitp_t)node->data))
             eval_cond(&result, node, env);
         else if (is_tila_add((unitp_t)node->data))

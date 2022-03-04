@@ -10,7 +10,7 @@ Show
          Call@2 list 2 2
          Call@2 list 2 2
          Call@2 list 2 2 1
-*
++
 
 Define x Lambda a: s: d: Add a Add s d
 Define xx Lambda &r: Show Nth 1 r
