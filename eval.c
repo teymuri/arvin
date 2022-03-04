@@ -116,20 +116,6 @@ eval_cond(struct Tila_data **result, GNode *node, GHashTable *env)
 }
 
 /* ******** hof begin ******** */
-struct Tila_data *
-eval_fold_call(struct Tila_data *arg1,
-               struct Tila_data *arg2,
-               struct Tila_data *lambda)
-{
-    GHashTable *call_env = clone_hash_table(lambda->slots.tila_lambda->env);
-    g_hash_table_insert(call_env,
-                        binding_node_name(g_node_nth_child(lambda->slots.tila_lambda->node, 0)),
-                        arg1);
-    g_hash_table_insert(call_env,
-                        binding_node_name(g_node_nth_child(lambda->slots.tila_lambda->node, 1)),
-                        arg2);
-    return eval3(g_node_last_child(lambda->slots.tila_lambda->node), call_env);
-}
 
 guint
 min_sublist_size(struct List list)
@@ -149,7 +135,7 @@ min_sublist_size(struct List list)
 void
 eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct Tila_data *id = eval3(g_node_nth_child(node, 1), env);
+    struct Tila_data *acc = eval3(g_node_nth_child(node, 1), env);
     /* list is a list of lists */
     struct List *list = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
     GList *lstitmcp = list->item;
@@ -165,7 +151,7 @@ eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
                 unit_type((unitp_t)g_node_nth_child(lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
                 param_idx_cp = param_idx;
                 n = g_node_new(NULL);
-                g_node_insert(n, -1,g_node_new(param_idx_cp ? (struct Tila_data *)(((struct Tila_data *)list->item->data)->slots.tila_list->item->data) : id));
+                g_node_insert(n, -1,g_node_new(param_idx_cp ? (struct Tila_data *)(((struct Tila_data *)list->item->data)->slots.tila_list->item->data) : acc));
                 if (param_idx_cp != 0) {
                     ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
                     list->item = list->item->next;
@@ -186,7 +172,7 @@ eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
             } else {
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda->node, param_idx)),
-                                    param_idx ? (struct Tila_data *)(((struct Tila_data *)list->item->data)->slots.tila_list->item->data) : id);
+                                    param_idx ? (struct Tila_data *)(((struct Tila_data *)list->item->data)->slots.tila_list->item->data) : acc);
                 if (param_idx) {
                     ((struct Tila_data *)list->item->data)->slots.tila_list->item = ((struct Tila_data *)list->item->data)->slots.tila_list->item->next;
                     list->item = list->item->next;
@@ -194,12 +180,12 @@ eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
             }
             param_idx++;
         }
-        id = eval3(g_node_last_child(lambda->node), call_env);
+        acc = eval3(g_node_last_child(lambda->node), call_env);
         list->item = lstitmcp;
         param_idx = 0;
         n = NULL;
     }
-    set_data(*result, id);
+    set_data(*result, acc);
 }
 
 
