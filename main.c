@@ -54,7 +54,7 @@ main(int argc, char **argv)
         char core_abs_path[strlen(curr_dir) + strlen(core_rel_path) + 1];
         strcat(core_abs_path, curr_dir);
         strcat(core_abs_path, "/core");
-        char *load_paths[] = {core_abs_path, NULL};
+        char *load_paths[] = {"./core.abid", NULL};
         FTS *ftsp = fts_open(load_paths, FTS_LOGICAL, NULL);
         if (ftsp == NULL) {
             perror("fts_open");

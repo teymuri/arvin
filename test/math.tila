@@ -15,3 +15,11 @@ Call#3 xxx)
 (Show Exp 4 9)
 
 (Show Call@4 + 1 2 3 4)
+
+
+Define add Lambda &NS: Add NS
+
+Show  Call@4 add 1 2 3 10
+Show Add List
+Show Sub Call@3 list 1
+(Show Call@0 sub)

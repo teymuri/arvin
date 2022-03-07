@@ -1,6 +1,0 @@
-Define add Lambda X: Y: Add X Y
-Define mul Lambda X: Y: Mul X Y
-Define + Lambda &NS: Lfold Call@1 list NS add 0
-Define * Lambda &NS: Lfold Call@1 list NS mul 1
-
-Define show Lambda DATA: Show DATA

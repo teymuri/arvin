@@ -1,5 +1,5 @@
-#ifndef TILA_AST_H
-#define TILA_AST_H
+#ifndef ABID_AST_H
+#define ABID_AST_H
 
 void post_parse_lambda_check(GNode *);
 void post_parse_call_check(GNode *);
@@ -33,7 +33,11 @@ bool is_cond_if(struct Unit *);
 bool is_cond_then(struct Unit *);
 bool is_cond_else(struct Unit *);
 bool is_tila_add(struct Unit *);
+bool is_sub(struct Unit *);
 bool is_tila_mul(struct Unit *);
 bool is_tila_expt(struct Unit *);
 bool is_tila_fold(struct Unit *);
-#endif	/* TILA_AST_H */
+
+
+
+#endif	/* ABID_AST_H */
