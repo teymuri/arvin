@@ -1,6 +1,6 @@
-# Tila
+# Abid
 
-Tila is a purely functional scripting language.
+Abid is a purely functional scripting language.
 
 **Note**: _Tila is still in the design stage. It's not working yet, stay tuned..._ :-)
 
