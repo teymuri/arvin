@@ -2,5 +2,5 @@ Define list Lambda &XS:= List XS
 Define nth Lambda N: LST: Nth N LST
 Define size Lambda LST: Size LST
 Define show Lambda X: Show X
-Define add Lambda &NS: Add NS
+Define add Lambda &NS:= List Add NS
 Define sub Lambda &NS:= List Sub NS

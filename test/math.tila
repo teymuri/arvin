@@ -17,9 +17,9 @@ Call#3 xxx)
 (Show Call@4 + 1 2 3 4)
 
 
-Define add Lambda &NS: Add NS
 
-(Show  Call@4 add 1 2 3 10
-Show Add List)
+
+Show  Call@0 add
+Show Add List
 Show Sub List
 Show Call@2 sub 2 1 1
