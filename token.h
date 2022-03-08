@@ -37,7 +37,7 @@
 #define COND_IF_KW "If"
 #define COND_THEN_KW "Then"
 #define COND_ELSE_KW "Else"
-#define TILA_ADD "Add"
+#define ADDOP "Add"
 #define MULOP "Mul"
 #define SUBOP "Sub"
 #define DIVOP "Div"

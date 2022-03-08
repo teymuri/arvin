@@ -226,7 +226,7 @@ eval_tila_expt(struct Tila_data **result, GNode *node, GHashTable *env)
 }
 
 void
-eval_tila_add(struct Tila_data **result, GNode *node, GHashTable *env)
+eval_add_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
     struct Tila_data *d;
@@ -667,11 +667,11 @@ eval3(GNode *node, GHashTable *env)
             eval_tila_list(&result, node->children, env);
         else if (is_cond((unitp_t)node->data))
             eval_cond(&result, node, env);
-        else if (is_tila_add((unitp_t)node->data))
-            eval_tila_add(&result, node, env);
-        else if (is_sub((unitp_t)node->data))
+        else if (is_add_op((unitp_t)node->data))
+            eval_add_op(&result, node, env);
+        else if (is_sub_op((unitp_t)node->data))
             eval_sub_op(&result, node, env);
-        else if (is_mul((unitp_t)node->data))
+        else if (is_mul_op((unitp_t)node->data))
             eval_mul_op(&result, node, env);
         else if (is_div_op((unitp_t)node->data))
             eval_div_op(&result, node, env);

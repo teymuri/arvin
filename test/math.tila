@@ -19,11 +19,11 @@ Call#3 xxx)
 
 
 
-(Show Call@0 add
+Show Call@0 add
 Show Add List
 Show Sub List
 Show Call@5 sub 2 1 1 .4 0.4
 Show Mul Call@4 list 2 2 2 .5
-Show Call@5 mul 2 3 4 5 .5)
+Show Call@5 mul 2 3 4 5 .5
 Show Div Call@2 list 1 2
 Show Call@4 div 5.0 4 3 2
