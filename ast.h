@@ -34,7 +34,8 @@ bool is_cond_then(struct Unit *);
 bool is_cond_else(struct Unit *);
 bool is_tila_add(struct Unit *);
 bool is_sub(struct Unit *);
-bool is_tila_mul(struct Unit *);
+bool is_mul(struct Unit *);
+bool is_div_op(struct Unit *);
 bool is_tila_expt(struct Unit *);
 bool is_tila_fold(struct Unit *);
 
