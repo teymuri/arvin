@@ -2,15 +2,15 @@ Define list Lambda &XS:= List XS
 Define nth Lambda N: LST: Nth N LST
 Define size Lambda LST: Size LST
 Define show Lambda X: Show X
+
+(Math)
 Define add Lambda &NS:= List Add NS
 Define mul Lambda &NS:= List Mul NS
 Define sub Lambda &NS:= List Sub NS
 Define div Lambda &NS:= List Div NS
-
 Define inc Lambda N: D:= 1 Inc N D
 Define dec Lambda N: D:= 1 Dec N D
-(alternativly dec and inc could be defined as
-
+(alternativly dec and inc could be defined in terms of Add/Sub:
 Define inc Lambda N: D:= 1 Add Call@2 list N D
-
 but then the rule of EVERY CORE FUNCTION ONE OPERATOR would be broken!)
+Define exp Lambda &NS:= List Exp NS

@@ -10,9 +10,9 @@
 #define CPACK_KW "cpack"
 #define CITH_KW "cith"
 
-#define DEFINE_KW "Define"		/* used to define symbols in the global environment */
-#define LET_KW "Let"
-#define FUNCTION_KW "Lambda"
+#define DEFINEKW "Define"		/* used to define symbols in the global environment */
+#define LETKW "Let"
+#define LAMBDAKW "Lambda"
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
 #define REST_PARAM_PFX '&'      /* rest parameter prefix */
@@ -25,18 +25,18 @@
 /* specifying number of calls */
 #define CALL_RPT_PFX '#'
 #define CALL_ULTD_ARG_CHAR '&'
-#define TRUE_KW "True"
-#define FALSE_KW "False"
+#define TRUEKW "T"
+#define FALSEKW "F"
 /* #define CALL_KW "Call" */
-#define TILA_NTH_KW "Nth"
-#define TILA_SIZE_KW "Size"
-#define TILA_SHOW_KW "Show"
+#define NTHOP "Nth"
+#define SIZEOP "Size"
+#define SHOWOP "Show"
 /* List denotes an empty list, it has max capacity of 0 elements */
-#define TILA_LIST_KW "List"
-#define COND_KW "Cond"
-#define COND_IF_KW "If"
-#define COND_THEN_KW "Then"
-#define COND_ELSE_KW "Else"
+#define LISTOP "List"
+#define CONDKW "Cond"
+#define CONDIFKW "If"
+#define CONDTHENKW "Then"
+#define CONDELSEKW "Else"
 #define ADDOP "Add"
 #define MULOP "Mul"
 #define SUBOP "Sub"
@@ -44,7 +44,7 @@
 #define EXPOP "Exp"
 #define INCOP "Inc"
 #define DECOP "Dec"
-#define TILA_LFOLD "Lfold"
+#define LFOLDOP "Lfold"
 /*  */
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_@#]+)"
 

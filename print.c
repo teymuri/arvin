@@ -58,7 +58,7 @@ void print(struct Tila_data *data)
     case LAMBDA:
         printf("lambda..."); break;
     case BOOL:
-        printf("%s", data->slots.tila_bool ? TRUE_KW : FALSE_KW); break;
+        printf("%s", data->slots.tila_bool ? TRUEKW : FALSEKW); break;
     default: break;
     }
     puts("");

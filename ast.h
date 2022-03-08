@@ -24,10 +24,10 @@ bool is_true(struct Unit *);
    pass aufgerufen werden, haben keine keyword parameter usw... */
 bool is_cpack(struct Unit *);
 bool is_cith(struct Unit *);
-bool is_tila_nth(struct Unit *);
-bool is_tila_size(struct Unit *);
-bool is_tila_show(struct Unit *);
-bool is_tila_list(struct Unit *);
+bool is_nth_op(struct Unit *);
+bool is_size_op(struct Unit *);
+bool is_show_op(struct Unit *);
+bool is_list_op(struct Unit *);
 bool is_cond(struct Unit *);
 bool is_cond_if(struct Unit *);
 bool is_cond_then(struct Unit *);
@@ -39,7 +39,7 @@ bool is_div_op(struct Unit *);
 bool is_exp_op(struct Unit *);
 bool is_inc_op(struct Unit *);
 bool is_dec_op(struct Unit *);
-bool is_tila_fold(struct Unit *);
+bool is_lfold_op(struct Unit *);
 
 
 

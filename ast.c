@@ -95,28 +95,28 @@ GList *find_enclosure_link(GList *unit_link, GList *tl_ulink) {
 bool
 is_lambda4(struct Unit *u)
 {
-    return !strcmp(u->token.str, FUNCTION_KW);
+    return !strcmp(u->token.str, LAMBDAKW);
 }
 
 
 bool is_lambda_node(GNode *node) {
-    return !strcmp(((unitp_t)node->data)->token.str, FUNCTION_KW);
+    return !strcmp(((unitp_t)node->data)->token.str, LAMBDAKW);
 }
 bool is_association(struct Unit *c)
 {
-    return !strcmp(c->token.str, LET_KW);
+    return !strcmp(c->token.str, LETKW);
 }
 
 bool
 is_let(struct Unit *u)
 {
-    return !strcmp(u->token.str, LET_KW);
+    return !strcmp(u->token.str, LETKW);
 }
 
 bool
 is_define(struct Unit *u)
 {
-    return !strcmp(u->token.str, DEFINE_KW);
+    return !strcmp(u->token.str, DEFINEKW);
 }
 
 bool is_pass(struct Unit *u) {
@@ -186,38 +186,38 @@ is_dec_op(struct Unit *u)
 
 /* ******* hof begin ********* */
 bool
-is_tila_fold(struct Unit *u)
+is_lfold_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, TILA_LFOLD);
+    return !strcmp(u->token.str, LFOLDOP);
 }
 /* ******* hof end ********* */
 
 /* ******** List begin ************ */
 bool
-is_tila_nth(struct Unit *u)
+is_nth_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, TILA_NTH_KW);
+    return !strcmp(u->token.str, NTHOP);
 }
 
 bool
-is_tila_list(struct Unit *u)
+is_list_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, TILA_LIST_KW);
+    return !strcmp(u->token.str, LISTOP);
 }
 
 bool
-is_tila_size(struct Unit *u)
+is_size_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, TILA_SIZE_KW);
+    return !strcmp(u->token.str, SIZEOP);
 }
 /* ******** list end *********** */
 
 /* booleans */
 bool is_true(struct Unit *u) {
-    return !strcmp(u->token.str, TRUE_KW);
+    return !strcmp(u->token.str, TRUEKW);
 }
 bool is_false(struct Unit *u) {
-    return !strcmp(u->token.str, FALSE_KW);
+    return !strcmp(u->token.str, FALSEKW);
 }
 bool is_bool(struct Unit *u) {
     return is_true(u) || is_false(u);
@@ -232,25 +232,25 @@ bool maybe_binding4(struct Unit *u) {
 bool
 is_cond(struct Unit *u)
 {
-    return !strcmp(u->token.str, COND_KW);
+    return !strcmp(u->token.str, CONDKW);
 }
 
 bool
 is_cond_if(struct Unit *u)
 {
-    return !strcmp(u->token.str, COND_IF_KW);
+    return !strcmp(u->token.str, CONDIFKW);
 }
 
 bool
 is_cond_then(struct Unit *u)
 {
-    return !strcmp(u->token.str, COND_THEN_KW);
+    return !strcmp(u->token.str, CONDTHENKW);
 }
 
 bool
 is_cond_else(struct Unit *u)
 {
-    return !strcmp(u->token.str, COND_ELSE_KW);
+    return !strcmp(u->token.str, CONDELSEKW);
 }
 
 /* **********mand/opt params */
@@ -303,9 +303,9 @@ bool maybe_pack_binding(struct Unit *u) {
 }
 
 bool
-is_tila_show(struct Unit *u)
+is_show_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, TILA_SHOW_KW);
+    return !strcmp(u->token.str, SHOWOP);
 }
 
 bool
@@ -318,15 +318,15 @@ need_block(struct Unit *u)
         /* is_of_type(u, PACK_BINDING) || */
         is_of_type(u, BOUND_BINDING) ||
         is_of_type(u, BOUND_PACK_BINDING) ||
-        is_tila_show(u) ||
+        is_show_op(u) ||
         /* is_pass(u) || */
         /* is_call(u) || */
         is_call(u) ||
         /* is_cpack(u) || */
-        is_tila_list(u) ||
+        is_list_op(u) ||
         /* is_cith(u) || */
-        is_tila_nth(u) ||
-        is_tila_size(u) ||
+        is_nth_op(u) ||
+        is_size_op(u) ||
         is_cond(u) ||
         is_cond_if(u) ||
         is_cond_then(u) ||
@@ -338,7 +338,7 @@ need_block(struct Unit *u)
         is_exp_op(u) ||
         is_inc_op(u) ||
         is_dec_op(u) ||
-        is_tila_fold(u)
+        is_lfold_op(u)
         ;
 }
 
@@ -456,10 +456,10 @@ parse3(GList *ulink)
         if (is_of_type((unitp_t)enc_node->data, BOUND_BINDING) ||
             is_of_type((unitp_t)enc_node->data, BOUND_PACK_BINDING) ||
             is_define((unitp_t)enc_node->data) ||
-            is_tila_show((unitp_t)enc_node->data) ||
-            is_tila_size((unitp_t)enc_node->data) ||
-            is_tila_nth((unitp_t)enc_node->data) ||
-            /* is_tila_list((unitp_t)enc_node->data) || */
+            is_show_op((unitp_t)enc_node->data) ||
+            is_size_op((unitp_t)enc_node->data) ||
+            is_nth_op((unitp_t)enc_node->data) ||
+            /* is_list_op((unitp_t)enc_node->data) || */
             is_call((unitp_t)enc_node->data) ||
             is_cond_if((unitp_t)enc_node->data) ||
             is_cond_then((unitp_t)enc_node->data) ||
@@ -468,7 +468,7 @@ parse3(GList *ulink)
             is_sub_op((unitp_t)enc_node->data) ||
             is_mul_op((unitp_t)enc_node->data) ||
             is_div_op((unitp_t)enc_node->data) ||
-            is_tila_fold((unitp_t)enc_node->data) ||
+            is_lfold_op((unitp_t)enc_node->data) ||
             is_exp_op((unitp_t)enc_node->data) ||
             is_inc_op((unitp_t)enc_node->data) ||
             is_dec_op((unitp_t)enc_node->data)
@@ -505,16 +505,16 @@ parse3(GList *ulink)
         } else if (is_cith((unitp_t)ulink->data)) {
             /* captures: index  pack */
             ((unitp_t)ulink->data)->max_cap = 2;
-        } else if (is_tila_show((unitp_t)ulink->data)) {
+        } else if (is_show_op((unitp_t)ulink->data)) {
             /* captures: a single data */
             ((unitp_t)ulink->data)->max_cap = 1;
-        } else if (is_tila_size((unitp_t)ulink->data))
+        } else if (is_size_op((unitp_t)ulink->data))
             /* capa = list */
             ((unitp_t)ulink->data)->max_cap = 1;
-        else if (is_tila_nth((unitp_t)ulink->data))
+        else if (is_nth_op((unitp_t)ulink->data))
             /* captures: nth, list */
             ((unitp_t)ulink->data)->max_cap = 2;
-        else if (is_tila_list((unitp_t)ulink->data))
+        else if (is_list_op((unitp_t)ulink->data))
             /* no capa, List is used ONLY as default arg to
              * list's &ITEMS:= param! */
             ((unitp_t)ulink->data)->max_cap = 0;
@@ -542,7 +542,7 @@ parse3(GList *ulink)
                  is_dec_op((unitp_t)ulink->data))
             /* captures: number, delta */
             ((unitp_t)ulink->data)->max_cap = 2;
-        else if (is_tila_fold((unitp_t)ulink->data))
+        else if (is_lfold_op((unitp_t)ulink->data))
             /* captures: id, list, fn */
             ((unitp_t)ulink->data)->max_cap = 3;
         if (need_block((unitp_t)ulink->data)) {            

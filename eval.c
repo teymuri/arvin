@@ -10,7 +10,7 @@
 #include "ast.h"
 #include "print.h"
 
-void eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env);
+void eval_list_op(struct Tila_data **result, GNode *node, GHashTable *env);
 void eval_call(struct Tila_data **, GNode *, GHashTable *);
 void eval_cpack(struct Tila_data **, GNode *, GHashTable *, guint, guint);
 
@@ -54,7 +54,7 @@ struct Tila_data *eval3(GNode *, GHashTable *);
 
 
 void
-eval_tila_show(struct Tila_data **result, GNode *node, GHashTable *env)
+eval_show_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *d = eval3(node->children, env);
     set_data(*result, d);
@@ -66,7 +66,7 @@ eval_tila_show(struct Tila_data **result, GNode *node, GHashTable *env)
         printf("%f\n", d->slots.tila_float);
         break;
     case BOOL:
-        printf("%s\n", d->slots.tila_bool ? TRUE_KW : FALSE_KW);
+        printf("%s\n", d->slots.tila_bool ? TRUEKW : FALSEKW);
         break;
     case LAMBDA:
         printf("tbi:lambda (to be implemented)\n");
@@ -147,7 +147,7 @@ pack_evaled_list(struct Tila_data **result, GNode *node)
 }
 
 void
-eval_tila_lfold(struct Tila_data **result, GNode *node, GHashTable *env)
+eval_lfold_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     /* list is a list of lists */
     struct List *list = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
@@ -463,7 +463,7 @@ eval_div_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /* ******** math end ******** */
 /* ******* begin list ******* */
 void
-eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env)
+eval_list_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /* node is the first item to the list */
 {
     (*result)->type = LIST;
@@ -480,7 +480,7 @@ eval_tila_list(struct Tila_data **result, GNode *node, GHashTable *env)
 }
 
 void
-eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env)
+eval_nth_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     guint idx = eval3(g_node_nth_child(node, 0), env)->slots.tila_int;
     struct List *list = eval3(g_node_nth_child(node, 1), env)->slots.tila_list;
@@ -488,7 +488,7 @@ eval_tila_nth(struct Tila_data **result, GNode *node, GHashTable *env)
     set_data(*result, data);
 }
 
-void eval_tila_size(struct Tila_data **result, GNode *node, GHashTable *env)
+void eval_size_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *d = eval3(node->children, env);
     /* work only if data is list */
@@ -645,7 +645,7 @@ eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
             struct Tila_data *rest_args = malloc(sizeof (struct Tila_data));
             /* named rest args */
             /* eval the passed arguments in the  */
-            eval_tila_list(&rest_args, nth_sibling(first_arg, arg_idx)->children, env);
+            eval_list_op(&rest_args, nth_sibling(first_arg, arg_idx)->children, env);
             g_hash_table_insert(call_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
                                 rest_args);
@@ -655,7 +655,7 @@ eval_call(struct Tila_data **result, GNode *node, GHashTable *env)
                 unit_type((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
                 /* reached rest args without param name */
                 struct Tila_data *rest_args = malloc(sizeof (struct Tila_data));
-                eval_tila_list(&rest_args, nth_sibling(first_arg, arg_idx), env);
+                eval_list_op(&rest_args, nth_sibling(first_arg, arg_idx), env);
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)),
                                     rest_args);
@@ -727,8 +727,8 @@ eval3(GNode *node, GHashTable *env)
     } else {			/* builtin stuff */
         if ((((unitp_t)node->data)->uuid == 0)) {
             eval_toplvl(&result, node); /* toplevel uses it's own environment */
-        } else if (is_tila_show((unitp_t)node->data))
-            eval_tila_show(&result, node, env);
+        } else if (is_show_op((unitp_t)node->data))
+            eval_show_op(&result, node, env);
         else if (is_lambda4((unitp_t)node->data)) {
             eval_lambda(&result, node, env);
         } else if (is_define((unitp_t)node->data)) { /* define */
@@ -741,18 +741,18 @@ eval3(GNode *node, GHashTable *env)
             for (int i = 0; i < ((unitp_t)node->data)->call_rpt_cnt; i++)
                 eval_call(&result, node, env);
         }            
-        else if (is_tila_nth((unitp_t)node->data))
-            eval_tila_nth(&result, node, env);
-        else if (is_tila_size((unitp_t)node->data))
-            eval_tila_size(&result, node, env);
-        else if (is_tila_list((unitp_t)node->data))
+        else if (is_nth_op((unitp_t)node->data))
+            eval_nth_op(&result, node, env);
+        else if (is_size_op((unitp_t)node->data))
+            eval_size_op(&result, node, env);
+        else if (is_list_op((unitp_t)node->data))
             /* List is used in the core ONLY as default argument the
              * &ITEMS:= param of the list function to get an empty
              * list. although invoking it would simply result in an
              * empty list (as it's max capacity is 0 it cant take any
              * args) try NOT to use it elsewhere as it's internal and
              * can change without notice! */
-            eval_tila_list(&result, node->children, env);
+            eval_list_op(&result, node->children, env);
         else if (is_cond((unitp_t)node->data))
             eval_cond(&result, node, env);
         else if (is_add_op((unitp_t)node->data))
@@ -769,8 +769,8 @@ eval3(GNode *node, GHashTable *env)
             eval_inc_op(&result, node, env);
         else if (is_dec_op((unitp_t)node->data))
             eval_dec_op(&result, node, env);
-        else if (is_tila_fold((unitp_t)node->data))
-            eval_tila_lfold(&result, node, env);
+        else if (is_lfold_op((unitp_t)node->data))
+            eval_lfold_op(&result, node, env);
     }
     return result;
 }
