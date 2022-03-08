@@ -42,6 +42,8 @@
 #define SUBOP "Sub"
 #define DIVOP "Div"
 #define EXPOP "Exp"
+#define INCOP "Inc"
+#define DECOP "Dec"
 #define TILA_LFOLD "Lfold"
 /*  */
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_@#]+)"

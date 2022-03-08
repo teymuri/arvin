@@ -1,4 +1,4 @@
-
+(
 Show Call@2 sub 2 Call@2 add 2 3
      Show Exp Call@2 list 2 Exp Call@2 list 3 4
 
@@ -8,5 +8,10 @@ Show Mul Call@1 list 3
 Show Add Call@1 list 3
 Show Sub Call@1 list 3
 Show Div Call@1 list 3
+)
 
+Show Inc 4 10
+Show Dec 5 2
 
+Show Call@2 inc 2 2
+Show Call@2#3 dec 1

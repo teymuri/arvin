@@ -170,7 +170,17 @@ is_exp_op(struct Unit *u)
 {
     return !strcmp(u->token.str, EXPOP);
 }
+bool
+is_inc_op(struct Unit *u)
+{
+    return !strcmp(u->token.str, INCOP);
+}
 
+bool
+is_dec_op(struct Unit *u)
+{
+    return !strcmp(u->token.str, DECOP);
+}
 
 /* ********** math end ********** */
 
@@ -326,6 +336,8 @@ need_block(struct Unit *u)
         is_mul_op(u) ||
         is_div_op(u) ||
         is_exp_op(u) ||
+        is_inc_op(u) ||
+        is_dec_op(u) ||
         is_tila_fold(u)
         ;
 }
@@ -457,7 +469,9 @@ parse3(GList *ulink)
             is_mul_op((unitp_t)enc_node->data) ||
             is_div_op((unitp_t)enc_node->data) ||
             is_tila_fold((unitp_t)enc_node->data) ||
-            is_exp_op((unitp_t)enc_node->data)
+            is_exp_op((unitp_t)enc_node->data) ||
+            is_inc_op((unitp_t)enc_node->data) ||
+            is_dec_op((unitp_t)enc_node->data)
             ) {
             if (((unitp_t)enc_node->data)->max_cap)
                 ((unitp_t)enc_node->data)->max_cap--;
@@ -524,6 +538,10 @@ parse3(GList *ulink)
                    is_exp_op((unitp_t)ulink->data))
             /* captures: list of numbers */
             ((unitp_t)ulink->data)->max_cap = 1;
+        else if (is_inc_op((unitp_t)ulink->data) ||
+                 is_dec_op((unitp_t)ulink->data))
+            /* captures: number, delta */
+            ((unitp_t)ulink->data)->max_cap = 2;
         else if (is_tila_fold((unitp_t)ulink->data))
             /* captures: id, list, fn */
             ((unitp_t)ulink->data)->max_cap = 3;
