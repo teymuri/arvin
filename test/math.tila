@@ -1,29 +1,12 @@
 
-(
-Call@1 show Add 1 2
-Call@1 show Exp 2 3
-Call@1 show Exp 3 2
-Define f Lambda Show Exp 4 3
-Define f1 Lambda x: Exp 4 x
-Call#20 f
-Define xxx Lambda Show Call@1 f1 x:= 10
-Call#3 xxx)
+Show Call@2 sub 2 Call@2 add 2 3
+     Show Exp Call@2 list 2 Exp Call@2 list 3 4
 
-(5^4^3^2)
-(Show Exp 5 Exp 4 Exp 3 2)
+(Show Mul Call@2 list 2 33)
 
-(Show Exp 4 9)
-
-(Show Call@4 + 1 2 3 4)
+Show Mul Call@1 list 3
+Show Add Call@1 list 3
+Show Sub Call@1 list 3
+Show Div Call@1 list 3
 
 
-
-
-Show Call@0 add
-Show Add List
-Show Sub List
-Show Call@5 sub 2 1 1 .4 0.4
-Show Mul Call@4 list 2 2 2 .5
-Show Call@5 mul 2 3 4 5 .5
-Show Div Call@2 list 1 2
-Show Call@4 div 5.0 4 3 2

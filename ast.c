@@ -166,9 +166,9 @@ is_mul_op(struct Unit *u)
 }
 
 bool
-is_tila_expt(struct Unit *u)
+is_exp_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, TILA_EXPT);
+    return !strcmp(u->token.str, EXPOP);
 }
 
 
@@ -325,7 +325,7 @@ need_block(struct Unit *u)
         is_sub_op(u) ||
         is_mul_op(u) ||
         is_div_op(u) ||
-        is_tila_expt(u) ||
+        is_exp_op(u) ||
         is_tila_fold(u)
         ;
 }
@@ -457,7 +457,7 @@ parse3(GList *ulink)
             is_mul_op((unitp_t)enc_node->data) ||
             is_div_op((unitp_t)enc_node->data) ||
             is_tila_fold((unitp_t)enc_node->data) ||
-            is_tila_expt((unitp_t)enc_node->data)
+            is_exp_op((unitp_t)enc_node->data)
             ) {
             if (((unitp_t)enc_node->data)->max_cap)
                 ((unitp_t)enc_node->data)->max_cap--;
@@ -520,16 +520,13 @@ parse3(GList *ulink)
         } else if (is_add_op((unitp_t)ulink->data) ||
                    is_sub_op((unitp_t)ulink->data) ||
                    is_mul_op((unitp_t)ulink->data) ||
-                   is_div_op((unitp_t)ulink->data))
+                   is_div_op((unitp_t)ulink->data) ||
+                   is_exp_op((unitp_t)ulink->data))
             /* captures: list of numbers */
             ((unitp_t)ulink->data)->max_cap = 1;
         else if (is_tila_fold((unitp_t)ulink->data))
             /* captures: id, list, fn */
             ((unitp_t)ulink->data)->max_cap = 3;
-        else if (is_tila_expt((unitp_t)ulink->data))
-            /* captures: base, exponent */
-            ((unitp_t)ulink->data)->max_cap = 2;
-        
         if (need_block((unitp_t)ulink->data)) {            
             ((unitp_t)ulink->data)->is_atomic = false;            
             /* new block has it's own environment */

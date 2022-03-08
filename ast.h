@@ -36,7 +36,7 @@ bool is_add_op(struct Unit *);
 bool is_sub_op(struct Unit *);
 bool is_mul_op(struct Unit *);
 bool is_div_op(struct Unit *);
-bool is_tila_expt(struct Unit *);
+bool is_exp_op(struct Unit *);
 bool is_tila_fold(struct Unit *);
 
 
