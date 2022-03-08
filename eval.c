@@ -150,10 +150,10 @@ void
 eval_lfold_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     /* list is a list of lists */
-    struct List *list = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
-    GList *list_item_cp = list->item;
+    struct Tila_data *acc = eval3(g_node_nth_child(node, 0), env);
     struct Lambda *lambda = eval3(g_node_nth_child(node, 1), env)->slots.tila_lambda;
-    struct Tila_data *acc = eval3(g_node_nth_child(node, 2), env);
+    struct List *list = eval3(g_node_nth_child(node, 2), env)->slots.tila_list;
+    GList *list_item_cp = list->item;
     GHashTable *call_env = clone_hash_table(lambda->env);
     guint minsz = min_sublist_size(*list);
     guint param_idx = 0;
