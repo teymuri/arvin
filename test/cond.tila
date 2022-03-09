@@ -1,2 +1,7 @@
-Call/1 show Cond If False Then 100 If True Then 200 If fluffy Then
-Call/1 size 5LIST Else True
+
+
+
+Case
+	If 0 Then Show 0
+	If F Then Show T
+	Else Show F

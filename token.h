@@ -27,7 +27,7 @@
 #define CALL_ULTD_ARG_CHAR '&'
 #define TRUEKW "T"
 #define FALSEKW "F"
-#define CONDKW "Cond"
+#define CONDKW "Case"
 #define CONDIFKW "If"
 #define CONDTHENKW "Then"
 #define CONDELSEKW "Else"
