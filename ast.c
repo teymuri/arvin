@@ -540,8 +540,8 @@ parse3(GList *ulink)
             ((unitp_t)ulink->data)->max_cap = 1;
         else if (is_inc_op((unitp_t)ulink->data) ||
                  is_dec_op((unitp_t)ulink->data))
-            /* captures: number, delta */
-            ((unitp_t)ulink->data)->max_cap = 2;
+            /* captures: a number */
+            ((unitp_t)ulink->data)->max_cap = 1;
         else if (is_lfold_op((unitp_t)ulink->data))
             /* captures: id, list, fn */
             ((unitp_t)ulink->data)->max_cap = 3;

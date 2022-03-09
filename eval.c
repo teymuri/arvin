@@ -206,37 +206,25 @@ eval_lfold_op(struct Tila_data **result, GNode *node, GHashTable *env)
 void
 eval_inc_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct Tila_data *n = eval3(g_node_nth_child(node, 0), env);
-    struct Tila_data *d = eval3(g_node_nth_child(node, 1), env);
-    if (n->type == INTEGER && d->type == INTEGER) {
+    struct Tila_data *n = eval3(node->children, env);
+    if (n->type == INTEGER) {
         (*result)->type = INTEGER;
-        (*result)->slots.tila_int = n->slots.tila_int + d->slots.tila_int;
-    } else {
+        (*result)->slots.tila_int = n->slots.tila_int + 1;
+    } else if (n->type == FLOAT) {
         (*result)->type = FLOAT;
-        if (n->type == FLOAT && d->type == INTEGER)
-            (*result)->slots.tila_float = n->slots.tila_float + d->slots.tila_int;
-        else if (n->type == INTEGER && d->type == FLOAT)
-            (*result)->slots.tila_float = n->slots.tila_int + d->slots.tila_float;
-        else
-            (*result)->slots.tila_float = n->slots.tila_float + d->slots.tila_float;
+        (*result)->slots.tila_float = n->slots.tila_float + 1;
     }
 }
 void
 eval_dec_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct Tila_data *n = eval3(g_node_nth_child(node, 0), env);
-    struct Tila_data *d = eval3(g_node_nth_child(node, 1), env);
-    if (n->type == INTEGER && d->type == INTEGER) {
+    struct Tila_data *n = eval3(node->children, env);
+    if (n->type == INTEGER) {
         (*result)->type = INTEGER;
-        (*result)->slots.tila_int = n->slots.tila_int - d->slots.tila_int;
-    } else {
+        (*result)->slots.tila_int = n->slots.tila_int - 1;
+    } else if (n->type == FLOAT) {
         (*result)->type = FLOAT;
-        if (n->type == FLOAT && d->type == INTEGER)
-            (*result)->slots.tila_float = n->slots.tila_float - d->slots.tila_int;
-        else if (n->type == INTEGER && d->type == FLOAT)
-            (*result)->slots.tila_float = n->slots.tila_int - d->slots.tila_float;
-        else
-            (*result)->slots.tila_float = n->slots.tila_float - d->slots.tila_float;
+        (*result)->slots.tila_float = n->slots.tila_float - 1;
     }
 }
 
