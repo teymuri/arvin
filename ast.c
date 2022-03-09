@@ -147,39 +147,39 @@ bool is_cith(struct Unit *u) {
 bool
 is_add_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, ADDOP);
+    return !strcmp(u->token.str, ADDOPKW);
 }
 bool
 is_sub_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, SUBOP);
+    return !strcmp(u->token.str, SUBOPKW);
 }
 bool
 is_div_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, DIVOP);
+    return !strcmp(u->token.str, DIVOPKW);
 }
 bool
 is_mul_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, MULOP);
+    return !strcmp(u->token.str, MULOPKW);
 }
 
 bool
 is_exp_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, EXPOP);
+    return !strcmp(u->token.str, EXPOPKW);
 }
 bool
 is_inc_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, INCOP);
+    return !strcmp(u->token.str, INCOPKW);
 }
 
 bool
 is_dec_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, DECOP);
+    return !strcmp(u->token.str, DECOPKW);
 }
 
 /* ********** math end ********** */
@@ -188,7 +188,7 @@ is_dec_op(struct Unit *u)
 bool
 is_lfold_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, LFOLDOP);
+    return !strcmp(u->token.str, LFOLDOPKW);
 }
 /* ******* hof end ********* */
 
@@ -196,19 +196,19 @@ is_lfold_op(struct Unit *u)
 bool
 is_nth_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, NTHOP);
+    return !strcmp(u->token.str, NTHOPKW);
 }
 
 bool
 is_list_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, LISTOP);
+    return !strcmp(u->token.str, LISTOPKW);
 }
 
 bool
 is_size_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, SIZEOP);
+    return !strcmp(u->token.str, SIZEOPKW);
 }
 /* ******** list end *********** */
 
@@ -305,7 +305,7 @@ bool maybe_pack_binding(struct Unit *u) {
 bool
 is_show_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, SHOWOP);
+    return !strcmp(u->token.str, SHOWOPKW);
 }
 
 bool

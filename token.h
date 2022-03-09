@@ -27,24 +27,26 @@
 #define CALL_ULTD_ARG_CHAR '&'
 #define TRUEKW "T"
 #define FALSEKW "F"
-/* #define CALL_KW "Call" */
-#define NTHOP "Nth"
-#define SIZEOP "Size"
-#define SHOWOP "Show"
-/* List denotes an empty list, it has max capacity of 0 elements */
-#define LISTOP "List"
 #define CONDKW "Cond"
 #define CONDIFKW "If"
 #define CONDTHENKW "Then"
 #define CONDELSEKW "Else"
-#define ADDOP "Add"
-#define MULOP "Mul"
-#define SUBOP "Sub"
-#define DIVOP "Div"
-#define EXPOP "Exp"
-#define INCOP "Inc"
-#define DECOP "Dec"
-#define LFOLDOP "Lfold"
+
+/* operators */
+#define NTHOPKW "Nth"
+#define SIZEOPKW "Size"
+#define SHOWOPKW "Show"
+/* List denotes an empty list, it has max capacity of 0 elements */
+#define LISTOPKW "List"
+#define ADDOPKW "Add"
+#define MULOPKW "Mul"
+#define SUBOPKW "Sub"
+#define DIVOPKW "Div"
+#define EXPOPKW "Exp"
+#define INCOPKW "Inc"
+#define DECOPKW "Dec"
+#define LFOLDOPKW "Lfold"
+
 /*  */
 #define TOKPATT "(;|:|'|\\)|\\(|[[:alnum:]+-=*&_@#]+)"
 
