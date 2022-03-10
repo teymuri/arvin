@@ -1,8 +1,8 @@
-# Abid
+# Arvin
 
-Abid is a purely functional scripting language.
+Arvin is a purely functional scripting language.
 
-**Note**: _Tila is still in the design stage. It's not working yet, stay tuned..._ :-)
+**Note**: _Arvin is still in the design stage. It's not working yet, stay tuned..._ :-)
 
 ## Compiling
 ### Dependencies
@@ -10,7 +10,7 @@ Abid is a purely functional scripting language.
 - glib
 
 ### Run make
-`make` to create the binary in the source directory. Write your code to a file and execute the file with `./tila path/to/my/tila_file`.
+`make` to create the binary in the source directory. Write your code to a file and execute the file with `./arvin path/to/my/arvin_script`.
 
 ## Examples
 Define identifiers with `Define`
