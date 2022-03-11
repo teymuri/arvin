@@ -1,28 +1,14 @@
-(
-Show Call@2 sub 2 Call@2 add 2 3
+Show Add 1 Exp 2 3
+Show Call@2 exp 2 4
+Show Lfold add 0 Call@1 list Call@4 list 1 2 3 4
 
-Show Exp Call@2 list 2 Exp Call@2 list 3 2
-Show Exp Call@3 list 2 3 2
-Show Call@2 exp 2 10
+Let L:= Call@4 list 1 2 3 4
+    L2:= Call@4 list 1 2 3 4
+    L3:= Call@4 list 1 2 3 4    
+    Show Call@5 lfold Lambda X: Y: Z: Q: Add X Add Y Add Z Q 0 L L2 L3
 
-(Show Mul Call@2 list 2 33)
+Define sum
+       Lambda &NS:
+              Lfold add 0 Call@1 list NS
 
-Show Mul Call@1 list 3
-Show Add Call@1 list 3
-Show Sub Call@1 list 3
-Show Div Call@1 list 3
-
-
-Show Inc 4 10
-Show Dec 5 2
-
-Show Call@2 inc 2 2
-Show Call@2 dec 1 1
-
-
-Show Call@& exp 4 Show Call@2 div 1.0 2)
-
-Show Inc 10.5
-Show Call@1 inc .1
-Show Dec 10.2
-Show Call@1 dec 0.2
+(Show Call@& sum 1 2 3 4 5)

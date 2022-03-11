@@ -149,9 +149,9 @@ pack_evaled_list(struct Tila_data **result, GNode *node)
 void
 eval_lfold_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
+    struct Lambda *lambda = eval3(g_node_nth_child(node, 0), env)->slots.tila_lambda;
+    struct Tila_data *acc = eval3(g_node_nth_child(node, 1), env);
     /* list is a list of lists */
-    struct Tila_data *acc = eval3(g_node_nth_child(node, 0), env);
-    struct Lambda *lambda = eval3(g_node_nth_child(node, 1), env)->slots.tila_lambda;
     struct List *list = eval3(g_node_nth_child(node, 2), env)->slots.tila_list;
     GList *list_item_cp = list->item;
     GHashTable *call_env = clone_hash_table(lambda->env);
@@ -228,221 +228,335 @@ eval_dec_op(struct Tila_data **result, GNode *node, GHashTable *env)
     }
 }
 
-
 void
 eval_add_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
-    if (lst->size) {
-        bool allints = true;
-        float acc;
-        struct Tila_data *d = lst->item->data;
-        if (d->type == INTEGER) {
-            acc = (float)d->slots.tila_int;
-        } else if (d->type == FLOAT) {
-            allints = false;
-            acc = d->slots.tila_float;
-        }
-        lst->item = lst->item->next;
-        while (lst->item) {
-            d = lst->item->data;
-            if (d->type == FLOAT) {
-                acc += d->slots.tila_float;
-                allints = false;
-            } else if (d->type == INTEGER)
-                acc += d->slots.tila_int;
-            else {
-                fprintf(stderr, "non-num to add\n");
-                exit(EXIT_FAILURE);            
-            }
-            lst->item = lst->item->next;
-        }
-        if (allints) {
-            (*result)->type = INTEGER;
-            (*result)->slots.tila_int = (int)acc;
-        }
-        else {
-            (*result)->type = FLOAT;
-            (*result)->slots.tila_float = acc;
-        }        
+    struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
+    if (n1->type == INTEGER && n2->type == INTEGER) {
+        (*result)->type = INTEGER;
+        (*result)->slots.tila_int = n1->slots.tila_int + n2->slots.tila_int;
     } else {
-        fprintf(stderr, "empty list passed to Add op\n");
-        exit(EXIT_FAILURE);            
+        (*result)->type = FLOAT;
+        if (n1->type == INTEGER && n2->type == FLOAT)
+            (*result)->slots.tila_float = n1->slots.tila_int + n2->slots.tila_float;
+        else if (n1->type == FLOAT && n2->type == INTEGER)
+            (*result)->slots.tila_float = n1->slots.tila_float + n2->slots.tila_int;
+        else if (n1->type == FLOAT && n2->type == FLOAT)
+            (*result)->slots.tila_float = n1->slots.tila_float + n2->slots.tila_float;
+        else {
+            fprintf(stderr, "passed non-nums to add\n");
+            exit(EXIT_FAILURE);            
+        }
     }
 }
-
 
 void
 eval_mul_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
-    if (lst->size) {
-        bool allints = true;
-        float acc;
-        struct Tila_data *d = lst->item->data;
-        if (d->type == INTEGER) {
-            acc = (float)d->slots.tila_int;
-        } else if (d->type == FLOAT) {
-            allints = false;
-            acc = d->slots.tila_float;
-        }
-        lst->item = lst->item->next;
-        while (lst->item) {
-            d = lst->item->data;
-            if (d->type == FLOAT) {
-                acc *= d->slots.tila_float;
-                allints = false;
-            } else if (d->type == INTEGER)
-                acc *= d->slots.tila_int;
-            else {
-                fprintf(stderr, "non-num to Mul\n");
-                exit(EXIT_FAILURE);            
-            }
-            lst->item = lst->item->next;
-        }
-        if (allints) {
-            (*result)->type = INTEGER;
-            (*result)->slots.tila_int = (int)acc;
-        }
-        else {
-            (*result)->type = FLOAT;
-            (*result)->slots.tila_float = acc;
-        }        
+    struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
+    if (n1->type == INTEGER && n2->type == INTEGER) {
+        (*result)->type = INTEGER;
+        (*result)->slots.tila_int = n1->slots.tila_int * n2->slots.tila_int;
     } else {
-        fprintf(stderr, "empty list passed to Mul op\n");
-        exit(EXIT_FAILURE);            
+        (*result)->type = FLOAT;
+        if (n1->type == INTEGER && n2->type == FLOAT)
+            (*result)->slots.tila_float = n1->slots.tila_int * n2->slots.tila_float;
+        else if (n1->type == FLOAT && n2->type == INTEGER)
+            (*result)->slots.tila_float = n1->slots.tila_float * n2->slots.tila_int;
+        else if (n1->type == FLOAT && n2->type == FLOAT)
+            (*result)->slots.tila_float = n1->slots.tila_float * n2->slots.tila_float;
+        else {
+            fprintf(stderr, "passed non-nums to mul\n");
+            exit(EXIT_FAILURE);            
+        }
     }
 }
-
-
-void
-eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
-{
-    struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
-    if (lst->size) {
-        bool allints = true;
-        float acc;
-        /* get the first number in the list */
-        struct Tila_data *d = lst->item->data;
-        if (d->type == INTEGER) {
-            acc = (float)d->slots.tila_int;
-        } else if (d->type == FLOAT) {
-            allints = false;
-            acc = d->slots.tila_float;
-        }
-        lst->item = lst->item->next;
-        while (lst->item) {
-            d = lst->item->data;
-            if (d->type == FLOAT) {
-                acc = powf(acc, d->slots.tila_float);
-                /* acc -= d->slots.tila_float; */
-                allints = false;
-            } else if (d->type == INTEGER)
-                acc = powf(acc, d->slots.tila_int);
-                /* acc -= d->slots.tila_int; */
-            else {
-                fprintf(stderr, "non-num to Exp op\n");
-                exit(EXIT_FAILURE);            
-            }
-            lst->item = lst->item->next;
-        }
-        if (allints) {
-            (*result)->type = INTEGER;
-            (*result)->slots.tila_int = (int)acc;
-        }
-        else {
-            (*result)->type = FLOAT;
-            (*result)->slots.tila_float = acc;
-        }        
-    } else {
-        fprintf(stderr, "empty list passed to Exp op\n");
-        exit(EXIT_FAILURE);            
-    }
-}
-
 
 void
 eval_sub_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
-    if (lst->size) {
-        bool allints = true;
-        float acc;
-        struct Tila_data *d = lst->item->data;
-        if (d->type == INTEGER) {
-            acc = (float)d->slots.tila_int;
-        } else if (d->type == FLOAT) {
-            allints = false;
-            acc = d->slots.tila_float;
-        }
-        lst->item = lst->item->next;
-        while (lst->item) {
-            d = lst->item->data;
-            if (d->type == FLOAT) {
-                acc -= d->slots.tila_float;
-                allints = false;
-            } else if (d->type == INTEGER)
-                acc -= d->slots.tila_int;
-            else {
-                fprintf(stderr, "non-num to add\n");
-                exit(EXIT_FAILURE);            
-            }
-            lst->item = lst->item->next;
-        }
-        if (allints) {
-            (*result)->type = INTEGER;
-            (*result)->slots.tila_int = (int)acc;
-        }
-        else {
-            (*result)->type = FLOAT;
-            (*result)->slots.tila_float = acc;
-        }        
+    struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
+    if (n1->type == INTEGER && n2->type == INTEGER) {
+        (*result)->type = INTEGER;
+        (*result)->slots.tila_int = n1->slots.tila_int - n2->slots.tila_int;
     } else {
-        fprintf(stderr, "empty list passed to sub op\n");
-        exit(EXIT_FAILURE);            
+        (*result)->type = FLOAT;
+        if (n1->type == INTEGER && n2->type == FLOAT)
+            (*result)->slots.tila_float = n1->slots.tila_int - n2->slots.tila_float;
+        else if (n1->type == FLOAT && n2->type == INTEGER)
+            (*result)->slots.tila_float = n1->slots.tila_float - n2->slots.tila_int;
+        else if (n1->type == FLOAT && n2->type == FLOAT)
+            (*result)->slots.tila_float = n1->slots.tila_float - n2->slots.tila_float;
+        else {
+            fprintf(stderr, "passed non-nums to sub\n");
+            exit(EXIT_FAILURE);            
+        }
     }
 }
+
 void
 eval_div_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
-    struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list;
-    if (lst->size) {
-        bool allints = true;
-        float acc;
-        struct Tila_data *d = lst->item->data;
-        if (d->type == INTEGER) {
-            acc = (float)d->slots.tila_int;
-        } else if (d->type == FLOAT) {
-            allints = false;
-            acc = d->slots.tila_float;
-        }
-        lst->item = lst->item->next;
-        while (lst->item) {
-            d = lst->item->data;
-            if (d->type == FLOAT) {
-                acc /= d->slots.tila_float;
-                allints = false;
-            } else if (d->type == INTEGER)
-                acc /= d->slots.tila_int;
-            else {
-                fprintf(stderr, "non-num to add\n");
-                exit(EXIT_FAILURE);            
-            }
-            lst->item = lst->item->next;
-        }
-        if (allints) {
-            (*result)->type = INTEGER;
-            (*result)->slots.tila_int = (int)acc;
-        }
-        else {
-            (*result)->type = FLOAT;
-            (*result)->slots.tila_float = acc;
-        }        
+    struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
+    if (n1->type == INTEGER && n2->type == INTEGER) {
+        (*result)->type = INTEGER;
+        (*result)->slots.tila_int = n1->slots.tila_int / n2->slots.tila_int;
     } else {
-        fprintf(stderr, "empty list passed to div op\n");
-        exit(EXIT_FAILURE);            
+        (*result)->type = FLOAT;
+        if (n1->type == INTEGER && n2->type == FLOAT)
+            (*result)->slots.tila_float = n1->slots.tila_int / n2->slots.tila_float;
+        else if (n1->type == FLOAT && n2->type == INTEGER)
+            (*result)->slots.tila_float = n1->slots.tila_float / n2->slots.tila_int;
+        else if (n1->type == FLOAT && n2->type == FLOAT)
+            (*result)->slots.tila_float = n1->slots.tila_float / n2->slots.tila_float;
+        else {
+            fprintf(stderr, "passed non-nums to div\n");
+            exit(EXIT_FAILURE);            
+        }
     }
 }
+
+void
+eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
+{
+    struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
+    struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
+    if (n1->type == INTEGER && n2->type == INTEGER) {
+        (*result)->type = INTEGER;
+        (*result)->slots.tila_int = (int)powf(n1->slots.tila_int, n2->slots.tila_int);
+    } else {
+        (*result)->type = FLOAT;
+        if (n1->type == INTEGER && n2->type == FLOAT)
+            (*result)->slots.tila_float = powf(n1->slots.tila_int, n2->slots.tila_float);
+        else if (n1->type == FLOAT && n2->type == INTEGER)
+            (*result)->slots.tila_float = powf(n1->slots.tila_float, n2->slots.tila_int);
+        else if (n1->type == FLOAT && n2->type == FLOAT)
+            (*result)->slots.tila_float = powf(n1->slots.tila_float, n2->slots.tila_float);
+        else {
+            fprintf(stderr, "passed non-nums to exp\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+}
+
+/* /\* void *\/ */
+/* /\* eval_add_op(struct Tila_data **result, GNode *node, GHashTable *env) *\/ */
+/* /\* { *\/ */
+/* /\*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list; *\/ */
+/* /\*     if (lst->size) { *\/ */
+/* /\*         bool allints = true; *\/ */
+/* /\*         float acc; *\/ */
+/* /\*         struct Tila_data *d = lst->item->data; *\/ */
+/* /\*         if (d->type == INTEGER) { *\/ */
+/* /\*             acc = (float)d->slots.tila_int; *\/ */
+/* /\*         } else if (d->type == FLOAT) { *\/ */
+/* /\*             allints = false; *\/ */
+/* /\*             acc = d->slots.tila_float; *\/ */
+/* /\*         } *\/ */
+/* /\*         lst->item = lst->item->next; *\/ */
+/* /\*         while (lst->item) { *\/ */
+/* /\*             d = lst->item->data; *\/ */
+/* /\*             if (d->type == FLOAT) { *\/ */
+/* /\*                 acc += d->slots.tila_float; *\/ */
+/* /\*                 allints = false; *\/ */
+/* /\*             } else if (d->type == INTEGER) *\/ */
+/* /\*                 acc += d->slots.tila_int; *\/ */
+/* /\*             else { *\/ */
+/* /\*                 fprintf(stderr, "non-num to add\n"); *\/ */
+/* /\*                 exit(EXIT_FAILURE);             *\/ */
+/* /\*             } *\/ */
+/* /\*             lst->item = lst->item->next; *\/ */
+/* /\*         } *\/ */
+/* /\*         if (allints) { *\/ */
+/* /\*             (*result)->type = INTEGER; *\/ */
+/* /\*             (*result)->slots.tila_int = (int)acc; *\/ */
+/* /\*         } *\/ */
+/* /\*         else { *\/ */
+/* /\*             (*result)->type = FLOAT; *\/ */
+/* /\*             (*result)->slots.tila_float = acc; *\/ */
+/* /\*         }         *\/ */
+/* /\*     } else { *\/ */
+/* /\*         fprintf(stderr, "empty list passed to Add op\n"); *\/ */
+/* /\*         exit(EXIT_FAILURE);             *\/ */
+/* /\*     } *\/ */
+/* /\* } *\/ */
+
+
+/* void */
+/* eval_mul_op(struct Tila_data **result, GNode *node, GHashTable *env) */
+/* { */
+/*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list; */
+/*     if (lst->size) { */
+/*         bool allints = true; */
+/*         float acc; */
+/*         struct Tila_data *d = lst->item->data; */
+/*         if (d->type == INTEGER) { */
+/*             acc = (float)d->slots.tila_int; */
+/*         } else if (d->type == FLOAT) { */
+/*             allints = false; */
+/*             acc = d->slots.tila_float; */
+/*         } */
+/*         lst->item = lst->item->next; */
+/*         while (lst->item) { */
+/*             d = lst->item->data; */
+/*             if (d->type == FLOAT) { */
+/*                 acc *= d->slots.tila_float; */
+/*                 allints = false; */
+/*             } else if (d->type == INTEGER) */
+/*                 acc *= d->slots.tila_int; */
+/*             else { */
+/*                 fprintf(stderr, "non-num to Mul\n"); */
+/*                 exit(EXIT_FAILURE);             */
+/*             } */
+/*             lst->item = lst->item->next; */
+/*         } */
+/*         if (allints) { */
+/*             (*result)->type = INTEGER; */
+/*             (*result)->slots.tila_int = (int)acc; */
+/*         } */
+/*         else { */
+/*             (*result)->type = FLOAT; */
+/*             (*result)->slots.tila_float = acc; */
+/*         }         */
+/*     } else { */
+/*         fprintf(stderr, "empty list passed to Mul op\n"); */
+/*         exit(EXIT_FAILURE);             */
+/*     } */
+/* } */
+
+
+/* void */
+/* eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env) */
+/* { */
+/*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list; */
+/*     if (lst->size) { */
+/*         bool allints = true; */
+/*         float acc; */
+/*         /\* get the first number in the list *\/ */
+/*         struct Tila_data *d = lst->item->data; */
+/*         if (d->type == INTEGER) { */
+/*             acc = (float)d->slots.tila_int; */
+/*         } else if (d->type == FLOAT) { */
+/*             allints = false; */
+/*             acc = d->slots.tila_float; */
+/*         } */
+/*         lst->item = lst->item->next; */
+/*         while (lst->item) { */
+/*             d = lst->item->data; */
+/*             if (d->type == FLOAT) { */
+/*                 acc = powf(acc, d->slots.tila_float); */
+/*                 /\* acc -= d->slots.tila_float; *\/ */
+/*                 allints = false; */
+/*             } else if (d->type == INTEGER) */
+/*                 acc = powf(acc, d->slots.tila_int); */
+/*                 /\* acc -= d->slots.tila_int; *\/ */
+/*             else { */
+/*                 fprintf(stderr, "non-num to Exp op\n"); */
+/*                 exit(EXIT_FAILURE);             */
+/*             } */
+/*             lst->item = lst->item->next; */
+/*         } */
+/*         if (allints) { */
+/*             (*result)->type = INTEGER; */
+/*             (*result)->slots.tila_int = (int)acc; */
+/*         } */
+/*         else { */
+/*             (*result)->type = FLOAT; */
+/*             (*result)->slots.tila_float = acc; */
+/*         }         */
+/*     } else { */
+/*         fprintf(stderr, "empty list passed to Exp op\n"); */
+/*         exit(EXIT_FAILURE);             */
+/*     } */
+/* } */
+
+
+/* void */
+/* eval_sub_op(struct Tila_data **result, GNode *node, GHashTable *env) */
+/* { */
+/*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list; */
+/*     if (lst->size) { */
+/*         bool allints = true; */
+/*         float acc; */
+/*         struct Tila_data *d = lst->item->data; */
+/*         if (d->type == INTEGER) { */
+/*             acc = (float)d->slots.tila_int; */
+/*         } else if (d->type == FLOAT) { */
+/*             allints = false; */
+/*             acc = d->slots.tila_float; */
+/*         } */
+/*         lst->item = lst->item->next; */
+/*         while (lst->item) { */
+/*             d = lst->item->data; */
+/*             if (d->type == FLOAT) { */
+/*                 acc -= d->slots.tila_float; */
+/*                 allints = false; */
+/*             } else if (d->type == INTEGER) */
+/*                 acc -= d->slots.tila_int; */
+/*             else { */
+/*                 fprintf(stderr, "non-num to add\n"); */
+/*                 exit(EXIT_FAILURE);             */
+/*             } */
+/*             lst->item = lst->item->next; */
+/*         } */
+/*         if (allints) { */
+/*             (*result)->type = INTEGER; */
+/*             (*result)->slots.tila_int = (int)acc; */
+/*         } */
+/*         else { */
+/*             (*result)->type = FLOAT; */
+/*             (*result)->slots.tila_float = acc; */
+/*         }         */
+/*     } else { */
+/*         fprintf(stderr, "empty list passed to sub op\n"); */
+/*         exit(EXIT_FAILURE);             */
+/*     } */
+/* } */
+/* void */
+/* eval_div_op(struct Tila_data **result, GNode *node, GHashTable *env) */
+/* { */
+/*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.tila_list; */
+/*     if (lst->size) { */
+/*         bool allints = true; */
+/*         float acc; */
+/*         struct Tila_data *d = lst->item->data; */
+/*         if (d->type == INTEGER) { */
+/*             acc = (float)d->slots.tila_int; */
+/*         } else if (d->type == FLOAT) { */
+/*             allints = false; */
+/*             acc = d->slots.tila_float; */
+/*         } */
+/*         lst->item = lst->item->next; */
+/*         while (lst->item) { */
+/*             d = lst->item->data; */
+/*             if (d->type == FLOAT) { */
+/*                 acc /= d->slots.tila_float; */
+/*                 allints = false; */
+/*             } else if (d->type == INTEGER) */
+/*                 acc /= d->slots.tila_int; */
+/*             else { */
+/*                 fprintf(stderr, "non-num to add\n"); */
+/*                 exit(EXIT_FAILURE);             */
+/*             } */
+/*             lst->item = lst->item->next; */
+/*         } */
+/*         if (allints) { */
+/*             (*result)->type = INTEGER; */
+/*             (*result)->slots.tila_int = (int)acc; */
+/*         } */
+/*         else { */
+/*             (*result)->type = FLOAT; */
+/*             (*result)->slots.tila_float = acc; */
+/*         }         */
+/*     } else { */
+/*         fprintf(stderr, "empty list passed to div op\n"); */
+/*         exit(EXIT_FAILURE);             */
+/*     } */
+/* } */
 
 
 

@@ -536,8 +536,8 @@ parse3(GList *ulink)
                    is_mul_op((unitp_t)ulink->data) ||
                    is_div_op((unitp_t)ulink->data) ||
                    is_exp_op((unitp_t)ulink->data))
-            /* captures: list of numbers */
-            ((unitp_t)ulink->data)->max_cap = 1;
+            /* captures: first number, second number */
+            ((unitp_t)ulink->data)->max_cap = 2;
         else if (is_inc_op((unitp_t)ulink->data) ||
                  is_dec_op((unitp_t)ulink->data))
             /* captures: a number */
