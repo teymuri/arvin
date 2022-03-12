@@ -29,8 +29,8 @@ bool is_of_type(struct Unit *u, enum Type t) {
  * of the source data */
 void set_data(struct Tila_data *dest, struct Tila_data *src) {
     switch (src->type) {
-    case INTEGER:
-        dest->type = INTEGER;
+    case INT:
+        dest->type = INT;
         dest->slots.tila_int = src->slots.tila_int;
         break;
     case FLOAT:

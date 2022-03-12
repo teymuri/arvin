@@ -5,7 +5,7 @@
 #include <stdbool.h>
 
 enum Type {
-    NUMBER = 0, INTEGER = 1, FLOAT = 2,
+    NUMBER = 0, INT = 1, FLOAT = 2,
     NAME = 3, LAMBDA = 4,
     DOUBLE = 5,
     BINDING=6,

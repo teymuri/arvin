@@ -10,7 +10,7 @@
 /* why is this any good??? */
 enum Type unit_type(struct Unit *u) {
     switch (u->type) {
-    case INTEGER: return INTEGER;
+    case INT: return INT;
     case FLOAT: return FLOAT;
     case NAME: return NAME;
     case LAMBDA: return LAMBDA;
@@ -26,7 +26,7 @@ enum Type unit_type(struct Unit *u) {
 
 void set_unit_type(struct Unit *c) {
     switch (c->token.type) {
-    case INTEGER: c->type = INTEGER; break;
+    case INT: c->type = INT; break;
     case FLOAT: c->type = FLOAT; break;
     case NAME: c->type = NAME; break;
     default: break;
@@ -36,7 +36,7 @@ void set_unit_type(struct Unit *c) {
 void set_unit_value(struct Unit *c)
 {
     switch (c->token.type) {
-    case INTEGER:
+    case INT:
         c->ival = atoi(c->token.str);
         break;
     case FLOAT:

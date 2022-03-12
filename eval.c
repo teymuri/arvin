@@ -59,7 +59,7 @@ eval_show_op(struct Tila_data **result, GNode *node, GHashTable *env)
     struct Tila_data *d = eval3(node->children, env);
     set_data(*result, d);
     switch (d->type) {
-    case INTEGER:
+    case INT:
         printf("%d\n", d->slots.tila_int);
         break;
     case FLOAT:
@@ -207,8 +207,8 @@ void
 eval_inc_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *n = eval3(node->children, env);
-    if (n->type == INTEGER) {
-        (*result)->type = INTEGER;
+    if (n->type == INT) {
+        (*result)->type = INT;
         (*result)->slots.tila_int = n->slots.tila_int + 1;
     } else if (n->type == FLOAT) {
         (*result)->type = FLOAT;
@@ -219,8 +219,8 @@ void
 eval_dec_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *n = eval3(node->children, env);
-    if (n->type == INTEGER) {
-        (*result)->type = INTEGER;
+    if (n->type == INT) {
+        (*result)->type = INT;
         (*result)->slots.tila_int = n->slots.tila_int - 1;
     } else if (n->type == FLOAT) {
         (*result)->type = FLOAT;
@@ -233,14 +233,14 @@ eval_add_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
     struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
-    if (n1->type == INTEGER && n2->type == INTEGER) {
-        (*result)->type = INTEGER;
+    if (n1->type == INT && n2->type == INT) {
+        (*result)->type = INT;
         (*result)->slots.tila_int = n1->slots.tila_int + n2->slots.tila_int;
     } else {
         (*result)->type = FLOAT;
-        if (n1->type == INTEGER && n2->type == FLOAT)
+        if (n1->type == INT && n2->type == FLOAT)
             (*result)->slots.tila_float = n1->slots.tila_int + n2->slots.tila_float;
-        else if (n1->type == FLOAT && n2->type == INTEGER)
+        else if (n1->type == FLOAT && n2->type == INT)
             (*result)->slots.tila_float = n1->slots.tila_float + n2->slots.tila_int;
         else if (n1->type == FLOAT && n2->type == FLOAT)
             (*result)->slots.tila_float = n1->slots.tila_float + n2->slots.tila_float;
@@ -256,14 +256,14 @@ eval_mul_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
     struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
-    if (n1->type == INTEGER && n2->type == INTEGER) {
-        (*result)->type = INTEGER;
+    if (n1->type == INT && n2->type == INT) {
+        (*result)->type = INT;
         (*result)->slots.tila_int = n1->slots.tila_int * n2->slots.tila_int;
     } else {
         (*result)->type = FLOAT;
-        if (n1->type == INTEGER && n2->type == FLOAT)
+        if (n1->type == INT && n2->type == FLOAT)
             (*result)->slots.tila_float = n1->slots.tila_int * n2->slots.tila_float;
-        else if (n1->type == FLOAT && n2->type == INTEGER)
+        else if (n1->type == FLOAT && n2->type == INT)
             (*result)->slots.tila_float = n1->slots.tila_float * n2->slots.tila_int;
         else if (n1->type == FLOAT && n2->type == FLOAT)
             (*result)->slots.tila_float = n1->slots.tila_float * n2->slots.tila_float;
@@ -279,14 +279,14 @@ eval_sub_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
     struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
-    if (n1->type == INTEGER && n2->type == INTEGER) {
-        (*result)->type = INTEGER;
+    if (n1->type == INT && n2->type == INT) {
+        (*result)->type = INT;
         (*result)->slots.tila_int = n1->slots.tila_int - n2->slots.tila_int;
     } else {
         (*result)->type = FLOAT;
-        if (n1->type == INTEGER && n2->type == FLOAT)
+        if (n1->type == INT && n2->type == FLOAT)
             (*result)->slots.tila_float = n1->slots.tila_int - n2->slots.tila_float;
-        else if (n1->type == FLOAT && n2->type == INTEGER)
+        else if (n1->type == FLOAT && n2->type == INT)
             (*result)->slots.tila_float = n1->slots.tila_float - n2->slots.tila_int;
         else if (n1->type == FLOAT && n2->type == FLOAT)
             (*result)->slots.tila_float = n1->slots.tila_float - n2->slots.tila_float;
@@ -302,14 +302,14 @@ eval_div_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
     struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
-    if (n1->type == INTEGER && n2->type == INTEGER) {
-        (*result)->type = INTEGER;
+    if (n1->type == INT && n2->type == INT) {
+        (*result)->type = INT;
         (*result)->slots.tila_int = n1->slots.tila_int / n2->slots.tila_int;
     } else {
         (*result)->type = FLOAT;
-        if (n1->type == INTEGER && n2->type == FLOAT)
+        if (n1->type == INT && n2->type == FLOAT)
             (*result)->slots.tila_float = n1->slots.tila_int / n2->slots.tila_float;
-        else if (n1->type == FLOAT && n2->type == INTEGER)
+        else if (n1->type == FLOAT && n2->type == INT)
             (*result)->slots.tila_float = n1->slots.tila_float / n2->slots.tila_int;
         else if (n1->type == FLOAT && n2->type == FLOAT)
             (*result)->slots.tila_float = n1->slots.tila_float / n2->slots.tila_float;
@@ -325,14 +325,14 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 {
     struct Tila_data *n1 = eval3(g_node_nth_child(node, 0), env);
     struct Tila_data *n2 = eval3(g_node_nth_child(node, 1), env);
-    if (n1->type == INTEGER && n2->type == INTEGER) {
-        (*result)->type = INTEGER;
+    if (n1->type == INT && n2->type == INT) {
+        (*result)->type = INT;
         (*result)->slots.tila_int = (int)powf(n1->slots.tila_int, n2->slots.tila_int);
     } else {
         (*result)->type = FLOAT;
-        if (n1->type == INTEGER && n2->type == FLOAT)
+        if (n1->type == INT && n2->type == FLOAT)
             (*result)->slots.tila_float = powf(n1->slots.tila_int, n2->slots.tila_float);
-        else if (n1->type == FLOAT && n2->type == INTEGER)
+        else if (n1->type == FLOAT && n2->type == INT)
             (*result)->slots.tila_float = powf(n1->slots.tila_float, n2->slots.tila_int);
         else if (n1->type == FLOAT && n2->type == FLOAT)
             (*result)->slots.tila_float = powf(n1->slots.tila_float, n2->slots.tila_float);
@@ -351,7 +351,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /* /\*         bool allints = true; *\/ */
 /* /\*         float acc; *\/ */
 /* /\*         struct Tila_data *d = lst->item->data; *\/ */
-/* /\*         if (d->type == INTEGER) { *\/ */
+/* /\*         if (d->type == INT) { *\/ */
 /* /\*             acc = (float)d->slots.tila_int; *\/ */
 /* /\*         } else if (d->type == FLOAT) { *\/ */
 /* /\*             allints = false; *\/ */
@@ -363,7 +363,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /* /\*             if (d->type == FLOAT) { *\/ */
 /* /\*                 acc += d->slots.tila_float; *\/ */
 /* /\*                 allints = false; *\/ */
-/* /\*             } else if (d->type == INTEGER) *\/ */
+/* /\*             } else if (d->type == INT) *\/ */
 /* /\*                 acc += d->slots.tila_int; *\/ */
 /* /\*             else { *\/ */
 /* /\*                 fprintf(stderr, "non-num to add\n"); *\/ */
@@ -372,7 +372,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /* /\*             lst->item = lst->item->next; *\/ */
 /* /\*         } *\/ */
 /* /\*         if (allints) { *\/ */
-/* /\*             (*result)->type = INTEGER; *\/ */
+/* /\*             (*result)->type = INT; *\/ */
 /* /\*             (*result)->slots.tila_int = (int)acc; *\/ */
 /* /\*         } *\/ */
 /* /\*         else { *\/ */
@@ -394,7 +394,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*         bool allints = true; */
 /*         float acc; */
 /*         struct Tila_data *d = lst->item->data; */
-/*         if (d->type == INTEGER) { */
+/*         if (d->type == INT) { */
 /*             acc = (float)d->slots.tila_int; */
 /*         } else if (d->type == FLOAT) { */
 /*             allints = false; */
@@ -406,7 +406,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*             if (d->type == FLOAT) { */
 /*                 acc *= d->slots.tila_float; */
 /*                 allints = false; */
-/*             } else if (d->type == INTEGER) */
+/*             } else if (d->type == INT) */
 /*                 acc *= d->slots.tila_int; */
 /*             else { */
 /*                 fprintf(stderr, "non-num to Mul\n"); */
@@ -415,7 +415,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*             lst->item = lst->item->next; */
 /*         } */
 /*         if (allints) { */
-/*             (*result)->type = INTEGER; */
+/*             (*result)->type = INT; */
 /*             (*result)->slots.tila_int = (int)acc; */
 /*         } */
 /*         else { */
@@ -438,7 +438,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*         float acc; */
 /*         /\* get the first number in the list *\/ */
 /*         struct Tila_data *d = lst->item->data; */
-/*         if (d->type == INTEGER) { */
+/*         if (d->type == INT) { */
 /*             acc = (float)d->slots.tila_int; */
 /*         } else if (d->type == FLOAT) { */
 /*             allints = false; */
@@ -451,7 +451,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*                 acc = powf(acc, d->slots.tila_float); */
 /*                 /\* acc -= d->slots.tila_float; *\/ */
 /*                 allints = false; */
-/*             } else if (d->type == INTEGER) */
+/*             } else if (d->type == INT) */
 /*                 acc = powf(acc, d->slots.tila_int); */
 /*                 /\* acc -= d->slots.tila_int; *\/ */
 /*             else { */
@@ -461,7 +461,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*             lst->item = lst->item->next; */
 /*         } */
 /*         if (allints) { */
-/*             (*result)->type = INTEGER; */
+/*             (*result)->type = INT; */
 /*             (*result)->slots.tila_int = (int)acc; */
 /*         } */
 /*         else { */
@@ -483,7 +483,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*         bool allints = true; */
 /*         float acc; */
 /*         struct Tila_data *d = lst->item->data; */
-/*         if (d->type == INTEGER) { */
+/*         if (d->type == INT) { */
 /*             acc = (float)d->slots.tila_int; */
 /*         } else if (d->type == FLOAT) { */
 /*             allints = false; */
@@ -495,7 +495,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*             if (d->type == FLOAT) { */
 /*                 acc -= d->slots.tila_float; */
 /*                 allints = false; */
-/*             } else if (d->type == INTEGER) */
+/*             } else if (d->type == INT) */
 /*                 acc -= d->slots.tila_int; */
 /*             else { */
 /*                 fprintf(stderr, "non-num to add\n"); */
@@ -504,7 +504,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*             lst->item = lst->item->next; */
 /*         } */
 /*         if (allints) { */
-/*             (*result)->type = INTEGER; */
+/*             (*result)->type = INT; */
 /*             (*result)->slots.tila_int = (int)acc; */
 /*         } */
 /*         else { */
@@ -524,7 +524,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*         bool allints = true; */
 /*         float acc; */
 /*         struct Tila_data *d = lst->item->data; */
-/*         if (d->type == INTEGER) { */
+/*         if (d->type == INT) { */
 /*             acc = (float)d->slots.tila_int; */
 /*         } else if (d->type == FLOAT) { */
 /*             allints = false; */
@@ -536,7 +536,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*             if (d->type == FLOAT) { */
 /*                 acc /= d->slots.tila_float; */
 /*                 allints = false; */
-/*             } else if (d->type == INTEGER) */
+/*             } else if (d->type == INT) */
 /*                 acc /= d->slots.tila_int; */
 /*             else { */
 /*                 fprintf(stderr, "non-num to add\n"); */
@@ -545,7 +545,7 @@ eval_exp_op(struct Tila_data **result, GNode *node, GHashTable *env)
 /*             lst->item = lst->item->next; */
 /*         } */
 /*         if (allints) { */
-/*             (*result)->type = INTEGER; */
+/*             (*result)->type = INT; */
 /*             (*result)->slots.tila_int = (int)acc; */
 /*         } */
 /*         else { */
@@ -595,7 +595,7 @@ void eval_size_op(struct Tila_data **result, GNode *node, GHashTable *env)
     struct Tila_data *d = eval3(node->children, env);
     /* work only if data is list */
     if (d->type == LIST) {
-        (*result)->type = INTEGER;
+        (*result)->type = INT;
         (*result)->slots.tila_int = d->slots.tila_list->size;
     } else {
         fprintf(stderr, "size arg must eval to list\n");
@@ -790,8 +790,8 @@ eval3(GNode *node, GHashTable *env)
     struct Tila_data *result = malloc(sizeof (struct Tila_data));
     if (((unitp_t)node->data)->is_atomic) {
         switch (unit_type(((unitp_t)node->data))) {
-        case INTEGER:
-            result->type = INTEGER;
+        case INT:
+            result->type = INT;
             result->slots.tila_int = ((unitp_t)node->data)->ival;
             break;
         case FLOAT:

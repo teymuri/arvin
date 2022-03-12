@@ -4,6 +4,8 @@
 #include "type.h"
 #include "unit.h"
 
+#define PROMPT "=>"
+
 void print_indent(int i) {
     int n = 2;
     char s[(i*n)+1];
@@ -46,20 +48,46 @@ print_ast3(GNode *root)
                     -1, (GNodeTraverseFunc)print_node, NULL);
 }
 
+void
+print_lambda(struct Tila_data *data)
+{
+    printf(" <Lambda %p>", (void *)data);
+}
 /* string representation of data, this is the P in REPL */
 /* data arg is the evaluated expression (is gone through eval already) */
-void print(struct Tila_data *data)
+void
+print_data(struct Tila_data *data)
 {
     switch (data->type) {
-    case INTEGER:
-        printf("%d", data->slots.tila_int); break;
-    case FLOAT:
-        printf("%f", data->slots.tila_float); break;
-    case LAMBDA:
-        printf("lambda..."); break;
+    case INT: printf(" %d", data->slots.tila_int); break;
+    case FLOAT: printf(" %f", data->slots.tila_float); break;
+    case LAMBDA: print_lambda(data); break;
     case BOOL:
-        printf("%s", data->slots.tila_bool ? TRUEKW : FALSEKW); break;
+        printf(" %s", data->slots.tila_bool ? TRUEKW : FALSEKW); break;
+    case LIST:
+        printf(" L#%d", data->slots.tila_list->size);
+        while (data->slots.tila_list->item) {
+            switch (((struct Tila_data *)data->slots.tila_list->item->data)->type) {
+            case INT: printf(" %d", ((struct Tila_data *)data->slots.tila_list->item->data)->slots.tila_int); break;
+            case FLOAT: printf(" %f", data->slots.tila_float); break;
+            case LAMBDA: print_lambda((struct Tila_data *)data->slots.tila_list->item->data); break;
+            case LIST: print_data(data->slots.tila_list->item->data); break;
+            default:
+                fprintf(stderr, "Can't print\n");
+                exit(EXIT_FAILURE);
+                break;
+            }
+            data->slots.tila_list->item = data->slots.tila_list->item->next;
+        }
+        break;
     default: break;
     }
+}
+
+void
+print(struct Tila_data *data)
+{
+    printf("%s", PROMPT);
+    print_data(data);
     puts("");
 }

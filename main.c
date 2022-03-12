@@ -117,8 +117,8 @@ main(int argc, char **argv)
         post_parse_call_check(ast3);
         post_parse_let_check(ast3);
         print_ast3(ast3);
-        eval3(ast3, tl_unit.env);
-        /* print(e); */
+        /* eval3(ast3, tl_unit.env); */
+        print(eval3(ast3, tl_unit.env));
     }    
     exit(EXIT_SUCCESS);
 }

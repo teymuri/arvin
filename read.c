@@ -152,7 +152,7 @@ struct Token *tokenize_line__Hp
 
             /* guess type */
             if (!regexec(&reint, t.str, 0, NULL, 0)) {
-                t.type = INTEGER;
+                t.type = INT;
             } else if (!regexec(&refloat, t.str, 0, NULL, 0)) {
                 t.type = FLOAT;
             } else if (!regexec(&resym, t.str, 0, NULL, 0)) {
