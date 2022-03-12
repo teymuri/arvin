@@ -36,10 +36,13 @@ Call@3 lfold
    f 0))
 
 (length of list)
-
-Define len Lambda L: Call@3 lfold 0 Lambda X: Y: Inc X L
+(
+Define len Lambda L: Call@3 lfold Lambda X: Y: Inc X 0 L
 
 Define f Lambda L: Show Size L
 
 Call@1 f Call@5 list 1 2 3 4 5
-Show Call@1 len Call@10 list 10 20 30 40 50 60 10 20 10
+Show Call@1 len Call@10 list 1 2 3 4 5 6 7 8 9 10
+)
+Show Lfold add 0 List
+
