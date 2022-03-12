@@ -2,7 +2,7 @@
 #define LET_PRINT_H
 
 
-void print(struct Tila_data *);
+void print(struct Arv_data *);
 void print_ast3(GNode *);
 gboolean print_node(GNode *, gpointer);
 

@@ -3,7 +3,7 @@
 
 
 
-struct Tila_data *eval3(GNode *, GHashTable *);
+struct Arv_data *eval3(GNode *, GHashTable *);
 
 
 #endif	/* TILA_EVAL_H */

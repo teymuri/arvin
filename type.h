@@ -33,7 +33,7 @@ struct List {
 };
 
 
-struct Tila_data {
+struct Arv_data {
     enum Type type;
     union {
         int tila_int;
@@ -46,7 +46,7 @@ struct Tila_data {
 };
 
 char *stringify_type(enum Type);
-void set_data(struct Tila_data *, struct Tila_data *);
+void set_data(struct Arv_data *, struct Arv_data *);
 
 
 #endif	/* TILA_TYPE_H */

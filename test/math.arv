@@ -7,7 +7,7 @@ Let L:= Call@4 list 1 2 3 4
     L3:= Call@4 list 1 2 3 4    
     Show Call@5 lfold Lambda X: Y: Z: Q: Add X Add Y Add Z Q 0 L L2 L3
 
-Define sum
+Show Define sum
        Lambda &NS:
               Lfold add 0 Call@1 list NS
 

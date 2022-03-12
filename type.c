@@ -27,7 +27,7 @@ bool is_of_type(struct Unit *u, enum Type t) {
 
 /* sets the appropriate slot of the destination data based on the slot
  * of the source data */
-void set_data(struct Tila_data *dest, struct Tila_data *src) {
+void set_data(struct Arv_data *dest, struct Arv_data *src) {
     switch (src->type) {
     case INT:
         dest->type = INT;

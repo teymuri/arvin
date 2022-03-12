@@ -49,14 +49,14 @@ print_ast3(GNode *root)
 }
 
 void
-print_lambda(struct Tila_data *data)
+print_lambda(struct Arv_data *data)
 {
-    printf(" <Lambda %p>", (void *)data);
+    printf(" Lambda(%p)", (void *)data);
 }
 /* string representation of data, this is the P in REPL */
 /* data arg is the evaluated expression (is gone through eval already) */
 void
-print_data(struct Tila_data *data)
+print_data(struct Arv_data *data)
 {
     switch (data->type) {
     case INT: printf(" %d", data->slots.tila_int); break;
@@ -67,10 +67,10 @@ print_data(struct Tila_data *data)
     case LIST:
         printf(" L#%d", data->slots.tila_list->size);
         while (data->slots.tila_list->item) {
-            switch (((struct Tila_data *)data->slots.tila_list->item->data)->type) {
-            case INT: printf(" %d", ((struct Tila_data *)data->slots.tila_list->item->data)->slots.tila_int); break;
+            switch (((struct Arv_data *)data->slots.tila_list->item->data)->type) {
+            case INT: printf(" %d", ((struct Arv_data *)data->slots.tila_list->item->data)->slots.tila_int); break;
             case FLOAT: printf(" %f", data->slots.tila_float); break;
-            case LAMBDA: print_lambda((struct Tila_data *)data->slots.tila_list->item->data); break;
+            case LAMBDA: print_lambda((struct Arv_data *)data->slots.tila_list->item->data); break;
             case LIST: print_data(data->slots.tila_list->item->data); break;
             default:
                 fprintf(stderr, "Can't print\n");
@@ -85,7 +85,7 @@ print_data(struct Tila_data *data)
 }
 
 void
-print(struct Tila_data *data)
+print(struct Arv_data *data)
 {
     printf("%s", PROMPT);
     print_data(data);
