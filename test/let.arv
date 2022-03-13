@@ -1,0 +1,8 @@
+Let dbl:= Lambda n: Mul n 2
+    twice:= Lambda fn: x: Call@1 fn Call@1 fn x
+    Call@2 twice inc 3
+
+(Define twice Lambda fn: x: Call@1 fn Call@1 fn x
+Define dbl Lambda n: Mul n 2
+
+Call@2 twice dec 3)
