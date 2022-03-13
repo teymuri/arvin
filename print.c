@@ -4,7 +4,7 @@
 #include "type.h"
 #include "unit.h"
 
-#define PROMPT "=>"
+#define PROMPT "=> "
 
 void print_indent(int i) {
     int n = 2;
@@ -48,38 +48,51 @@ print_ast3(GNode *root)
                     -1, (GNodeTraverseFunc)print_node, NULL);
 }
 
+
 void
 print_lambda(struct Arv_data *data)
 {
-    printf(" Lambda(%p)", (void *)data);
+    printf("LAMBDA(%p) ", (void *)data);
 }
+void
+print_int(struct Arv_data *data)
+{
+    printf("%d ", data->slots.tila_int);
+}
+void
+print_float(struct Arv_data *data)
+{
+    printf("%f ", data->slots.tila_float);
+}
+void
+print_bool(struct Arv_data *data)
+{
+    printf("%s ", data->slots.tila_bool ? TRUEKW : FALSEKW);
+}
+
+void print_data(struct Arv_data *);
+void
+print_list(struct Arv_data *data)
+{
+    printf("L#%d ", data->slots.tila_list->size);
+    while (data->slots.tila_list->item) {
+        print_data(data->slots.tila_list->item->data);
+        data->slots.tila_list->item = data->slots.tila_list->item->next;
+    }
+}
+
+
 /* string representation of data, this is the P in REPL */
 /* data arg is the evaluated expression (is gone through eval already) */
 void
 print_data(struct Arv_data *data)
 {
     switch (data->type) {
-    case INT: printf(" %d", data->slots.tila_int); break;
-    case FLOAT: printf(" %f", data->slots.tila_float); break;
+    case INT: print_int(data); break;
+    case FLOAT: print_float(data); break;
     case LAMBDA: print_lambda(data); break;
-    case BOOL:
-        printf(" %s", data->slots.tila_bool ? TRUEKW : FALSEKW); break;
-    case LIST:
-        printf(" L#%d", data->slots.tila_list->size);
-        while (data->slots.tila_list->item) {
-            switch (((struct Arv_data *)data->slots.tila_list->item->data)->type) {
-            case INT: printf(" %d", ((struct Arv_data *)data->slots.tila_list->item->data)->slots.tila_int); break;
-            case FLOAT: printf(" %f", data->slots.tila_float); break;
-            case LAMBDA: print_lambda((struct Arv_data *)data->slots.tila_list->item->data); break;
-            case LIST: print_data(data->slots.tila_list->item->data); break;
-            default:
-                fprintf(stderr, "Can't print\n");
-                exit(EXIT_FAILURE);
-                break;
-            }
-            data->slots.tila_list->item = data->slots.tila_list->item->next;
-        }
-        break;
+    case BOOL: print_bool(data); break;
+    case LIST: print_list(data); break;
     default: break;
     }
 }

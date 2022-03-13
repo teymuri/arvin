@@ -7,4 +7,4 @@ Show Nth 0 Nth 4 LST
 Show Nth 0 Nth 1 L)
 
 
-Call@2 list 100 Call@2 list 200 Call@3 list add 300 400
+1 2 3 Call@2 list 100 Call@2 list 200 Call@3 list add 300 400 
