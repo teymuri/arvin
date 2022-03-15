@@ -1,50 +1,50 @@
-((
+(
 
 Show
   Call@5 lfold
                         2 add
 
-         Call@2 list 2 2
-         Call@2 list 2 2
-         Call@2 list 2 2
+         Call@2 tree 2 2
+         Call@2 tree 2 2
+         Call@2 tree 2 2
 
 
-Define x Lambda a: s: d: Add Call@3 list a s d
+Define x Lambda a: s: d: Add Call@3 tree a s d
 
 Show  Lfold .5 x
-      Call@2 list
-             Call@1 list 1
-             Call@1 list 1
+      Call@2 tree
+             Call@1 tree 1
+             Call@1 tree 1
              
-(Show Lfold Call@3 list
-                    Call@1 list Lfold Call@2 list Call@1 list 1 Call@1 list 1 x .5
-                    Call@1 list 10
-                    Call@1 list 10
+(Show Lfold Call@3 tree
+                    Call@1 tree Lfold Call@2 tree Call@1 tree 1 Call@1 tree 1 x .5
+                    Call@1 tree 10
+                    Call@1 tree 10
        m 2
 
 
-Show Lfold Call@2 list Call@3 list 10 20 30 Call@3 list 100 200 300
+Show Lfold Call@2 tree Call@3 tree 10 20 30 Call@3 tree 100 200 300
 Lambda &r: Show Nth 1 r 1
 
 Define f Lambda a: s: &d: Show Nth Add a s d
 Call@3 lfold
-   Call@3 list
-          Call@2 list 0 1
-          Call@2 list 0 0
-          Call@2 list 1 100
+   Call@3 tree
+          Call@2 tree 0 1
+          Call@2 tree 0 0
+          Call@2 tree 1 100
           
    f 0))
 
-(length of list)
+(length of tree)
 
 Define len Lambda L: Call@3 lfold Lambda X: Y: Inc X 0 L
 
 Define f Lambda L: Show Size L
 
-Call@1 f Call@5 list 1 2 3 4 5
-Call@1 len Call@10 list 1 2 3 4 5 6 7 8 9 10)
+Call@1 f Call@5 tree 1 2 3 4 5
+Call@1 len Call@10 tree 1 2 3 4 5 6 7 8 9 10
 
-Call@1 list 1000
+Call@2 tree 1000 Call@1 tree 203
 
 
 

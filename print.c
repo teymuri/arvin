@@ -52,7 +52,7 @@ print_ast3(GNode *root)
 void
 print_lambda(struct Arv_data *data)
 {
-    printf("LAMBDA(%p) ", (void *)data);
+    printf("Lambda(%p) ", (void *)data);
 }
 void
 print_int(struct Arv_data *data)
@@ -74,10 +74,10 @@ void print_data(struct Arv_data *);
 void
 print_list(struct Arv_data *data)
 {
-    printf("L#%d ", data->slots.tila_list->size);
-    while (data->slots.tila_list->item) {
-        print_data(data->slots.tila_list->item->data);
-        data->slots.tila_list->item = data->slots.tila_list->item->next;
+    printf("Tree#%d ", data->slots.arv_tree->size);
+    while (data->slots.arv_tree->item) {
+        print_data(data->slots.arv_tree->item->data);
+        data->slots.arv_tree->item = data->slots.arv_tree->item->next;
     }
 }
 

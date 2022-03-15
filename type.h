@@ -1,5 +1,5 @@
-#ifndef TILA_TYPE_H
-#define TILA_TYPE_H
+#ifndef ARV_TYPE_H
+#define ARV_TYPE_H
 
 #include <glib.h>
 #include <stdbool.h>
@@ -27,7 +27,7 @@ struct Lambda {
     GNode *node;			/* the lambda code */
 };
 
-struct List {
+struct Tree {
     GList *item;
     int size;
 };
@@ -40,7 +40,7 @@ struct Arv_data {
         float tila_float;
         struct Lambda *tila_lambda;
         GList *pack;
-        struct List *tila_list;
+        struct Tree *arv_tree;
         bool tila_bool;
     } slots;
 };
@@ -49,4 +49,4 @@ char *stringify_type(enum Type);
 void set_data(struct Arv_data *, struct Arv_data *);
 
 
-#endif	/* TILA_TYPE_H */
+#endif	/* ARV_TYPE_H */

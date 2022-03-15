@@ -200,7 +200,7 @@ is_nth_op(struct Unit *u)
 }
 
 bool
-is_list_op(struct Unit *u)
+is_tree_op(struct Unit *u)
 {
     return !strcmp(u->token.str, LISTOPKW);
 }
@@ -323,7 +323,7 @@ need_block(struct Unit *u)
         /* is_call(u) || */
         is_call(u) ||
         /* is_cpack(u) || */
-        is_list_op(u) ||
+        is_tree_op(u) ||
         /* is_cith(u) || */
         is_nth_op(u) ||
         is_size_op(u) ||
@@ -459,7 +459,7 @@ parse3(GList *ulink)
             is_show_op((unitp_t)enc_node->data) ||
             is_size_op((unitp_t)enc_node->data) ||
             is_nth_op((unitp_t)enc_node->data) ||
-            /* is_list_op((unitp_t)enc_node->data) || */
+            /* is_tree_op((unitp_t)enc_node->data) || */
             is_call((unitp_t)enc_node->data) ||
             is_cond_if((unitp_t)enc_node->data) ||
             is_cond_then((unitp_t)enc_node->data) ||
@@ -514,7 +514,7 @@ parse3(GList *ulink)
         else if (is_nth_op((unitp_t)ulink->data))
             /* captures: nth, list */
             ((unitp_t)ulink->data)->max_cap = 2;
-        else if (is_list_op((unitp_t)ulink->data))
+        else if (is_tree_op((unitp_t)ulink->data))
             /* no capa, List is used ONLY as default arg to
              * list's &ITEMS:= param! */
             ((unitp_t)ulink->data)->max_cap = 0;

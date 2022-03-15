@@ -1,6 +1,6 @@
 
 (list)
-Define list Lambda &XS:= List XS
+Define tree Lambda &XS:= Tree XS
 Define nth Lambda N: LST: Nth N LST
 Define size Lambda LST: Size LST
 Define show Lambda X: Show X
@@ -16,14 +16,14 @@ Define div Lambda X: Y: Div X Y
 Define mul Lambda X: Y: Mul X Y
 Define exp Lambda X: Y: Exp X Y
 
-(Define add Lambda &NS:= List Add NS
-Define mul Lambda &NS:= List Mul NS
-Define sub Lambda &NS:= List Sub NS
-Define div Lambda &NS:= List Div NS
+(Define add Lambda &NS:= Tree Add NS
+Define mul Lambda &NS:= Tree Mul NS
+Define sub Lambda &NS:= Tree Sub NS
+Define div Lambda &NS:= Tree Div NS
 (alternativly dec and inc could be defined in terms of Add/Sub:
 Define inc Lambda N: D:= 1 Add Call@2 list N D
 but then the rule of EVERY CORE FUNCTION ONE OPERATOR would be broken!)
-Define exp Lambda &NS:= List Exp NS)
+Define exp Lambda &NS:= Tree Exp NS)
 
 (hof)
 Define lfold Lambda FN: ACC: &LSTS: Lfold FN ACC LSTS
