@@ -10,6 +10,7 @@ Define inc Lambda N: Inc N
 Define dec Lambda N: Dec N
 
 Define add Lambda X: Y: Add X Y
+(Define add Lambda &ns: Lfold Lambda a: b: Add a b 0 ns)
 Define sub Lambda X: Y: Sub X Y
 Define div Lambda X: Y: Div X Y
 Define mul Lambda X: Y: Mul X Y
