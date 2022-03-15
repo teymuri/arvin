@@ -1,5 +1,4 @@
-*.o
 arvin
-let.py
+*.o
 *~
 
