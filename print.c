@@ -74,10 +74,10 @@ void print_data(struct Arv_data *);
 void
 print_list(struct Arv_data *data)
 {
-    printf("Tree#%d ", data->slots.arv_tree->size);
-    while (data->slots.arv_tree->item) {
-        print_data(data->slots.arv_tree->item->data);
-        data->slots.arv_tree->item = data->slots.arv_tree->item->next;
+    printf("Tree#%d ", data->slots.arv_list->size);
+    while (data->slots.arv_list->item) {
+        print_data(data->slots.arv_list->item->data);
+        data->slots.arv_list->item = data->slots.arv_list->item->next;
     }
 }
 

@@ -27,7 +27,7 @@ struct Lambda {
     GNode *node;			/* the lambda code */
 };
 
-struct Tree {
+struct List {
     GList *item;
     int size;
 };
@@ -40,7 +40,7 @@ struct Arv_data {
         float tila_float;
         struct Lambda *tila_lambda;
         GList *pack;
-        struct Tree *arv_tree;
+        struct List *arv_list;
         bool tila_bool;
     } slots;
 };

@@ -37,7 +37,7 @@
 #define SIZEOPKW "Size"
 #define SHOWOPKW "Show"
 /* List denotes an empty list, it has max capacity of 0 elements */
-#define LISTOPKW "Tree"
+#define LISTOPKW "List"
 #define ADDOPKW "Add"
 #define MULOPKW "Mul"
 #define SUBOPKW "Sub"

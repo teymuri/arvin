@@ -51,7 +51,7 @@ void set_data(struct Arv_data *dest, struct Arv_data *src) {
         break;
     case LIST:
         dest->type = LIST;
-        dest->slots.arv_tree = src->slots.arv_tree;
+        dest->slots.arv_list = src->slots.arv_list;
         break;
     default: break;
     }

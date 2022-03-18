@@ -10,7 +10,7 @@
 #include "ast.h"
 #include "print.h"
 
-void eval_tree_op(struct Arv_data **result, GNode *node, GHashTable *env);
+void eval_list_op(struct Arv_data **result, GNode *node, GHashTable *env);
 void eval_call(struct Arv_data **, GNode *, GHashTable *);
 void eval_cpack(struct Arv_data **, GNode *, GHashTable *, guint, guint);
 
@@ -118,12 +118,12 @@ eval_cond(struct Arv_data **result, GNode *node, GHashTable *env)
 /* ******** hof begin ******** */
 
 guint
-min_sublist_size(struct Tree list)
+min_sublist_size(struct List list)
 {
     guint lst_len;
     guint min = G_MAXUINT;
     while (list.item) {
-        lst_len = ((struct Arv_data *)list.item->data)->slots.arv_tree->size;
+        lst_len = ((struct Arv_data *)list.item->data)->slots.arv_list->size;
         if (lst_len < min)
             min = lst_len;
         list.item = list.item->next;
@@ -135,7 +135,7 @@ void
 pack_evaled_list(struct Arv_data **result, GNode *node)
 {
     (*result)->type = LIST;
-    struct Tree *list = (struct Tree *)malloc(sizeof (struct Tree));
+    struct List *list = (struct List *)malloc(sizeof (struct List));
     list->item = NULL;
     list->size = 0;
     while (node) {
@@ -143,7 +143,7 @@ pack_evaled_list(struct Arv_data **result, GNode *node)
         list->size++;
         node = node->next;      /* node's sibling */
     }
-    (*result)->slots.arv_tree = list;
+    (*result)->slots.arv_list = list;
 }
 
 void
@@ -152,7 +152,7 @@ eval_lfold_op(struct Arv_data **result, GNode *node, GHashTable *env)
     struct Lambda *lambda = eval3(g_node_nth_child(node, 0), env)->slots.tila_lambda;
     struct Arv_data *acc = eval3(g_node_nth_child(node, 1), env);
     /* list is a list of lists */
-    struct Tree *list = eval3(g_node_nth_child(node, 2), env)->slots.arv_tree;
+    struct List *list = eval3(g_node_nth_child(node, 2), env)->slots.arv_list;
     GList *list_item_cp = list->item;
     GHashTable *call_env = clone_hash_table(lambda->env);
     guint minsz = min_sublist_size(*list);
@@ -163,14 +163,14 @@ eval_lfold_op(struct Arv_data **result, GNode *node, GHashTable *env)
                 unit_type((unitp_t)g_node_nth_child(lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
                 GNode *args_node = g_node_new(NULL);
                 g_node_insert(args_node, -1,
-                              g_node_new(param_idx ? ((struct Arv_data *)list->item->data)->slots.arv_tree->item->data : acc));
+                              g_node_new(param_idx ? ((struct Arv_data *)list->item->data)->slots.arv_list->item->data : acc));
                 if (param_idx) {
-                    ((struct Arv_data *)list->item->data)->slots.arv_tree->item = ((struct Arv_data *)list->item->data)->slots.arv_tree->item->next;
+                    ((struct Arv_data *)list->item->data)->slots.arv_list->item = ((struct Arv_data *)list->item->data)->slots.arv_list->item->next;
                     list->item = list->item->next;
                 }
                 while (list->item) {
-                    g_node_insert(args_node, -1, g_node_new(((struct Arv_data *)list->item->data)->slots.arv_tree->item->data));
-                    ((struct Arv_data *)list->item->data)->slots.arv_tree->item = ((struct Arv_data *)list->item->data)->slots.arv_tree->item->next;
+                    g_node_insert(args_node, -1, g_node_new(((struct Arv_data *)list->item->data)->slots.arv_list->item->data));
+                    ((struct Arv_data *)list->item->data)->slots.arv_list->item = ((struct Arv_data *)list->item->data)->slots.arv_list->item->next;
                     list->item = list->item->next;
                 }
                 struct Arv_data *rest_args = malloc(sizeof (struct Arv_data));
@@ -183,9 +183,9 @@ eval_lfold_op(struct Arv_data **result, GNode *node, GHashTable *env)
             } else {
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda->node, param_idx)),
-                                    param_idx ? ((struct Arv_data *)list->item->data)->slots.arv_tree->item->data : acc);
+                                    param_idx ? ((struct Arv_data *)list->item->data)->slots.arv_list->item->data : acc);
                 if (param_idx) {
-                    ((struct Arv_data *)list->item->data)->slots.arv_tree->item = ((struct Arv_data *)list->item->data)->slots.arv_tree->item->next;
+                    ((struct Arv_data *)list->item->data)->slots.arv_list->item = ((struct Arv_data *)list->item->data)->slots.arv_list->item->next;
                     list->item = list->item->next;
                 }
             }
@@ -346,7 +346,7 @@ eval_exp_op(struct Arv_data **result, GNode *node, GHashTable *env)
 /* /\* void *\/ */
 /* /\* eval_add_op(struct Arv_data **result, GNode *node, GHashTable *env) *\/ */
 /* /\* { *\/ */
-/* /\*     struct Tree *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_tree; *\/ */
+/* /\*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_list; *\/ */
 /* /\*     if (lst->size) { *\/ */
 /* /\*         bool allints = true; *\/ */
 /* /\*         float acc; *\/ */
@@ -389,7 +389,7 @@ eval_exp_op(struct Arv_data **result, GNode *node, GHashTable *env)
 /* void */
 /* eval_mul_op(struct Arv_data **result, GNode *node, GHashTable *env) */
 /* { */
-/*     struct Tree *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_tree; */
+/*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_list; */
 /*     if (lst->size) { */
 /*         bool allints = true; */
 /*         float acc; */
@@ -432,7 +432,7 @@ eval_exp_op(struct Arv_data **result, GNode *node, GHashTable *env)
 /* void */
 /* eval_exp_op(struct Arv_data **result, GNode *node, GHashTable *env) */
 /* { */
-/*     struct Tree *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_tree; */
+/*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_list; */
 /*     if (lst->size) { */
 /*         bool allints = true; */
 /*         float acc; */
@@ -478,7 +478,7 @@ eval_exp_op(struct Arv_data **result, GNode *node, GHashTable *env)
 /* void */
 /* eval_sub_op(struct Arv_data **result, GNode *node, GHashTable *env) */
 /* { */
-/*     struct Tree *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_tree; */
+/*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_list; */
 /*     if (lst->size) { */
 /*         bool allints = true; */
 /*         float acc; */
@@ -519,7 +519,7 @@ eval_exp_op(struct Arv_data **result, GNode *node, GHashTable *env)
 /* void */
 /* eval_div_op(struct Arv_data **result, GNode *node, GHashTable *env) */
 /* { */
-/*     struct Tree *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_tree; */
+/*     struct List *lst = eval3(g_node_nth_child(node, 0), env)->slots.arv_list; */
 /*     if (lst->size) { */
 /*         bool allints = true; */
 /*         float acc; */
@@ -565,11 +565,11 @@ eval_exp_op(struct Arv_data **result, GNode *node, GHashTable *env)
 /* ******** math end ******** */
 /* ******* begin list ******* */
 void
-eval_tree_op(struct Arv_data **result, GNode *node, GHashTable *env)
+eval_list_op(struct Arv_data **result, GNode *node, GHashTable *env)
 /* node is the first item to the list */
 {
     (*result)->type = LIST;
-    struct Tree *list = (struct Tree *)malloc(sizeof (struct Tree));
+    struct List *list = (struct List *)malloc(sizeof (struct List));
     list->item = NULL;
     list->size = 0;
     while (node) {
@@ -578,14 +578,14 @@ eval_tree_op(struct Arv_data **result, GNode *node, GHashTable *env)
         list->size++;
         node = node->next;      /* node's sibling */
     }
-    (*result)->slots.arv_tree = list;
+    (*result)->slots.arv_list = list;
 }
 
 void
 eval_nth_op(struct Arv_data **result, GNode *node, GHashTable *env)
 {
     guint idx = eval3(g_node_nth_child(node, 0), env)->slots.tila_int;
-    struct Tree *list = eval3(g_node_nth_child(node, 1), env)->slots.arv_tree;
+    struct List *list = eval3(g_node_nth_child(node, 1), env)->slots.arv_list;
     struct Arv_data *data = g_list_nth(list->item, idx)->data; /* item = first link of list */
     set_data(*result, data);
 }
@@ -596,7 +596,7 @@ void eval_size_op(struct Arv_data **result, GNode *node, GHashTable *env)
     /* work only if data is list */
     if (d->type == LIST) {
         (*result)->type = INT;
-        (*result)->slots.tila_int = d->slots.arv_tree->size;
+        (*result)->slots.tila_int = d->slots.arv_list->size;
     } else {
         fprintf(stderr, "size arg must eval to list\n");
         print_node(node->children, NULL);
@@ -747,7 +747,7 @@ eval_call(struct Arv_data **result, GNode *node, GHashTable *env)
             struct Arv_data *rest_args = malloc(sizeof (struct Arv_data));
             /* named rest args */
             /* eval the passed arguments in the  */
-            eval_tree_op(&rest_args, nth_sibling(first_arg, arg_idx)->children, env);
+            eval_list_op(&rest_args, nth_sibling(first_arg, arg_idx)->children, env);
             g_hash_table_insert(call_env,
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
                                 rest_args);
@@ -757,7 +757,7 @@ eval_call(struct Arv_data **result, GNode *node, GHashTable *env)
                 unit_type((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data) == BOUND_PACK_BINDING) {
                 /* reached rest args without param name */
                 struct Arv_data *rest_args = malloc(sizeof (struct Arv_data));
-                eval_tree_op(&rest_args, nth_sibling(first_arg, arg_idx), env);
+                eval_list_op(&rest_args, nth_sibling(first_arg, arg_idx), env);
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)),
                                     rest_args);
@@ -847,14 +847,14 @@ eval3(GNode *node, GHashTable *env)
             eval_nth_op(&result, node, env);
         else if (is_size_op((unitp_t)node->data))
             eval_size_op(&result, node, env);
-        else if (is_tree_op((unitp_t)node->data))
+        else if (is_list_op((unitp_t)node->data))
             /* List is used in the core ONLY as default argument the
              * &ITEMS:= param of the list function to get an empty
              * list. although invoking it would simply result in an
              * empty list (as it's max capacity is 0 it cant take any
              * args) try NOT to use it elsewhere as it's internal and
              * can change without notice! */
-            eval_tree_op(&result, node->children, env);
+            eval_list_op(&result, node->children, env);
         else if (is_cond((unitp_t)node->data))
             eval_cond(&result, node, env);
         else if (is_add_op((unitp_t)node->data))

@@ -27,7 +27,7 @@ bool is_cith(struct Unit *);
 bool is_nth_op(struct Unit *);
 bool is_size_op(struct Unit *);
 bool is_show_op(struct Unit *);
-bool is_tree_op(struct Unit *);
+bool is_list_op(struct Unit *);
 bool is_cond(struct Unit *);
 bool is_cond_if(struct Unit *);
 bool is_cond_then(struct Unit *);
