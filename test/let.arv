@@ -1,8 +1,20 @@
-Let dbl:= Lambda n: Mul n 2
+(Let dbl:= Lambda n: Mul n 2
     twice:= Lambda fn: x: Call@1 fn Call@1 fn x
     Call@2 twice inc 3
 
 (Define twice Lambda fn: x: Call@1 fn Call@1 fn x
 Define dbl Lambda n: Mul n 2
 
-Call@2 twice dec 3)
+Call@2 twice dec 3))
+
+(Let:2 a Show 34 b Add Show a 4 Add a b Studio Fluffy)
+
+
+Let:3 a Let:2 q 100 w Inc Inc Inc Inc q w
+      b Inc a
+      c Inc b
+      Inc c
+
+
+(Show Let:2 a Let:3 q 100 w q e w e b a b)
+(Let:1 dbl Lambda n: Mul n 2 Call@1 dbl 40)

@@ -10,9 +10,19 @@
 #define CPACK_KW "cpack"
 #define CITH_KW "cith"
 
+#define ARITY_ID ':'                      /* identifier for forms/ops indefinite subexpressions counter  */
+#define REST_PARAM_ID '&'              /* identifier for a lambda with a rest-args param (param for an indefinite number of args) */
+#define PARAM_WITH_DFLT_ARG_ID '@'              /* identifier for param names with default arg */
+
 #define DEFINEKW "Define"		/* used to define symbols in the global environment */
-#define LETKW "Let"
-#define LAMBDAKW "Lambda"
+
+
+#define LET_KW "Let"
+#define LET_KW_SZ 3
+
+#define LAMBDA_KW "Lambda"
+#define LAMBDA_KW_SZ 6
+
 #define PACK_BINDING_PREFIX '&'
 #define BINDING_SUFFIX ':'
 #define REST_PARAM_PFX '&'      /* rest parameter prefix */
@@ -20,6 +30,8 @@
 #define OPT_PARAM_SFX ":="        /* optional parameter suffix (default arg supplied) */
 /* call prefix */
 #define CALL_PRFX "Call"
+#define CALL_KW "Call"
+#define CALL_KW_SZ 4
 /* specifying number of args to call */
 #define CALL_ARG_PFX '@'
 /* specifying number of calls */
@@ -37,7 +49,18 @@
 #define SIZEOPKW "Size"
 #define SHOWOPKW "Show"
 /* List denotes an empty list, it has max capacity of 0 elements */
-#define LISTOPKW "List"
+#define LIST_OP_KW "List"
+#define LIST_OP_KW_SZ 4
+
+#define ADD_OP_KW "Add"
+#define ADD_OP_KW_SZ 3
+#define MUL_OP_KW "Mul"
+#define MUL_OP_KW_SZ 3
+#define SUB_OP_KW "Sub"
+#define SUB_OP_KW_SZ 3
+#define DIV_OP_KW "Div"
+#define DIV_OP_KW_SZ 3
+
 #define ADDOPKW "Add"
 #define MULOPKW "Mul"
 #define SUBOPKW "Sub"

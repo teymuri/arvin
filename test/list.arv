@@ -1,10 +1,1 @@
-(
-Define LST Call@6 list 1 2 3 4 Call@2 list 5 6 7
-Show Nth 0 Nth 4 LST
-)
-
-(Define L Call@2 list Call@3 list 1 2 3 Call@3 list 4 5 6
-Show Nth 0 Nth 1 L)
-
-
-1 2 3 Call@2 list 100 Call@2 list 200 Call@3 list add 300 400 
+Nth 6 List:7 10 20 30 40 50 List:3 70 80 90 Lambda 0

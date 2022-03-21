@@ -113,10 +113,10 @@ main(int argc, char **argv)
         unit_link = g_list_prepend(unit_link, &tl_unit);
         ast3 = parse3(unit_link);
         print_ast3(ast3);
-        post_parse_lambda_check(ast3);
-        post_parse_call_check(ast3);
-        post_parse_let_check(ast3);
-        print_ast3(ast3);
+        /* post_parse_lambda_check(ast3); */
+        /* post_parse_call_check(ast3); */
+        /* post_parse_let_check(ast3); */
+        /* print_ast3(ast3); */
         /* eval3(ast3, tl_unit.env); */
         print(eval3(ast3, tl_unit.env));
     }    

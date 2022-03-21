@@ -1,2 +1,25 @@
+(Lambda:1 @a Lambda:2 b @c Lambda:1 @d e f g h i j k l m n o p)
+(Let:1 x Lambda:1 @a @s 1 2 3 4 x)
+(Lambda:4 a @s 1 @d 0 @&rest List:3 1 2 3 rest)
 
-Let X:= 34 Y:= 35 Call/1 show X:= Call/2 nth 1 Call/4 list X 30 Y 40
+(Call:5 f @a -1 0 @&x 1 2 3 4 5)
+(Call:6 F @a b c @&d e @&f g h i j k l m)
+
+(Call:1 Lambda:1 @x List:3 10 20 30 Nth 2 x
+  List:3 40 50 60)
+
+(Call:6 Lambda:1 &r Show Nth Dec Size r r 10 20 30 40 50 60 70)
+
+Define f Lambda:3 a s @d 10 Show d
+
+Define f1 Lambda:2 x &r Nth x r
+
+(Nth 1 Call:3 f1 1 2 List:2 10 20)
+
+Show Nth 0 Call:5
+       Lambda:1 @&rest List:6 9 8 7 6 5 4
+ Show rest
+    10 20 30 40 50
+
+
+

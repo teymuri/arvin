@@ -59,22 +59,16 @@ eval_show_op(struct Arv_data **result, GNode *node, GHashTable *env)
     struct Arv_data *d = eval3(node->children, env);
     set_data(*result, d);
     switch (d->type) {
-    case INT:
-        printf("%d\n", d->slots.tila_int);
-        break;
-    case FLOAT:
-        printf("%f\n", d->slots.tila_float);
-        break;
-    case BOOL:
-        printf("%s\n", d->slots.tila_bool ? TRUEKW : FALSEKW);
-        break;
-    case LAMBDA:
-        printf("tbi:lambda (to be implemented)\n");
-        break;
+    case INT: print_int(d); break;
+    case FLOAT: print_float(d); break;
+    case BOOL: print_bool(d); break;
+    case LAMBDA: print_lambda(d); break;
+    case LIST: print_list(d); break;
     default:
-        printf("show received unknown data type %d\n", d->type);
+        printf("Show received unknown data type %d\n", d->type);
         break;
     }
+    printf("\n");
 }
 
 gint get_param_index(GList *list, char *str) {
@@ -227,6 +221,112 @@ eval_dec_op(struct Arv_data **result, GNode *node, GHashTable *env)
         (*result)->slots.tila_float = n->slots.tila_float - 1;
     }
 }
+void
+eval_add_op2(struct Arv_data **result, GNode *node, GHashTable *env)
+{
+    GNode *child_node = node->children;
+    float num = 0.0;
+    (*result)->type = INT;
+    while (child_node) {
+        struct Arv_data *x = eval3(child_node, env);
+        if (x->type == FLOAT) {
+            (*result)->type = FLOAT;
+            num += x->slots.tila_float;
+        } else if (x->type == INT) {
+            num += x->slots.tila_int;
+        }
+        child_node = child_node->next;    /* next operand */
+    }
+    if (((*result)->type == INT)) {
+        (*result)->slots.tila_int = (int) num;
+    } else if (((*result)->type == FLOAT)) {
+        (*result)->slots.tila_float = num;
+    }
+}    
+void
+eval_mul_op2(struct Arv_data **result, GNode *node, GHashTable *env)
+{
+    GNode *child_node = node->children;
+    float num = 1.0;
+    (*result)->type = INT;
+    while (child_node) {
+        struct Arv_data *x = eval3(child_node, env);
+        if (x->type == FLOAT) {
+            (*result)->type = FLOAT;
+            num *= x->slots.tila_float;
+        } else if (x->type == INT) {
+            num *= x->slots.tila_int;
+        }
+        child_node = child_node->next;    /* next operand */
+    }
+    if (((*result)->type == INT)) {
+        (*result)->slots.tila_int = (int) num;
+    } else if (((*result)->type == FLOAT)) {
+        (*result)->slots.tila_float = num;
+    }
+}
+
+void
+eval_div_op2(struct Arv_data **result, GNode *node, GHashTable *env)
+{
+    GNode *child_node = node->children;
+    (*result)->type = INT;
+    float num;
+    struct Arv_data *x = eval3(child_node, env);
+    if (x->type == FLOAT) {
+        (*result)->type = FLOAT;
+        num = x->slots.tila_float;
+    } else if (x->type == INT) {
+        num = x->slots.tila_int;
+    }
+    child_node = child_node->next;
+    while (child_node) {
+        struct Arv_data *x = eval3(child_node, env);
+        if (x->type == FLOAT) {
+            (*result)->type = FLOAT;
+            num /= x->slots.tila_float;
+        } else if (x->type == INT) {
+            num /= x->slots.tila_int;
+        }
+        child_node = child_node->next;    /* next operand */
+    }
+    if (((*result)->type == INT)) {
+        (*result)->slots.tila_int = (int) num;
+    } else if (((*result)->type == FLOAT)) {
+        (*result)->slots.tila_float = num;
+    }
+}    
+
+void
+eval_sub_op2(struct Arv_data **result, GNode *node, GHashTable *env)
+{
+    GNode *child_node = node->children;
+    (*result)->type = INT;
+    float num;
+    struct Arv_data *x = eval3(child_node, env);
+    if (x->type == FLOAT) {
+        (*result)->type = FLOAT;
+        num = x->slots.tila_float;
+    } else if (x->type == INT) {
+        num = x->slots.tila_int;
+    }
+    child_node = child_node->next;
+    while (child_node) {
+        struct Arv_data *x = eval3(child_node, env);
+        if (x->type == FLOAT) {
+            (*result)->type = FLOAT;
+            num -= x->slots.tila_float;
+        } else if (x->type == INT) {
+            num -= x->slots.tila_int;
+        }
+        child_node = child_node->next;    /* next operand */
+    }
+    if (((*result)->type == INT)) {
+        (*result)->slots.tila_int = (int) num;
+    } else if (((*result)->type == FLOAT)) {
+        (*result)->slots.tila_float = num;
+    }
+}    
 
 void
 eval_add_op(struct Arv_data **result, GNode *node, GHashTable *env)
@@ -580,6 +680,23 @@ eval_list_op(struct Arv_data **result, GNode *node, GHashTable *env)
     }
     (*result)->slots.arv_list = list;
 }
+void
+eval_list_op2(struct Arv_data **result, GNode *node, GHashTable *env)
+/* node is the list node (not it's first item) */
+{
+    (*result)->type = LIST;
+    struct List *list = (struct List *)malloc(sizeof (struct List));
+    list->item = NULL;
+    list->size = 0;
+    GNode *child = node->children;
+    while (child) {
+        /* each item of a list is evaluated at list creation-time */
+        list->item = g_list_append(list->item, eval3(child, env));
+        list->size++;
+        child = child->next;      /* next list item */
+    }
+    (*result)->slots.arv_list = list;
+}
 
 void
 eval_nth_op(struct Arv_data **result, GNode *node, GHashTable *env)
@@ -607,8 +724,7 @@ void eval_size_op(struct Arv_data **result, GNode *node, GHashTable *env)
 /* ***** end list ******* */
 
 
-void
-eval_lambda(struct Arv_data **result, GNode *node, GHashTable *env)
+void eval_lambda(struct Arv_data **result, GNode *node, GHashTable *env)
 {
     (*result)->type = LAMBDA;
     struct Lambda *lambda = malloc(sizeof (struct Lambda));
@@ -631,6 +747,53 @@ eval_lambda(struct Arv_data **result, GNode *node, GHashTable *env)
                    unit_type((unitp_t)binding->data) == PACK_BINDING) {
             g_hash_table_insert(lambda->env, name, NULL);
         }
+    }
+    (*result)->slots.tila_lambda = lambda;
+}
+
+void eval_lambda2(struct Arv_data **result, GNode *node, GHashTable *env)
+{
+    (*result)->type = LAMBDA;
+    struct Lambda *lambda = malloc(sizeof (struct Lambda));
+    /* make a snapshot of the current environment at the time of
+     * lambda creation */
+    lambda->env = clone_hash_table(env);
+    lambda->node = node;
+    lambda->artyp = ((unitp_t)node->data)->type;
+    lambda->param_list = NULL;
+    /* add parameters to env */
+    for (guint i = 0; i < g_node_n_children(node) - 1; i++) {
+        /* lambda->param_list = g_list_append(lambda->param_list, (unitp_t)g_node_nth_child(node, i)->data); */
+        if (((unitp_t)g_node_nth_child(node, i)->data)->type == OPT_PARAM) {
+            g_hash_table_insert(lambda->env, ((unitp_t)g_node_nth_child(node, i)->data)->token.str + 1,
+                                eval3(g_node_nth_child(node, i)->children, lambda->env));
+            lambda->param_list = g_list_append(lambda->param_list, ((unitp_t)g_node_nth_child(node, i)->data)->token.str + 1);
+        } else if (((unitp_t)g_node_nth_child(node, i)->data)->type == REST_OPT_PARAM) {
+            g_hash_table_insert(lambda->env, ((unitp_t)g_node_nth_child(node, i)->data)->token.str + 2,
+                                eval3(g_node_nth_child(node, i)->children, lambda->env));
+            lambda->param_list = g_list_append(lambda->param_list, ((unitp_t)g_node_nth_child(node, i)->data)->token.str + 2);
+        } else if (((unitp_t)g_node_nth_child(node, i)->data)->type == MAND_PARAM) {
+            g_hash_table_insert(lambda->env, ((unitp_t)g_node_nth_child(node, i)->data)->token.str, NULL);
+            lambda->param_list = g_list_append(lambda->param_list, ((unitp_t)g_node_nth_child(node, i)->data)->token.str);
+        } else if (((unitp_t)g_node_nth_child(node, i)->data)->type == REST_MAND_PARAM) {
+            g_hash_table_insert(lambda->env, ((unitp_t)g_node_nth_child(node, i)->data)->token.str + 1, NULL);
+            lambda->param_list = g_list_append(lambda->param_list, ((unitp_t)g_node_nth_child(node, i)->data)->token.str + 1);
+        } else {
+            fprintf(stderr, "malformed lambda param\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        /* if (((unitp_t)g_node_nth_child(node, i)->data)->type == OPT_PARAM || */
+        /*     ((unitp_t)g_node_nth_child(node, i)->data)->type == REST_OPT_PARAM) { */
+        /*     g_hash_table_insert(lambda->env, ((unitp_t)g_node_nth_child(node, i)->data)->token.str + 1, */
+        /*                         eval3(g_node_nth_child(node, i)->children, lambda->env)); */
+        /* } else if (((unitp_t)g_node_nth_child(node, i)->data)->type == MAND_PARAM || */
+        /*            ((unitp_t)g_node_nth_child(node, i)->data)->type == REST_MAND_PARAM) { */
+        /*     g_hash_table_insert(lambda->env, ((unitp_t)g_node_nth_child(node, i)->data)->token.str, NULL); */
+        /* } else { */
+        /*     fprintf(stderr, "malformed lambda param\n"); */
+        /*     exit(EXIT_FAILURE); */
+        /* } */
     }
     (*result)->slots.tila_lambda = lambda;
 }
@@ -681,6 +844,21 @@ void eval_let(struct Arv_data **result, GNode *node, GHashTable *env) {
     (*result) = eval3(g_node_last_child(node), ((unitp_t)node->data)->env);
 }
 
+void eval_let2(struct Arv_data **result, GNode *node, GHashTable *env) {
+    if (g_node_n_children(node) % 2 == 0) {
+        fprintf(stderr, "malformed let; no expressions found\n");
+        exit(EXIT_FAILURE);
+    }
+    ((unitp_t)node->data)->env = clone_hash_table(env);
+    guint bind_count = g_node_n_children(node) / 2;
+    for (guint i = 0; i < bind_count; i++)
+        g_hash_table_insert(((unitp_t)node->data)->env,
+                            ((unitp_t)g_node_nth_child(node, i * 2)->data)->token.str,
+                            eval3(g_node_nth_child(node, i * 2 + 1), ((unitp_t)node->data)->env));
+    (*result) = eval3(g_node_last_child(node), ((unitp_t)node->data)->env);
+}
+
+
 void eval_define(struct Arv_data **result, GNode *node, GHashTable *env) {
     char *name = ((unitp_t)g_node_nth_child(node, 0)->data)->token.str;
     struct Arv_data *data = eval3(g_node_nth_child(node, 1), env);
@@ -705,6 +883,22 @@ gint find_param_idx(GList *param_lst_lnk, char *str) {
     else return -1;
 }
 
+gint find_param_idx2(GList *param_lst_lnk, char *str) {
+    bool found = false;
+    gint idx = 0;
+    while (param_lst_lnk) {
+        if (!strcmp(((unitp_t)param_lst_lnk->data)->type == OPT_PARAM ? ((unitp_t)param_lst_lnk->data)->token.str+1 :((unitp_t)param_lst_lnk->data)->token.str, str)) {
+            found = true;
+            break;      
+        }
+        param_lst_lnk = param_lst_lnk->next;
+        idx++;
+    }
+    if (found) return idx;
+    else return -1;
+}
+
+
 GNode *
 nth_sibling(GNode *node, int n)
 {
@@ -713,8 +907,7 @@ nth_sibling(GNode *node, int n)
     return node;
 }
 
-void
-eval_call(struct Arv_data **result, GNode *node, GHashTable *env)
+void eval_call(struct Arv_data **result, GNode *node, GHashTable *env)
 {
     GNode *lambda_node = g_node_first_child(node);
     struct Arv_data *lambda_data = eval3(lambda_node, env);
@@ -775,6 +968,78 @@ eval_call(struct Arv_data **result, GNode *node, GHashTable *env)
     *result = eval3(g_node_last_child(lambda_data->slots.tila_lambda->node), call_env);
 }
 
+void
+eval_call2(struct Arv_data **result, GNode *node, GHashTable *env)
+{
+    struct Arv_data *lambda_data = eval3(g_node_first_child(node), env);
+    /* make a copy of the lambda env just for this call */
+    GHashTable *call_env = clone_hash_table(lambda_data->slots.tila_lambda->env);
+    guint arg_idx = 1;          /* 0th is the function */
+    gint param_idx = 0;
+    GNode *first_arg = g_node_nth_child(node, 1);
+    /* iterate over passed arguments */
+    while (arg_idx < g_node_n_children(node)) {
+        if (((unitp_t)g_node_nth_child(node, arg_idx)->data)->type == OPT_PARAM) {
+            g_hash_table_insert(call_env,
+                                /* binding_node_name(nth_sibling(first_arg, arg_idx)), */
+                                ((unitp_t)g_node_nth_child(node, arg_idx)->data)->token.str + 1, /* @param without @ */
+                                eval3(g_node_nth_child(node, arg_idx)->children, env));
+            
+            param_idx = find_param_idx2(lambda_data->slots.tila_lambda->param_list,
+                                        /* binding_node_name(nth_sibling(first_arg, arg_idx)) */
+                                        ((unitp_t)g_node_nth_child(node, arg_idx)->data)->token.str + 1);
+
+            if (param_idx == -1) {
+                fprintf(stderr, "unknown parameter\n");
+                print_node(nth_sibling(first_arg, arg_idx), NULL);
+                fprintf(stderr, "passed to\n");
+                print_node(lambda_data->slots.tila_lambda->node, NULL);
+                exit(EXIT_FAILURE);
+            } else {
+                arg_idx++;
+                param_idx++;
+            }
+        } else if (is_of_type((unitp_t)nth_sibling(first_arg, arg_idx)->data, BOUND_PACK_BINDING)) { /*  */
+            struct Arv_data *rest_args = malloc(sizeof (struct Arv_data));
+            /* named rest args */
+            /* eval the passed arguments in the  */
+            eval_list_op(&rest_args, nth_sibling(first_arg, arg_idx)->children, env);
+            g_hash_table_insert(call_env,
+                                binding_node_name(nth_sibling(first_arg, arg_idx)),
+                                rest_args);
+            break;       /* out of parameter processing, &rest: must be the last! */
+        } else {			/* just an expression or multiple expressions, not a binding (@para arg or @&rest_param arg1 ... argN) */
+            if (unit_type((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data) == REST_MAND_PARAM ||
+                unit_type((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data) == REST_OPT_PARAM) {
+                /* reached rest args without param name */
+                struct Arv_data *rest_args = malloc(sizeof (struct Arv_data));
+                GNode *rest_node = g_node_new(NULL);
+                while (arg_idx < g_node_n_children(node)) {
+                    g_node_insert(rest_node,-1, g_node_copy(g_node_nth_child(node, arg_idx)));
+                    arg_idx++;
+                }
+                eval_list_op2(&rest_args, rest_node, env);
+                g_hash_table_insert(call_env,
+                                    g_list_nth_data(lambda_data->slots.tila_lambda->param_list, param_idx),
+                                    rest_args);
+                break;                  /* and that was the last param; done, get out!!! */
+            } else {
+                /* ((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data)->type == MAND_PARAM ? */
+                /*     ((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data)->token.str : */
+                /*     ((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data)->token.str + 1, */
+
+                g_hash_table_insert(call_env,
+                                    g_list_nth_data(lambda_data->slots.tila_lambda->param_list, param_idx),
+                                    eval3(g_node_nth_child(node, arg_idx), env));
+                arg_idx++;
+                param_idx++;
+            }
+        }
+    }
+    /* eval the lambda expr in the created call-time env */
+    *result = eval3(g_node_last_child(lambda_data->slots.tila_lambda->node), call_env);
+}
+
 void eval_toplvl(struct Arv_data **result, GNode *root)
 {
     guint size = g_node_n_children(root);
@@ -784,8 +1049,7 @@ void eval_toplvl(struct Arv_data **result, GNode *root)
     *result = eval3(g_node_nth_child(root, size - 1), ((unitp_t)root->data)->env);
 }
 
-struct Arv_data *
-eval3(GNode *node, GHashTable *env)
+struct Arv_data *eval3(GNode *node, GHashTable *env)
 {
     struct Arv_data *result = malloc(sizeof (struct Arv_data));
     if (((unitp_t)node->data)->is_atomic) {
@@ -831,32 +1095,50 @@ eval3(GNode *node, GHashTable *env)
             eval_toplvl(&result, node); /* toplevel uses it's own environment */
         } else if (is_show_op((unitp_t)node->data))
             eval_show_op(&result, node, env);
-        else if (is_lambda4((unitp_t)node->data)) {
-            eval_lambda(&result, node, env);
-        } else if (is_define((unitp_t)node->data)) { /* define */
+        /* else if (is_lambda4((unitp_t)node->data)) { */
+        /*     eval_lambda(&result, node, env); */
+        /* } */
+        else if (is_define((unitp_t)node->data)) { /* define */
             eval_define(&result, node, env);
-        } else if (is_let((unitp_t)node->data)) {
-            eval_let(&result, node, env);
-        } else if (is_cpack((unitp_t)node->data)) {
+        }
+        /* else if (is_let((unitp_t)node->data)) { */
+        /*     eval_let(&result, node, env); */
+        /* } */
+        else if (is_cpack((unitp_t)node->data)) {
             eval_cpack(&result, node, env, 0, 0);
-        }  else if (is_call((unitp_t)node->data)) {
-            for (int i = 0; i < ((unitp_t)node->data)->call_rpt_cnt; i++)
-                eval_call(&result, node, env);
-        }            
+        }
+        /* else if (is_call((unitp_t)node->data)) { */
+        /*     for (int i = 0; i < ((unitp_t)node->data)->call_rpt_cnt; i++) */
+        /*         eval_call(&result, node, env); */
+        /* } */
+        else if (is_call2((unitp_t)node->data))
+            eval_call2(&result, node, env);
+        else if (is_lambda((unitp_t)node->data))
+            eval_lambda2(&result, node, env);
         else if (is_nth_op((unitp_t)node->data))
             eval_nth_op(&result, node, env);
         else if (is_size_op((unitp_t)node->data))
             eval_size_op(&result, node, env);
-        else if (is_list_op((unitp_t)node->data))
-            /* List is used in the core ONLY as default argument the
-             * &ITEMS:= param of the list function to get an empty
-             * list. although invoking it would simply result in an
-             * empty list (as it's max capacity is 0 it cant take any
-             * args) try NOT to use it elsewhere as it's internal and
-             * can change without notice! */
-            eval_list_op(&result, node->children, env);
+        /* else if (is_list_op((unitp_t)node->data)) */
+        /*     /\* List is used in the core ONLY as default argument the */
+        /*      * &ITEMS:= param of the list function to get an empty */
+        /*      * list. although invoking it would simply result in an */
+        /*      * empty list (as it's max capacity is 0 it cant take any */
+        /*      * args) try NOT to use it elsewhere as it's internal and */
+        /*      * can change without notice! *\/ */
+        /*     eval_list_op(&result, node->children, env); */
+        else if (is_list_op2((unitp_t)node->data))
+            eval_list_op2(&result, node, env);
         else if (is_cond((unitp_t)node->data))
             eval_cond(&result, node, env);
+        else if (is_add_op2((unitp_t)node->data))
+            eval_add_op2(&result, node, env);
+        else if (is_mul_op2((unitp_t)node->data))
+            eval_mul_op2(&result, node, env);
+        else if (is_sub_op2((unitp_t)node->data))
+            eval_sub_op2(&result, node, env);
+        else if (is_div_op2((unitp_t)node->data))
+            eval_div_op2(&result, node, env);
         else if (is_add_op((unitp_t)node->data))
             eval_add_op(&result, node, env);
         else if (is_sub_op((unitp_t)node->data))
@@ -873,6 +1155,8 @@ eval3(GNode *node, GHashTable *env)
             eval_dec_op(&result, node, env);
         else if (is_lfold_op((unitp_t)node->data))
             eval_lfold_op(&result, node, env);
+        else if (is_let2((unitp_t)node->data))
+            eval_let2(&result, node, env);
     }
     return result;
 }

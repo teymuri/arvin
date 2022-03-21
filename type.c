@@ -17,6 +17,13 @@ char *stringify_type(enum Type t) {
     case 10: return "pack";
     case 11: return "Bool";
     case 12: return "List";
+    case 13: return "UNIADIC_LAMBDA";
+    case 14: return "VARIADIC_LAMBDA";
+    case 15: return "MAND_PARAM";
+    case 16: return "OPT_PARAM";
+    case 17: return "REST_MAND_PARAM";
+    case 18: return "REST_OPT_PARAM";
+    case 19: return "CALL_OPT_REST_PARAM";
     default: return "undefined";
     }
 }

@@ -17,6 +17,7 @@ struct Unit {
     int max_cap;
     int call_rpt_cnt;
     struct Token token;
+    int toklen;
     enum Type type;
     bool is_atomic;
     GHashTable *env;	/* unit's environment */

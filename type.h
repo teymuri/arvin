@@ -15,12 +15,34 @@ enum Type {
     PACK = 10,
     BOOL = 11,
     LIST = 12,
+    /*     uniadic
+    the property "variadic" applies to relators and operators which
+    accept a variable number of arguments. however, many relators and
+    operators are not variadic. they require a unique number of
+    arguments. so there should exist an antonym to "variadic". my
+    favorite one is "uniadic". it expresses that the arity of the
+    relator or operator is uniquely determined. the term applies to
+    relators and operators which accept only a definite number of
+    arguments.  for instance, the logarithm is a uniadic - actually
+    unary - function, while addition can be considered variadic.
+    Submitted by rinat on June 29, 2016
+    (https://www.synonyms.com/antonyms/VARIADIC) */
+    UNIADIC_LAMBDA = 13,
+    VARIADIC_LAMBDA = 14,
+    
+    MAND_PARAM = 15,               /* param (binding) */
+    OPT_PARAM = 16,             /* param with default arg (bound binding) */
+    REST_MAND_PARAM = 17,               /* rest param (pack binding) */
+    REST_OPT_PARAM = 18,            /* rest param with default arg (bound pack binding) */
+    CALL_OPT_REST_PARAM=19,
+    
     UNDEFINED
 };
 
 /* data structures of the landuage */
 
 struct Lambda {
+    enum Type artyp;            /* arity type: fixed or indefinite */
     GList *param_list;
     /* lambda environment is used at definition time  */
     GHashTable *env;

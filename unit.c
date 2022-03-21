@@ -19,7 +19,16 @@ enum Type unit_type(struct Unit *u) {
     case PACK_BINDING: return PACK_BINDING;
     case BOUND_PACK_BINDING: return BOUND_PACK_BINDING;
     case PACK: return PACK;
-    case BOOL: return BOOL;
+    case BOOL: return BOOL;     /* 11 */
+    case LIST: return LIST;     /* 12 */
+    case UNIADIC_LAMBDA: return UNIADIC_LAMBDA;
+    case VARIADIC_LAMBDA: return VARIADIC_LAMBDA;
+        
+    case MAND_PARAM: return MAND_PARAM;           /* 15 */
+    case OPT_PARAM: return OPT_PARAM;
+    case REST_MAND_PARAM: return REST_MAND_PARAM;
+    case REST_OPT_PARAM: return REST_OPT_PARAM;
+    case CALL_OPT_REST_PARAM: return CALL_OPT_REST_PARAM;
     default: return UNDEFINED;
     }
 }
@@ -63,6 +72,7 @@ unit_linked_list(struct Token toks[], size_t toks_n)
         /* uuid 0 is reserved for the toplevel unit, so start with 1 */
         unit->uuid = s + 1;
         unit->token = toks[s];
+        unit->toklen = strlen(unit->token.str);
         /* maximum absorption of -1 means undefined, i.e. will capture
            ALL coming units! This will be reset later in parser to
            possinly different unsigned integers for different types

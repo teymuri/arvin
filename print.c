@@ -52,7 +52,7 @@ print_ast3(GNode *root)
 void
 print_lambda(struct Arv_data *data)
 {
-    printf("Lambda(%p) ", (void *)data);
+    printf("%s %p ", LAMBDA_KW,(void *)data);
 }
 void
 print_int(struct Arv_data *data)
@@ -70,14 +70,20 @@ print_bool(struct Arv_data *data)
     printf("%s ", data->slots.tila_bool ? TRUEKW : FALSEKW);
 }
 
-void print_data(struct Arv_data *);
+void
+print_data(struct Arv_data *);
+
 void
 print_list(struct Arv_data *data)
 {
-    printf("Tree#%d ", data->slots.arv_list->size);
-    while (data->slots.arv_list->item) {
-        print_data(data->slots.arv_list->item->data);
-        data->slots.arv_list->item = data->slots.arv_list->item->next;
+    printf("%s:%d ", LIST_OP_KW, data->slots.arv_list->size);
+    /* use a copy of items, since the print_list is also used in other
+     * places (e.g. eval_show_op), otherwise the item pointer is fully
+     * consumed when its needed for the print(eval...) */
+    GList *itemcp = g_list_copy(data->slots.arv_list->item);
+    while (itemcp) {
+        print_data(itemcp->data);
+        itemcp = itemcp->next;
     }
 }
 
@@ -102,5 +108,5 @@ print(struct Arv_data *data)
 {
     printf("%s", PROMPT);
     print_data(data);
-    puts("");
+    printf("\n");
 }

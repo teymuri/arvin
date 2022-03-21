@@ -8,12 +8,15 @@ bool is_let(struct Unit *);
 GNode *parse3(GList *atoms);
 
 bool is_lambda4(struct Unit *);
+bool is_lambda(struct Unit *);
+/* bool maybe_param_with_dflt_arg(struct Unit *); */
 bool is_call(struct Unit *);
 
-bool
-is_call(struct Unit *);
+bool is_call(struct Unit *);
+bool is_call2(struct Unit *);
 
 bool is_let(struct Unit *);
+bool is_let2(struct Unit *);
 bool is_define(struct Unit *);
 bool is_pass(struct Unit *);
 bool is_true(struct Unit *);
@@ -28,11 +31,16 @@ bool is_nth_op(struct Unit *);
 bool is_size_op(struct Unit *);
 bool is_show_op(struct Unit *);
 bool is_list_op(struct Unit *);
+bool is_list_op2(struct Unit *);
 bool is_cond(struct Unit *);
 bool is_cond_if(struct Unit *);
 bool is_cond_then(struct Unit *);
 bool is_cond_else(struct Unit *);
 bool is_add_op(struct Unit *);
+bool is_add_op2(struct Unit *);
+bool is_mul_op2(struct Unit *);
+bool is_sub_op2(struct Unit *);
+bool is_div_op2(struct Unit *);
 bool is_sub_op(struct Unit *);
 bool is_mul_op(struct Unit *);
 bool is_div_op(struct Unit *);

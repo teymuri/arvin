@@ -3,6 +3,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <string.h>
+#include <ctype.h>
 #include "type.h"
 #include "token.h"
 #include "unit.h"
@@ -95,22 +96,59 @@ GList *find_enclosure_link(GList *unit_link, GList *tl_ulink) {
 bool
 is_lambda4(struct Unit *u)
 {
-    return !strcmp(u->token.str, LAMBDAKW);
+    return !strcmp(u->token.str, LAMBDA_KW);
 }
 
-
 bool is_lambda_node(GNode *node) {
-    return !strcmp(((unitp_t)node->data)->token.str, LAMBDAKW);
+    return !strcmp(((unitp_t)node->data)->token.str, LAMBDA_KW);
 }
 bool is_association(struct Unit *c)
 {
-    return !strcmp(c->token.str, LETKW);
+    return !strcmp(c->token.str, LET_KW);
 }
 
 bool
 is_let(struct Unit *u)
 {
-    return !strcmp(u->token.str, LETKW);
+    return !strcmp(u->token.str, LET_KW);
+}
+
+bool is_let2(struct Unit *u)
+{
+    if (u->toklen == LET_KW_SZ)
+        return !strcmp(u->token.str, LET_KW);
+    if (u->toklen > LET_KW_SZ && *(u->token.str + LET_KW_SZ) == ARITY_ID)
+        return !strncmp(u->token.str, LET_KW, LET_KW_SZ);
+    return false;
+}
+
+bool
+is_lambda(struct Unit *u)
+{
+    return !strcmp(u->token.str, LAMBDA_KW) ||
+        (u->toklen > LAMBDA_KW_SZ &&
+         !strncmp(u->token.str, LAMBDA_KW, LAMBDA_KW_SZ) &&
+         *(u->token.str + LAMBDA_KW_SZ) == ARITY_ID);
+}
+
+void set_lambda_type(struct Unit *u) /* Deprecated!!! */
+{
+    /* ich bin hier sicher dass u lambda ist */
+    /* check minimum non-just-lambda kw construction: e.g. Lambda[:1&]
+     * wo das 3te/letzte char & sein KÖNNTE! */
+    if (u->toklen - LAMBDA_KW_SZ >= 3 &&
+        *(u->token.str + (u->toklen - 1)) == REST_PARAM_ID)
+        u->type = VARIADIC_LAMBDA;
+    else
+        u->type = UNIADIC_LAMBDA;
+            
+        
+}
+
+bool maybe_param_with_dflt_arg(struct Unit *u)
+{
+    return is_of_type(u, NAME) &&
+        *u->token.str == PARAM_WITH_DFLT_ARG_ID;
 }
 
 bool
@@ -123,16 +161,24 @@ bool is_pass(struct Unit *u) {
     return !strcmp(u->token.str, FUNCALL_KEYWORD);
 }
 
-bool starts_with(const char *a, const char *b)
+bool
+starts_with(const char *a, const char *b)
 {
-   if(strncmp(a, b, strlen(b)) == 0) return 1;
+   if (!strncmp(a, b, strlen(b))) return 1;
    return 0;
 }
 
-bool
-is_call(struct Unit *u)
+bool is_call(struct Unit *u)
 {
     return starts_with(u->token.str, CALL_PRFX);
+}
+bool
+is_call2(struct Unit *u)
+{
+    return !strcmp(u->token.str, CALL_KW) ||
+        (u->toklen > CALL_KW_SZ &&
+         !strncmp(u->token.str, CALL_KW, CALL_KW_SZ) &&
+         *(u->token.str + CALL_KW_SZ) == ARITY_ID);
 }
 
 
@@ -149,6 +195,43 @@ is_add_op(struct Unit *u)
 {
     return !strcmp(u->token.str, ADDOPKW);
 }
+bool
+is_add_op2(struct Unit *u)
+{
+    return !strcmp(u->token.str, ADD_OP_KW) ||
+        (u->toklen > ADD_OP_KW_SZ &&
+         !strncmp(u->token.str, ADD_OP_KW, ADD_OP_KW_SZ) &&
+         *(u->token.str + ADD_OP_KW_SZ) == ARITY_ID);
+    /* don't check the part after : could b an expression? */
+}
+bool
+is_mul_op2(struct Unit *u)
+{
+    return !strcmp(u->token.str, MUL_OP_KW) ||
+        (u->toklen > MUL_OP_KW_SZ &&
+         !strncmp(u->token.str, MUL_OP_KW, MUL_OP_KW_SZ) &&
+         *(u->token.str + MUL_OP_KW_SZ) == ARITY_ID);
+    /* don't check the part after : could b an expression? */
+}
+bool
+is_sub_op2(struct Unit *u)
+{
+    return !strcmp(u->token.str, SUB_OP_KW) ||
+        (u->toklen > SUB_OP_KW_SZ &&
+         !strncmp(u->token.str, SUB_OP_KW, SUB_OP_KW_SZ) &&
+         *(u->token.str + SUB_OP_KW_SZ) == ARITY_ID);
+    /* don't check the part after : could b an expression? */
+}
+bool
+is_div_op2(struct Unit *u)
+{
+    return !strcmp(u->token.str, DIV_OP_KW) ||
+        (u->toklen > DIV_OP_KW_SZ &&
+         !strncmp(u->token.str, DIV_OP_KW, DIV_OP_KW_SZ) &&
+         *(u->token.str + DIV_OP_KW_SZ) == ARITY_ID);
+    /* don't check the part after : could b an expression? */
+}
+
 bool
 is_sub_op(struct Unit *u)
 {
@@ -202,7 +285,16 @@ is_nth_op(struct Unit *u)
 bool
 is_list_op(struct Unit *u)
 {
-    return !strcmp(u->token.str, LISTOPKW);
+    return !strcmp(u->token.str, LIST_OP_KW);
+}
+
+bool
+is_list_op2(struct Unit *u)
+{
+    return !strcmp(u->token.str, LIST_OP_KW) ||
+        (u->toklen > LIST_OP_KW_SZ &&
+         !strncmp(u->token.str, LIST_OP_KW, LIST_OP_KW_SZ) &&
+         *(u->token.str + LIST_OP_KW_SZ) == ARITY_ID);
 }
 
 bool
@@ -254,6 +346,34 @@ is_cond_else(struct Unit *u)
 }
 
 /* **********mand/opt params */
+bool
+maybe_mand_param2(struct Unit *u)
+{
+    return is_of_type(u, NAME) &&
+        *u->token.str != PARAM_WITH_DFLT_ARG_ID;       
+    /* this is redicoulous! */
+}
+bool
+maybe_mand_rest_param2(struct Unit *u)
+{
+    return is_of_type(u,NAME) &&
+        *u->token.str == REST_PARAM_ID;
+}
+bool
+maybe_opt_param2(struct Unit *u)
+{
+    return is_of_type(u, NAME) &&
+        *u->token.str == PARAM_WITH_DFLT_ARG_ID;
+}
+bool
+maybe_opt_rest_param2(struct Unit *u)
+{
+    return is_of_type(u,NAME) &&
+        *u->token.str == PARAM_WITH_DFLT_ARG_ID &&
+        *(u->token.str + 1) == REST_PARAM_ID;
+}
+
+/* deprecated */
 bool
 maybe_mand_param(struct Unit *u)
 {
@@ -308,30 +428,30 @@ is_show_op(struct Unit *u)
     return !strcmp(u->token.str, SHOWOPKW);
 }
 
-bool
-need_block(struct Unit *u)
+bool need_block(struct Unit *u)
 {
     return is_define(u) ||
-        is_let(u) ||
-        is_lambda4(u) ||
+        is_let(u) || is_let2(u) ||
+        is_lambda4(u) || is_lambda(u) ||
         /* is_of_type(u, BINDING) || */
         /* is_of_type(u, PACK_BINDING) || */
         is_of_type(u, BOUND_BINDING) ||
         is_of_type(u, BOUND_PACK_BINDING) ||
+        is_of_type(u, OPT_PARAM) || is_of_type(u, REST_OPT_PARAM) ||
+        (u->type == CALL_OPT_REST_PARAM) ||
         is_show_op(u) ||
         /* is_pass(u) || */
         /* is_call(u) || */
-        is_call(u) ||
+        is_call2(u) ||
         /* is_cpack(u) || */
-        is_list_op(u) ||
-        /* is_cith(u) || */
+        is_list_op(u) || is_list_op2(u) ||
         is_nth_op(u) ||
         is_size_op(u) ||
         is_cond(u) ||
         is_cond_if(u) ||
         is_cond_then(u) ||
         is_cond_else(u) ||
-        is_add_op(u) ||
+        is_add_op(u) || is_add_op2(u) || is_mul_op2(u) || is_sub_op2(u) || is_div_op2(u) ||
         is_sub_op(u) ||
         is_mul_op(u) ||
         is_div_op(u) ||
@@ -353,13 +473,13 @@ find_enc_node_with_cap(GNode *node)
     } while (node);
     return NULL;
 }
+
 GList *
 find_enc_ulink(GList *ulink)
 {
     do {
         ulink = ulink->prev;
-        if (!((unitp_t)ulink->data)->is_atomic)
-            return ulink;
+        if (!((unitp_t)ulink->data)->is_atomic) return ulink;
     } while (ulink->prev);
     return NULL;
 }
@@ -404,9 +524,93 @@ digest_call(char *str, int *arg_cnt, int *rpt_cnt)
     }
 }
 
+void
+digest_arid(char *s, int *ar)
+{
+    char *sd = strdup(s);
+    char *sdc = sd;
+    strtok(sd, ".");/* wegschmeißen */
+    char *x = strtok(NULL, ".");
+    *ar = atoi(x);
+    free(sdc);
+}
+
+void set_let_max_cap(struct Unit *u)
+{
+    if (u->toklen == LET_KW_SZ)
+        /* only the let expression; does this make sense??! */
+        u->max_cap = 1;
+    else if (u->toklen > LET_KW_SZ)
+        u->max_cap = atoi(u->token.str + LET_KW_SZ + 1) * 2 + 1;
+}
+void set_lambda_max_cap(struct Unit *u)
+{
+    if (u->toklen == LAMBDA_KW_SZ) {
+        u->max_cap = 1;         /* 0-ary */
+        u->type = UNIADIC_LAMBDA;
+    }
+    else if (u->toklen > LAMBDA_KW_SZ) {
+        if (*(u->token.str + (u->toklen - 1)) == REST_PARAM_ID) {
+            u->type = VARIADIC_LAMBDA;
+            char *nparams = strndup(u->token.str + LAMBDA_KW_SZ + 1, strlen(u->token.str + LAMBDA_KW_SZ + 1 - 1));
+            u->max_cap = atoi(nparams) + 1;
+            free(nparams);
+        } else {
+            u->type = UNIADIC_LAMBDA;
+            u->max_cap = atoi(u->token.str + LAMBDA_KW_SZ + 1) + 1;
+        }   
+    }
+}
+void
+set_add_op_maxcap(struct Unit *u)
+{
+    if (!strcmp(u->token.str, ADD_OP_KW))
+        u->max_cap = 2;         /* Add denotes a binary operation */
+    else if (u->toklen > ADD_OP_KW_SZ && *(u->token.str + ADD_OP_KW_SZ) == ARITY_ID)
+        u->max_cap = atoi(u->token.str + ADD_OP_KW_SZ + 1);
+}
+void
+set_mul_op_maxcap(struct Unit *u)
+{
+    if (!strcmp(u->token.str, MUL_OP_KW))
+        u->max_cap = 2;         /* denotes a binary operation */
+    else if (u->toklen > MUL_OP_KW_SZ && *(u->token.str + MUL_OP_KW_SZ) == ARITY_ID)
+        u->max_cap = atoi(u->token.str + MUL_OP_KW_SZ + 1);
+}
+void
+set_sub_op_maxcap(struct Unit *u)
+{
+    if (!strcmp(u->token.str, SUB_OP_KW))
+        u->max_cap = 2;         /* denotes a binary operation */
+    else if (u->toklen > SUB_OP_KW_SZ && *(u->token.str + SUB_OP_KW_SZ) == ARITY_ID)
+        u->max_cap = atoi(u->token.str + SUB_OP_KW_SZ + 1);
+}
+void
+set_div_op_maxcap(struct Unit *u)
+{
+    if (!strcmp(u->token.str, DIV_OP_KW))
+        u->max_cap = 2;         /* denotes a binary operation */
+    else if (u->toklen > DIV_OP_KW_SZ && *(u->token.str + DIV_OP_KW_SZ) == ARITY_ID)
+        u->max_cap = atoi(u->token.str + DIV_OP_KW_SZ + 1);
+}
+
+
+void set_call_max_cap(struct Unit *u)
+{
+    if (!strcmp(u->token.str, CALL_KW))
+        u->max_cap = 1;         /* only func */
+    else if (u->toklen > CALL_KW_SZ && *(u->token.str + CALL_KW_SZ) == ARITY_ID)
+        u->max_cap = atoi(u->token.str + CALL_KW_SZ + 1) + 1; /* letztes +1 ist das ELSE  */
+}
+void set_listop_maxcap(struct Unit *u)
+{
+    if (!strcmp(u->token.str, LIST_OP_KW))
+        u->max_cap = 0;         /* empty list */
+    else if (u->toklen > LIST_OP_KW_SZ && *(u->token.str + LIST_OP_KW_SZ) == ARITY_ID)
+        u->max_cap = atoi(u->token.str + LIST_OP_KW_SZ + 1);
+}
 /* goes through the atoms, root will be the container with tl_cons ... */
-GNode *
-parse3(GList *ulink)
+GNode *parse3(GList *ulink)
 {    
     GList *tl_ulink = ulink;      /* toplevel unit link */
     ulink = ulink->next;
@@ -414,40 +618,57 @@ parse3(GList *ulink)
     /* effective binding units are units which introduce bindings,
        e.g. lambda, let, pass */
     struct Unit *curr_bind_unit = NULL; /* current binding unit */
-    GNode *enc_node;              /* enclosing node */
-    
+    GNode *enc_node = NULL;              /* enclosing node */
+    /* struct Unit *eff_opt_param_unit = NULL; /\* effective optional param unit *\/ */
     while (ulink) {
         
-        /* 1.1. first attempt to find the enclosing node of this unit link */
-        if ((maybe_rest_mand_param((unitp_t)ulink->data) ||
-             maybe_rest_opt_param((unitp_t)ulink->data) ||
-             maybe_mand_param((unitp_t)ulink->data) ||
-             maybe_opt_param((unitp_t)ulink->data)) &&
-            curr_bind_unit &&
-            is_enclosed_in5((unitp_t)ulink->data, curr_bind_unit))
-            /* then enc node is the current binding unit */
-            enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, curr_bind_unit);
-        else
-            enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL,
-                                   (unitp_t)find_enc_ulink(ulink)->data);
+        /* /\* 1.1. first attempt to find the enclosing node of this unit link *\/ */
+        /* if (eff_opt_param_unit && is_enclosed_in5((unitp_t)ulink->data, eff_opt_param_unit)) { */
+        /*     enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, eff_opt_param_unit); */
+        /*     eff_opt_param_unit=NULL; */
+        /* } */
+        /* else if ( */
+        /*     ( */
+        /*         maybe_mand_param2((unitp_t)ulink->data) || */
+        /*         maybe_opt_param2((unitp_t)ulink->data) */
+        /*         ) && */
+        /*     curr_bind_unit && */
+        /*     is_enclosed_in5((unitp_t)ulink->data, curr_bind_unit)) */
+        /*     /\* then enc node is the current binding unit *\/ */
+        /*     enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, curr_bind_unit); */
+        /* else */
+        /*     enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL, */
+        /*                            (unitp_t)find_enc_ulink(ulink)->data); */
+        
         /* 1.2. if the computed enclosing node has no more capacity set the
            closest parent of it with capacity to be the enclosing node */
+        enc_node = g_node_find(root, G_PRE_ORDER, G_TRAVERSE_ALL,
+                               (unitp_t)find_enc_ulink(ulink)->data);
         if (((unitp_t)enc_node->data)->max_cap == 0)
             enc_node = find_enc_node_with_cap(enc_node);
         
         /* 2. establish definite binding types based on the enclosing
-         * units and the unit's look */
-        if (is_let((unitp_t)enc_node->data) ||
-            is_lambda4((unitp_t)enc_node->data) ||
-            is_call((unitp_t)enc_node->data)) {
-            if (maybe_rest_mand_param((unitp_t)ulink->data))
-                ((unitp_t)ulink->data)->type = PACK_BINDING;
-            else if (maybe_rest_opt_param((unitp_t)ulink->data)) {
-                ((unitp_t)ulink->data)->type = BOUND_PACK_BINDING;
-            } else if (maybe_mand_param((unitp_t)ulink->data)) {
-                ((unitp_t)ulink->data)->type = BINDING;
-            } else if (maybe_opt_param((unitp_t)ulink->data)) {
-                ((unitp_t)ulink->data)->type = BOUND_BINDING;                
+         * units and the unit's look */        
+        if (is_lambda((unitp_t)enc_node->data) && ((unitp_t)enc_node->data)->max_cap > 1) {
+            /* Lambda:3 a s d body */
+            if (maybe_mand_rest_param2((unitp_t)ulink->data)) {
+                ((unitp_t)ulink->data)->type = REST_MAND_PARAM;
+                ((unitp_t)enc_node->data)->type = VARIADIC_LAMBDA; /* aaaah, war doch nicht uniadic! */
+            }  else if (maybe_opt_rest_param2((unitp_t)ulink->data)) {
+                ((unitp_t)ulink->data)->type = REST_OPT_PARAM;
+                ((unitp_t)enc_node->data)->type = VARIADIC_LAMBDA;
+            } else if (maybe_mand_param2((unitp_t)ulink->data)) {
+                ((unitp_t)ulink->data)->type = MAND_PARAM;
+                /* ((unitp_t)enc_node->data)->type = UNIADIC_LAMBDA; */
+            }  else if (maybe_opt_param2((unitp_t)ulink->data)) {
+                ((unitp_t)ulink->data)->type = OPT_PARAM;
+                /* ((unitp_t)enc_node->data)->type = UNIADIC_LAMBDA; */
+            }
+        } else if (is_call2((unitp_t)enc_node->data)) {
+             if (maybe_opt_rest_param2((unitp_t)ulink->data)) {
+                 ((unitp_t)ulink->data)->type = CALL_OPT_REST_PARAM;
+            } else if (maybe_opt_param2((unitp_t)ulink->data)) {
+                ((unitp_t)ulink->data)->type = OPT_PARAM;
             }
         }
 
@@ -460,46 +681,61 @@ parse3(GList *ulink)
             is_size_op((unitp_t)enc_node->data) ||
             is_nth_op((unitp_t)enc_node->data) ||
             /* is_list_op((unitp_t)enc_node->data) || */
-            is_call((unitp_t)enc_node->data) ||
+            /* is_call((unitp_t)enc_node->data) || */
             is_cond_if((unitp_t)enc_node->data) ||
             is_cond_then((unitp_t)enc_node->data) ||
             is_cond_else((unitp_t)enc_node->data) ||
             is_add_op((unitp_t)enc_node->data) ||
+            is_add_op2((unitp_t)enc_node->data) ||
+            is_mul_op2((unitp_t)enc_node->data) ||
+            is_sub_op2((unitp_t)enc_node->data) ||
+            is_div_op2((unitp_t)enc_node->data) ||
             is_sub_op((unitp_t)enc_node->data) ||
             is_mul_op((unitp_t)enc_node->data) ||
             is_div_op((unitp_t)enc_node->data) ||
             is_lfold_op((unitp_t)enc_node->data) ||
             is_exp_op((unitp_t)enc_node->data) ||
             is_inc_op((unitp_t)enc_node->data) ||
-            is_dec_op((unitp_t)enc_node->data)
+            is_dec_op((unitp_t)enc_node->data) ||
+            
+            is_let2((unitp_t)enc_node->data) ||
+            is_lambda((unitp_t)enc_node->data) ||
+            (is_call2((unitp_t)enc_node->data) && ((unitp_t)ulink->data)->type != CALL_OPT_REST_PARAM) ||
+            is_list_op2((unitp_t)enc_node->data) ||
+            is_of_type((unitp_t)enc_node->data, OPT_PARAM) ||
+            is_of_type((unitp_t)enc_node->data, REST_OPT_PARAM)
             ) {
             if (((unitp_t)enc_node->data)->max_cap)
                 ((unitp_t)enc_node->data)->max_cap--;
-            else
+            else {
                 /* if the previous enclosing node's capacity is
                  * exhausted (i.e. is 0), look for a top node with capa to be the
                  * new enclosing node */
                 enc_node = find_enc_node_with_cap(enc_node);
+            }
+        } else if (is_of_type((unitp_t)enc_node->data, CALL_OPT_REST_PARAM)) {
+            if (((unitp_t)enc_node->data)->max_cap) {
+                ((unitp_t)enc_node->data)->max_cap--;
+                ((unitp_t)enc_node->parent->data)->max_cap--; /* maxcap of Callesh r ham biar paiin */
+            }
+                
+            else {
+                /* if the previous enclosing node's capacity is
+                 * exhausted (i.e. is 0), look for a top node with capa to be the
+                 * new enclosing node */
+                enc_node = find_enc_node_with_cap(enc_node);
+            }
         }
         
         /* 4. set the maximum absorption capacity for this unit */
-        if (is_of_type((unitp_t)ulink->data, BOUND_BINDING))
+        /* if (is_of_type((unitp_t)ulink->data, BOUND_BINDING)) */
+        /*     ((unitp_t)ulink->data)->max_cap = 1; */
+        if (is_of_type((unitp_t)ulink->data, OPT_PARAM) ||
+            is_of_type((unitp_t)ulink->data, REST_OPT_PARAM))
             ((unitp_t)ulink->data)->max_cap = 1;
-        else if (is_of_type((unitp_t)ulink->data, BOUND_PACK_BINDING)) {
-            if (is_lambda4((unitp_t)enc_node->data))
-                /* capa = list */
-                ((unitp_t)ulink->data)->max_cap = 1;
-            else if (is_call((unitp_t)enc_node->data)) {
-                /* the name of the rest param has already caused a
-                 * decrement of call's max capacity, so we put that 1
-                 * capacity back into the capacity of the rest
-                 * param. also the call itself will now have no more
-                 * capacity as all upcoming units will be absorbed by
-                 * the rest param. */
-                ((unitp_t)ulink->data)->max_cap = ((unitp_t)enc_node->data)->max_cap + 1;
-                ((unitp_t)enc_node->data)->max_cap = 0; /* suddenly, no decrementing! */
-            }
-        } else if (is_define((unitp_t)ulink->data)) {
+        else if (((unitp_t)ulink->data)->type == CALL_OPT_REST_PARAM)
+            ((unitp_t)ulink->data)->max_cap = ((unitp_t)enc_node->data)->max_cap; /* maxcap of it's Call */
+        else if (is_define((unitp_t)ulink->data)) {
             /* capa = name, data */
             ((unitp_t)ulink->data)->max_cap = 2;
         } else if (is_cith((unitp_t)ulink->data)) {
@@ -518,13 +754,13 @@ parse3(GList *ulink)
             /* no capa, List is used ONLY as default arg to
              * list's &ITEMS:= param! */
             ((unitp_t)ulink->data)->max_cap = 0;
-        else if (is_call((unitp_t)ulink->data)) {
-            /* capa = the specified number of args to the function */
-            int arg_cnt = 0, rpt_cnt = 1; /* args count, repeatitions count */
-            digest_call(((unitp_t)ulink->data)->token.str, &arg_cnt, &rpt_cnt);
-            ((unitp_t)ulink->data)->max_cap = arg_cnt + 1; /* arg_cnt = args, + 1 = fnc name */
-            ((unitp_t)ulink->data)->call_rpt_cnt = rpt_cnt;
-        } else if (is_cond_if((unitp_t)ulink->data) ||
+        /* else if (is_call((unitp_t)ulink->data)) { */
+        /*     /\* capa = the specified number of args to the function *\/ */
+        /*     int arg_cnt = 0, rpt_cnt = 1; /\* args count, repeatitions count *\/ */
+        /*     digest_call(((unitp_t)ulink->data)->token.str, &arg_cnt, &rpt_cnt); */
+        /*     ((unitp_t)ulink->data)->max_cap = arg_cnt + 1; /\* arg_cnt = args, + 1 = fnc name *\/ */
+        /*     ((unitp_t)ulink->data)->call_rpt_cnt = rpt_cnt; */
+        /* } */ else if (is_cond_if((unitp_t)ulink->data) ||
                    is_cond_then((unitp_t)ulink->data))
             /* capa = expression */
             ((unitp_t)ulink->data)->max_cap = 1;
@@ -545,14 +781,39 @@ parse3(GList *ulink)
         else if (is_lfold_op((unitp_t)ulink->data))
             /* captures: id, list, fn */
             ((unitp_t)ulink->data)->max_cap = 3;
-        if (need_block((unitp_t)ulink->data)) {            
+        else if (is_let2((unitp_t)ulink->data))
+            set_let_max_cap((unitp_t)ulink->data);
+        else if (is_lambda((unitp_t)ulink->data)) {
+            set_lambda_max_cap((unitp_t)ulink->data);
+            ((unitp_t)ulink->data)->type = UNIADIC_LAMBDA; /* Wir gehen einfach erstmal davon aus!!! */
+            /* set_lambda_type((unitp_t)ulink->data); */
+        }            
+        else if (is_call2((unitp_t)ulink->data)) {
+            set_call_max_cap((unitp_t)ulink->data);
+        } else if (is_list_op2((unitp_t)ulink->data)) {
+            set_listop_maxcap((unitp_t)ulink->data);
+        }
+        else if (is_add_op2((unitp_t)ulink->data))
+            set_add_op_maxcap((unitp_t)ulink->data);
+        else if (is_mul_op2((unitp_t)ulink->data))
+            set_mul_op_maxcap((unitp_t)ulink->data);
+        else if (is_sub_op2((unitp_t)ulink->data))
+            set_sub_op_maxcap((unitp_t)ulink->data);
+        else if (is_div_op2((unitp_t)ulink->data))
+            set_div_op_maxcap((unitp_t)ulink->data);
+        
+         
+        
+        if (need_block((unitp_t)ulink->data)) {
             ((unitp_t)ulink->data)->is_atomic = false;            
             /* new block has it's own environment */
             ((unitp_t)ulink->data)->env = g_hash_table_new(g_str_hash, g_str_equal);
             /* set current binding unit (if it makes bindings bing: boundbinf:= etc.) */
             if (is_lambda4((unitp_t)ulink->data) ||
-                is_call((unitp_t)ulink->data) ||
-                is_let((unitp_t)ulink->data))
+                is_call2((unitp_t)ulink->data) ||
+                is_let((unitp_t)ulink->data) ||
+                is_let2((unitp_t)ulink->data) ||
+                is_lambda((unitp_t)ulink->data))
                 curr_bind_unit = (unitp_t)ulink->data;            
         } else {			/* an atomic unit */
             ((unitp_t)ulink->data)->is_atomic = true;
