@@ -1,6 +1,6 @@
 # Arvin
 
-Arvin is a purely functional scripting language.
+Arvin is a purely functional programming language.
 
 **Note**: _Arvin is still in the design stage. It's not working yet, stay tuned..._ :-)
 
