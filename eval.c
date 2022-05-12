@@ -887,7 +887,8 @@ gint find_param_idx2(GList *param_lst_lnk, char *str) {
     bool found = false;
     gint idx = 0;
     while (param_lst_lnk) {
-        if (!strcmp(((unitp_t)param_lst_lnk->data)->type == OPT_PARAM ? ((unitp_t)param_lst_lnk->data)->token.str+1 :((unitp_t)param_lst_lnk->data)->token.str, str)) {
+        /* if (!strcmp(((unitp_t)param_lst_lnk->data)->type == OPT_PARAM ? ((unitp_t)param_lst_lnk->data)->token.str+1 : ((unitp_t)param_lst_lnk->data)->token.str, str)) */
+        if (!strcmp((char *)param_lst_lnk->data, str)) {
             found = true;
             break;      
         }
@@ -999,7 +1000,9 @@ eval_call2(struct Arv_data **result, GNode *node, GHashTable *env)
                 arg_idx++;
                 param_idx++;
             }
-        } else if (is_of_type((unitp_t)nth_sibling(first_arg, arg_idx)->data, BOUND_PACK_BINDING)) { /*  */
+        }
+        /* *****************deprecated********************** */
+        else if (is_of_type((unitp_t)nth_sibling(first_arg, arg_idx)->data, BOUND_PACK_BINDING)) { /*  */
             struct Arv_data *rest_args = malloc(sizeof (struct Arv_data));
             /* named rest args */
             /* eval the passed arguments in the  */
@@ -1008,7 +1011,33 @@ eval_call2(struct Arv_data **result, GNode *node, GHashTable *env)
                                 binding_node_name(nth_sibling(first_arg, arg_idx)),
                                 rest_args);
             break;       /* out of parameter processing, &rest: must be the last! */
-        } else {			/* just an expression or multiple expressions, not a binding (@para arg or @&rest_param arg1 ... argN) */
+        }
+        else if (((unitp_t)g_node_nth_child(node, arg_idx)->data)->type == CALL_OPT_REST_PARAM) {
+            /* rest args with param name, these are the last args passed to the function */
+            struct Arv_data *rest_args = malloc(sizeof (struct Arv_data));
+            GNode *rest_node = g_node_new(NULL);
+            guint rest_arg_idx = 0;
+            while (rest_arg_idx < g_node_n_children(g_node_nth_child(node, arg_idx))) {
+                g_node_insert(rest_node,-1, g_node_copy(g_node_nth_child(g_node_nth_child(node, arg_idx), rest_arg_idx)));
+                rest_arg_idx++;
+            }
+            eval_list_op2(&rest_args, rest_node, env);
+            param_idx = find_param_idx2(lambda_data->slots.tila_lambda->param_list,
+                                        ((unitp_t)g_node_nth_child(node, arg_idx)->data)->token.str + 2);
+            if (param_idx == -1) {
+                fprintf(stderr, "unknown parameter\n");
+                print_node(nth_sibling(first_arg, arg_idx), NULL);
+                fprintf(stderr, "passed to\n");
+                print_node(lambda_data->slots.tila_lambda->node, NULL);
+                exit(EXIT_FAILURE);
+            } else {
+                g_hash_table_insert(call_env,
+                                    g_list_nth_data(lambda_data->slots.tila_lambda->param_list, param_idx),
+                                    rest_args);
+            }
+            break;                  /* and that was the last param; done, get out!!! */
+        }
+        else {			/* just an expression or multiple expressions, not a binding (@para arg or @&rest_param arg1 ... argN) */
             if (unit_type((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data) == REST_MAND_PARAM ||
                 unit_type((unitp_t)g_node_nth_child(lambda_data->slots.tila_lambda->node, param_idx)->data) == REST_OPT_PARAM) {
                 /* reached rest args without param name */
@@ -1036,7 +1065,7 @@ eval_call2(struct Arv_data **result, GNode *node, GHashTable *env)
             }
         }
     }
-    /* eval the lambda expr in the created call-time env */
+    /* eval lambda's expression in the created call-time env */
     *result = eval3(g_node_last_child(lambda_data->slots.tila_lambda->node), call_env);
 }
 
