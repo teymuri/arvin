@@ -1,5 +1,5 @@
-#ifndef ABID_AST_H
-#define ABID_AST_H
+#ifndef ARV_AST_H
+#define ARV_AST_H
 
 void post_parse_lambda_check(GNode *);
 void post_parse_call_check(GNode *);
@@ -12,10 +12,10 @@ bool is_lambda(struct Unit *);
 /* bool maybe_param_with_dflt_arg(struct Unit *); */
 bool is_call(struct Unit *);
 
-bool is_call(struct Unit *);
+
 bool is_call2(struct Unit *);
 
-bool is_let(struct Unit *);
+
 bool is_let2(struct Unit *);
 bool is_define(struct Unit *);
 bool is_pass(struct Unit *);
@@ -51,4 +51,4 @@ bool is_lfold_op(struct Unit *);
 
 
 
-#endif	/* ABID_AST_H */
+#endif	/* ARV_AST_H */

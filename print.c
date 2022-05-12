@@ -106,7 +106,7 @@ print_data(struct Arv_data *data)
 void
 print(struct Arv_data *data)
 {
-    printf("%s", PROMPT);
+    /* printf("%s", PROMPT); */
     print_data(data);
     printf("\n");
 }
