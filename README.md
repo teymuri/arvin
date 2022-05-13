@@ -13,6 +13,3 @@ Arvin is a purely functional programming language.
 `make` to create the binary in the source directory. Write your code to a file and execute the file with `./arvin path/to/my/arvin_script`.
 
 ## Examples
-
-***
-© 2021-2022 Amir Teymuri
