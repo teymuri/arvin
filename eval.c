@@ -191,6 +191,65 @@ eval_lfold_op(struct Arv_data **result, GNode *node, GHashTable *env)
     }
     set_data(*result, acc);
 }
+void
+eval_lfold_op2(struct Arv_data **result, GNode *node, GHashTable *env)
+{
+    struct Lambda *lambda = eval3(g_node_nth_child(node, 0), env)->slots.tila_lambda;
+    struct Arv_data *acc = eval3(g_node_nth_child(node, 1), env);
+    /* list is a list of lists */
+    /* struct List *list = eval3(g_node_nth_child(node, 2), env)->slots.arv_list; */
+    struct List *list = (struct List *)malloc(sizeof (struct List));
+    list->size = g_node_n_children(node) - 1 - 1; /* - func - acc */
+    int sophie = 0;
+    while (sophie < list->size) {
+        list->item = g_list_append(list->item, eval3(g_node_nth_child(node, sophie+2), env));
+        sophie++;
+    }
+    GList *list_item_cp = list->item;
+    GHashTable *call_env = clone_hash_table(lambda->env);
+    guint minsz = min_sublist_size(*list);
+    guint param_idx = 0;
+    while (minsz--) {
+        while (param_idx < g_list_length(lambda->param_list)) {
+            if (unit_type((unitp_t)g_node_nth_child(lambda->node, param_idx)->data) == REST_MAND_PARAM || /*  PACK_BINDING */
+                unit_type((unitp_t)g_node_nth_child(lambda->node, param_idx)->data) == REST_OPT_PARAM) {
+                GNode *args_node = g_node_new(NULL);
+                g_node_insert(args_node, -1,
+                              g_node_new(param_idx ? ((struct Arv_data *)list->item->data)->slots.arv_list->item->data : acc));
+                if (param_idx) {
+                    ((struct Arv_data *)list->item->data)->slots.arv_list->item = ((struct Arv_data *)list->item->data)->slots.arv_list->item->next;
+                    list->item = list->item->next;
+                }
+                while (list->item) {
+                    g_node_insert(args_node, -1, g_node_new(((struct Arv_data *)list->item->data)->slots.arv_list->item->data));
+                    ((struct Arv_data *)list->item->data)->slots.arv_list->item = ((struct Arv_data *)list->item->data)->slots.arv_list->item->next;
+                    list->item = list->item->next;
+                }
+                struct Arv_data *rest_args = malloc(sizeof (struct Arv_data));
+                pack_evaled_list(&rest_args, args_node->children);
+                g_hash_table_insert(call_env,
+                                    binding_node_name(g_node_nth_child(lambda->node, param_idx)),
+                                    rest_args);
+                g_node_destroy(args_node);
+                break;
+            } else {
+                g_hash_table_insert(call_env,
+                                    /* binding_node_name(g_node_nth_child(lambda->node, param_idx)), */
+                                    (char *)g_list_nth(lambda->param_list, param_idx)->data,
+                                    param_idx ? ((struct Arv_data *)list->item->data)->slots.arv_list->item->data : acc);
+                if (param_idx) {
+                    ((struct Arv_data *)list->item->data)->slots.arv_list->item = ((struct Arv_data *)list->item->data)->slots.arv_list->item->next;
+                    list->item = list->item->next;
+                }
+            }
+            param_idx++;
+        }
+        acc = eval3(g_node_last_child(lambda->node), call_env);
+        list->item = list_item_cp;
+        param_idx = 0;
+    }
+    set_data(*result, acc);
+}
 
 
 /* ******** hof end ******** */
@@ -1078,7 +1137,8 @@ void eval_toplvl(struct Arv_data **result, GNode *root)
     *result = eval3(g_node_nth_child(root, size - 1), ((unitp_t)root->data)->env);
 }
 
-struct Arv_data *eval3(GNode *node, GHashTable *env)
+struct Arv_data *
+eval3(GNode *node, GHashTable *env)
 {
     struct Arv_data *result = malloc(sizeof (struct Arv_data));
     if (((unitp_t)node->data)->is_atomic) {
@@ -1182,8 +1242,10 @@ struct Arv_data *eval3(GNode *node, GHashTable *env)
             eval_inc_op(&result, node, env);
         else if (is_dec_op((unitp_t)node->data))
             eval_dec_op(&result, node, env);
-        else if (is_lfold_op((unitp_t)node->data))
-            eval_lfold_op(&result, node, env);
+        /* else if (is_lfold_op((unitp_t)node->data)) */
+        /*     eval_lfold_op(&result, node, env); */
+        else if (is_lfold_op2((unitp_t)node->data))
+            eval_lfold_op2(&result, node, env);
         else if (is_let2((unitp_t)node->data))
             eval_let2(&result, node, env);
     }

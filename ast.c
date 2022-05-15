@@ -273,6 +273,16 @@ is_lfold_op(struct Unit *u)
 {
     return !strcmp(u->token.str, LFOLDOPKW);
 }
+bool
+is_lfold_op2(struct Unit *u)
+{
+    return !strcmp(u->token.str, LFOLD_OP_KW) ||
+        (u->toklen > LFOLD_OP_KW_SZ &&
+         !strncmp(u->token.str, LFOLD_OP_KW, LFOLD_OP_KW_SZ) &&
+         *(u->token.str + LFOLD_OP_KW_SZ) == ARITY_ID);
+}
+
+
 /* ******* hof end ********* */
 
 /* ******** List begin ************ */
@@ -458,7 +468,7 @@ bool need_block(struct Unit *u)
         is_exp_op(u) ||
         is_inc_op(u) ||
         is_dec_op(u) ||
-        is_lfold_op(u)
+        is_lfold_op(u) || is_lfold_op2(u)
         ;
 }
 
@@ -543,6 +553,18 @@ void set_let_max_cap(struct Unit *u)
     else if (u->toklen > LET_KW_SZ)
         u->max_cap = atoi(u->token.str + LET_KW_SZ + 1) * 2 + 1;
 }
+
+void
+set_lfold_op_maxcap(struct Unit *u)
+{
+    if (u->toklen == LFOLD_OP_KW_SZ)
+        /* function, accumulator, list */
+        u->max_cap = 1 + 1 + 1;
+    else if (u->toklen > LFOLD_OP_KW_SZ)
+        /* function, accumulator, list1...listN */
+        u->max_cap = 1 + 1 + atoi(u->token.str + LFOLD_OP_KW_SZ + 1);
+}
+
 void set_lambda_max_cap(struct Unit *u)
 {
     if (u->toklen == LAMBDA_KW_SZ) {
@@ -698,7 +720,7 @@ GNode *parse3(GList *ulink)
             is_inc_op((unitp_t)enc_node->data) ||
             is_dec_op((unitp_t)enc_node->data) ||
             
-            is_let2((unitp_t)enc_node->data) ||
+            is_let2((unitp_t)enc_node->data) || is_lfold_op2((unitp_t)enc_node->data) ||
             is_lambda((unitp_t)enc_node->data) ||
             (is_call2((unitp_t)enc_node->data) && ((unitp_t)ulink->data)->type != CALL_OPT_REST_PARAM) ||
             is_list_op2((unitp_t)enc_node->data) ||
@@ -801,6 +823,8 @@ GNode *parse3(GList *ulink)
             set_sub_op_maxcap((unitp_t)ulink->data);
         else if (is_div_op2((unitp_t)ulink->data))
             set_div_op_maxcap((unitp_t)ulink->data);
+        else if (is_lfold_op2((unitp_t)ulink->data))
+            set_lfold_op_maxcap((unitp_t)ulink->data);
         
          
         

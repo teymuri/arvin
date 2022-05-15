@@ -60,6 +60,8 @@
 #define SUB_OP_KW_SZ 3
 #define DIV_OP_KW "Div"
 #define DIV_OP_KW_SZ 3
+#define LFOLD_OP_KW "Lfold"
+#define LFOLD_OP_KW_SZ 5
 
 #define ADDOPKW "Add"
 #define MULOPKW "Mul"

@@ -48,6 +48,7 @@ bool is_exp_op(struct Unit *);
 bool is_inc_op(struct Unit *);
 bool is_dec_op(struct Unit *);
 bool is_lfold_op(struct Unit *);
+bool is_lfold_op2(struct Unit *);
 
 
 
