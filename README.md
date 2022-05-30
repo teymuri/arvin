@@ -17,14 +17,14 @@ Arvin is a purely functional language.
 ? 0 or 1
 * 0 or more
 
-# Lambda
+#### Lambda
 ```
-Lambda:<number of parameters>
+Lambda:<number of all params>
   mand_params*
-  @opt_param <default arg>*
+  @opt_params <default args>*
   &mand_rest_param?
   @&opt_rest_param <default list>?
   <expression>
 ```
 
-# Call
+#### Call
