@@ -8,18 +8,15 @@
 (Call:1 Lambda:1 @x List:3 10 20 30 Nth 2 x
   List:3 40 50 60)
 
-(Call:6 Lambda:1 &r Show Nth Dec Size r r 10 20 30 40 50 60 70)
+Call:0 Lambda:1 @&r List:3 1 2 3 Show r
 
-Define f Lambda:3 a s @d 10 Show d
+Define f Lambda:3 @a 0.5 s @d 10 List:3 a s d
 
-Define f1 Lambda:2 x &r Nth x r
+Call:1 f @s 2
 
 (Nth 1 Call:3 f1 1 2 List:2 10 20)
 
-Show Nth 0 Call:5
+(Show Nth 0 Call:5
        Lambda:1 @&rest List:6 9 8 7 6 5 4
  Show rest
-    10 20 30 40 50
-
-
-
+    10 20 30 40 50)
