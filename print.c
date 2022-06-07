@@ -76,7 +76,7 @@ print_data(struct Arv_data *);
 void
 print_list(struct Arv_data *list_data)
 {
-    printf("%s(%p):%d ", LIST_OP_KW, (void *)list_data, list_data->slots.arv_list->size);
+    printf("%s:%d(%p) ", LIST_OP_KW, list_data->slots.arv_list->size, (void *)list_data);
     /* use a copy of items, since the print_list is also used in other
      * places (e.g. eval_show_op), otherwise the item pointer is fully
      * consumed when its needed for the print(eval...) */
