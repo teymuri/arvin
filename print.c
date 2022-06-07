@@ -50,37 +50,37 @@ print_ast3(GNode *root)
 
 
 void
-print_lambda(struct Arv_data *data)
+print_lambda(struct Arv_data *lambda_data)
 {
-    printf("%s %p ", LAMBDA_KW,(void *)data);
+    printf("%s(%p) ", LAMBDA_KW, (void *)lambda_data);
 }
 void
-print_int(struct Arv_data *data)
+print_int(struct Arv_data *int_data)
 {
-    printf("%d ", data->slots.tila_int);
+    printf("%d ", int_data->slots.tila_int);
 }
 void
-print_float(struct Arv_data *data)
+print_float(struct Arv_data *float_data)
 {
-    printf("%f ", data->slots.tila_float);
+    printf("%f ", float_data->slots.tila_float);
 }
 void
-print_bool(struct Arv_data *data)
+print_bool(struct Arv_data *bool_data)
 {
-    printf("%s ", data->slots.tila_bool ? TRUEKW : FALSEKW);
+    printf("%s ", bool_data->slots.tila_bool ? TRUEKW : FALSEKW);
 }
 
 void
 print_data(struct Arv_data *);
 
 void
-print_list(struct Arv_data *data)
+print_list(struct Arv_data *list_data)
 {
-    printf("%s:%d ", LIST_OP_KW, data->slots.arv_list->size);
+    printf("%s(%p):%d ", LIST_OP_KW, (void *)list_data, list_data->slots.arv_list->size);
     /* use a copy of items, since the print_list is also used in other
      * places (e.g. eval_show_op), otherwise the item pointer is fully
      * consumed when its needed for the print(eval...) */
-    GList *itemcp = g_list_copy(data->slots.arv_list->item);
+    GList *itemcp = g_list_copy(list_data->slots.arv_list->item);
     while (itemcp) {
         print_data(itemcp->data);
         itemcp = itemcp->next;
