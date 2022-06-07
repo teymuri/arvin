@@ -50,22 +50,24 @@ GHashTable *clone_hash_table(GHashTable *ht) {
     return new;
 }
 
-struct Arv_data *eval3(GNode *, GHashTable *);
+struct Arv_data *
+eval3(GNode *, GHashTable *);
 
 
 void
-eval_show_op(struct Arv_data **result, GNode *node, GHashTable *env)
+eval_show_op(struct Arv_data **return_data,
+             GNode *node,
+             GHashTable *env)
 {
-    struct Arv_data *d = eval3(node->children, env);
-    set_data(*result, d);
-    switch (d->type) {
-    case INT: print_int(d); break;
-    case FLOAT: print_float(d); break;
-    case BOOL: print_bool(d); break;
-    case LAMBDA: print_lambda(d); break;
-    case LIST: print_list(d); break;
+    *return_data = eval3(node->children, env);
+    switch ((*return_data)->type) {
+    case INT: print_int(*return_data); break;
+    case FLOAT: print_float(*return_data); break;
+    case BOOL: print_bool(*return_data); break;
+    case LAMBDA: print_lambda(*return_data); break;
+    case LIST: print_list(*return_data); break;
     default:
-        printf("Show received unknown data type %d\n", d->type);
+        printf("Show received unknown data type %d\n", (*return_data)->type);
         break;
     }
     printf("\n");
@@ -810,9 +812,9 @@ void eval_lambda(struct Arv_data **result, GNode *node, GHashTable *env)
     (*result)->slots.tila_lambda = lambda;
 }
 
-void eval_lambda2(struct Arv_data **result, GNode *node, GHashTable *env)
+void eval_lambda2(struct Arv_data **return_data, GNode *node, GHashTable *env)
 {
-    (*result)->type = LAMBDA;
+    (*return_data)->type = LAMBDA;
     struct Lambda *lambda = malloc(sizeof (struct Lambda));
     /* make a snapshot of the current environment at the time of
      * lambda creation */
@@ -854,7 +856,7 @@ void eval_lambda2(struct Arv_data **result, GNode *node, GHashTable *env)
         /*     exit(EXIT_FAILURE); */
         /* } */
     }
-    (*result)->slots.tila_lambda = lambda;
+    (*return_data)->slots.tila_lambda = lambda;
 }
 
 
@@ -918,13 +920,20 @@ void eval_let2(struct Arv_data **result, GNode *node, GHashTable *env) {
 }
 
 
-void eval_define(struct Arv_data **result, GNode *node, GHashTable *env) {
-    char *name = ((unitp_t)g_node_nth_child(node, 0)->data)->token.str;
-    struct Arv_data *data = eval3(g_node_nth_child(node, 1), env);
+void
+eval_define(struct Arv_data **return_data,
+            GNode *node,
+            GHashTable *env)
+{
+    /* Define <name> <expr> */
+    *return_data = eval3(g_node_nth_child(node, 1), env);
     /* definitions are always saved in the global environment, no
        matter in which environment we are currently */
-    g_hash_table_insert(((unitp_t)g_node_get_root(node)->data)->env, name, data);
-    set_data(*result, data);
+    g_hash_table_insert(
+        ((unitp_t)g_node_get_root(node)->data)->env,
+        ((unitp_t)g_node_nth_child(node, 0)->data)->token.str, /* name */
+        *return_data                                           /* expr */
+        );
 }
 
 gint find_param_idx(GList *param_lst_lnk, char *str) {
@@ -1140,32 +1149,28 @@ void eval_toplvl(struct Arv_data **result, GNode *root)
 struct Arv_data *
 eval3(GNode *node, GHashTable *env)
 {
-    struct Arv_data *result = malloc(sizeof (struct Arv_data));
+    struct Arv_data *return_data = malloc(sizeof (struct Arv_data));
     if (((unitp_t)node->data)->is_atomic) {
         switch (unit_type(((unitp_t)node->data))) {
         case INT:
-            result->type = INT;
-            result->slots.tila_int = ((unitp_t)node->data)->ival;
+            return_data->type = INT;
+            return_data->slots.tila_int = ((unitp_t)node->data)->ival;
             break;
         case FLOAT:
-            result->type = FLOAT;
-            result->slots.tila_float = ((unitp_t)node->data)->fval;
+            return_data->type = FLOAT;
+            return_data->slots.tila_float = ((unitp_t)node->data)->fval;
             break;
         case BOOL:              /* a literal boolean (i.e. true/false) */
-            result->type = BOOL;
-            result->slots.tila_bool = is_true((unitp_t)node->data) ? true : false;
+            return_data->type = BOOL;
+            return_data->slots.tila_bool = is_true((unitp_t)node->data) ? true : false;
             break;
         case NAME:
         {
             char *wanted_kw = ((unitp_t)node->data)->token.str;
             /* symbols are evaluated in the envs of their enclosing units */
-            struct Arv_data *tdata;
             GNode *nodecp = node; /* copy node for print_node belowv */
-            do {
-                if ((tdata = g_hash_table_lookup(env, wanted_kw))) {
-                    set_data(result, tdata);
-                    break;
-                }
+            do {            
+                if ((return_data = g_hash_table_lookup(env, wanted_kw))) break;
                 /* the && env = ... here is just for the purpose of
                  * the assignment itself (supposing the node
                  * assignment and check part happened to be
@@ -1181,73 +1186,73 @@ eval3(GNode *node, GHashTable *env)
         }
     } else {			/* builtin stuff */
         if ((((unitp_t)node->data)->uuid == 0)) {
-            eval_toplvl(&result, node); /* toplevel uses it's own environment */
+            eval_toplvl(&return_data, node); /* toplevel uses it's own environment */
         } else if (is_show_op((unitp_t)node->data))
-            eval_show_op(&result, node, env);
+            eval_show_op(&return_data, node, env);
         /* else if (is_lambda4((unitp_t)node->data)) { */
-        /*     eval_lambda(&result, node, env); */
+        /*     eval_lambda(&return_data, node, env); */
         /* } */
         else if (is_define((unitp_t)node->data)) { /* define */
-            eval_define(&result, node, env);
+            eval_define(&return_data, node, env);
         }
         /* else if (is_let((unitp_t)node->data)) { */
-        /*     eval_let(&result, node, env); */
+        /*     eval_let(&return_data, node, env); */
         /* } */
         else if (is_cpack((unitp_t)node->data)) {
-            eval_cpack(&result, node, env, 0, 0);
+            eval_cpack(&return_data, node, env, 0, 0);
         }
         /* else if (is_call((unitp_t)node->data)) { */
         /*     for (int i = 0; i < ((unitp_t)node->data)->call_rpt_cnt; i++) */
-        /*         eval_call(&result, node, env); */
+        /*         eval_call(&return_data, node, env); */
         /* } */
         else if (is_call2((unitp_t)node->data))
-            eval_call2(&result, node, env);
+            eval_call2(&return_data, node, env);
         else if (is_lambda((unitp_t)node->data))
-            eval_lambda2(&result, node, env);
+            eval_lambda2(&return_data, node, env);
         else if (is_nth_op((unitp_t)node->data))
-            eval_nth_op(&result, node, env);
+            eval_nth_op(&return_data, node, env);
         else if (is_size_op((unitp_t)node->data))
-            eval_size_op(&result, node, env);
+            eval_size_op(&return_data, node, env);
         /* else if (is_list_op((unitp_t)node->data)) */
         /*     /\* List is used in the core ONLY as default argument the */
         /*      * &ITEMS:= param of the list function to get an empty */
-        /*      * list. although invoking it would simply result in an */
+        /*      * list. although invoking it would simply return_data in an */
         /*      * empty list (as it's max capacity is 0 it cant take any */
         /*      * args) try NOT to use it elsewhere as it's internal and */
         /*      * can change without notice! *\/ */
-        /*     eval_list_op(&result, node->children, env); */
+        /*     eval_list_op(&return_data, node->children, env); */
         else if (is_list_op2((unitp_t)node->data))
-            eval_list_op2(&result, node, env);
+            eval_list_op2(&return_data, node, env);
         else if (is_cond((unitp_t)node->data))
-            eval_cond(&result, node, env);
+            eval_cond(&return_data, node, env);
         else if (is_add_op2((unitp_t)node->data))
-            eval_add_op2(&result, node, env);
+            eval_add_op2(&return_data, node, env);
         else if (is_mul_op2((unitp_t)node->data))
-            eval_mul_op2(&result, node, env);
+            eval_mul_op2(&return_data, node, env);
         else if (is_sub_op2((unitp_t)node->data))
-            eval_sub_op2(&result, node, env);
+            eval_sub_op2(&return_data, node, env);
         else if (is_div_op2((unitp_t)node->data))
-            eval_div_op2(&result, node, env);
+            eval_div_op2(&return_data, node, env);
         else if (is_add_op((unitp_t)node->data))
-            eval_add_op(&result, node, env);
+            eval_add_op(&return_data, node, env);
         else if (is_sub_op((unitp_t)node->data))
-            eval_sub_op(&result, node, env);
+            eval_sub_op(&return_data, node, env);
         else if (is_mul_op((unitp_t)node->data))
-            eval_mul_op(&result, node, env);
+            eval_mul_op(&return_data, node, env);
         else if (is_div_op((unitp_t)node->data))
-            eval_div_op(&result, node, env);
+            eval_div_op(&return_data, node, env);
         else if (is_exp_op((unitp_t)node->data))
-            eval_exp_op(&result, node, env);
+            eval_exp_op(&return_data, node, env);
         else if (is_inc_op((unitp_t)node->data))
-            eval_inc_op(&result, node, env);
+            eval_inc_op(&return_data, node, env);
         else if (is_dec_op((unitp_t)node->data))
-            eval_dec_op(&result, node, env);
+            eval_dec_op(&return_data, node, env);
         /* else if (is_lfold_op((unitp_t)node->data)) */
-        /*     eval_lfold_op(&result, node, env); */
+        /*     eval_lfold_op(&return_data, node, env); */
         else if (is_lfold_op2((unitp_t)node->data))
-            eval_lfold_op2(&result, node, env);
+            eval_lfold_op2(&return_data, node, env);
         else if (is_let2((unitp_t)node->data))
-            eval_let2(&result, node, env);
+            eval_let2(&return_data, node, env);
     }
-    return result;
+    return return_data;
 }

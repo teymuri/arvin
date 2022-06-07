@@ -32,6 +32,9 @@ bool is_of_type(struct Unit *u, enum Type t) {
     return unit_type(u) == t;
 }
 
+
+/* ***** DEPRECATED!!! remove and replace it's functionaliy with a
+         simple assignment!!! ****** */
 /* sets the appropriate slot of the destination data based on the slot
  * of the source data */
 void set_data(struct Arv_data *dest, struct Arv_data *src) {
