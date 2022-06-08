@@ -926,14 +926,15 @@ eval_define(struct Arv_data **return_data,
             GHashTable *env)
 {
     /* Define <name> <expr> */
-    *return_data = eval3(g_node_nth_child(node, 1), env);
     /* definitions are always saved in the global environment, no
        matter in which environment we are currently */
-    g_hash_table_insert(
-        ((unitp_t)g_node_get_root(node)->data)->env,
-        ((unitp_t)g_node_nth_child(node, 0)->data)->token.str, /* name */
-        *return_data                                           /* expr */
-        );
+    char *name = ((unitp_t)g_node_nth_child(node, 0)->data)->token.str;
+    GHashTable *global_env = ((unitp_t)g_node_get_root(node)->data)->env;
+    *return_data = eval3(g_node_nth_child(node, 1), env);
+    if (g_hash_table_contains(global_env, name)) {
+        fprintf(stderr, "%s is bound\n", name);
+        exit(EXIT_FAILURE);
+    } else g_hash_table_insert(global_env, name, *return_data);
 }
 
 gint find_param_idx(GList *param_lst_lnk, char *str) {
