@@ -19,11 +19,13 @@ The number of items are implied like
 - `[0` 0 or more
 - `[0,1] or [0,2)` 0 or 1
 
+The number of operands/expressions which are to be passed to the operator/form (`num_of_params` below) are indicated by a colon (`:`) followed by an integer right after the name of the operator/form (e.g. `Add:3` refers to the `Add` operator with three operands). Omitting this part implies `:0` (a _nullary_ operator/form). Thus both expressions `Lambda 1` and `Lambda:0 1` specify a function which takes no arguments and returns 1 when called, and are hence equivalent.
+
 #### Lambda
 Any number of mandatory or optional parameters can be specified in any order.
-The single __rest__ parameter (mandatory or optional) __must__ be the last parameter.
+The single __rest__ parameter (mandatory or optional) __must__ be the last parameter.  
 ```
-Lambda:<N params> 1
+Lambda<:num_of_params> [0,1]
   <mand_param> [0
   <@opt_param default_arg> [0
   <&mand_rest_param || @&opt_rest_param default_list_arg> [0,1]
