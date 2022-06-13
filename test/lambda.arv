@@ -1,5 +1,18 @@
-Define f Lambda 10
+Define multi
+  Lambda:1 n
+    Lambda:1 x
+      Mul:2 n x
 
-Show f Show f Show f Show f Show f Show f Show f Show f
-Show f Show f Show f Show f
-Show f
+Define dbl Call:1 multi 2
+Define tripl Call:1 multi 3
+
+Show Call:1 dbl 3
+Show Call:1 tripl 3
+Show Call:1 Call:1 multi 10 3
+Show multi
+Show multi
+Show multi
+Show Define xxx Call:1 multi 10
+Show xxx Show xxx Show xxx
+Show Call:1 multi 10
+Show Call:1 multi 10

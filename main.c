@@ -138,7 +138,8 @@ main(int argc, char **argv)
             unit_link = g_list_prepend(unit_link, &tl_unit);
             ast3 = parse3(unit_link);
             print_ast3(ast3);
-            print(eval3(ast3, tl_unit.env));
+            eval3(ast3, tl_unit.env);
+            /* print(eval3(ast3, tl_unit.env)); */
         }        
     }
     
