@@ -23,7 +23,7 @@ The number of operands/expressions which are to be passed to an operator/form (`
 
 #### Lambda
 Any number of mandatory or optional parameters can be specified in any order.
-The single __rest__ parameter (mandatory or optional) __must__ be the last parameter.  
+The single rest parameter (mandatory or optional) must be the last parameter.  
 ```
 Lambda<:num_of_params> [0,1]
   <mand_param> [0
