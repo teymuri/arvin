@@ -19,7 +19,7 @@ The number of items are implied like
 - `[0` 0 or more
 - `[0,1] or [0,2)` 0 or 1
 
-The number of operands/expressions which are to be passed to an operator/form (`num_of_params` below) are indicated by a colon (`:`) followed by an integer right after the name of the operator/form (e.g. `Add:3` refers to the `Add` operator with three operands). Omitting this part implies `:0` (a nullary operator/form). Thus both expressions `Lambda 1` and `Lambda:0 1` for instance specify a function which takes no arguments and returns 1 when called, and are hence equivalent.
+The number of operands/expressions which are to be passed to an operator/form (`num_of_params` below) are indicated by a colon (`:`) followed by an integer right after the name of the operator/form (e.g. `Add:3` refers to the `Add` operator with three operands). Omitting this part implies different meanings for different operators. More is specified under each operator.
 
 #### Lambda
 Any number of mandatory or optional parameters can be specified in any order.
@@ -31,5 +31,6 @@ Lambda<:num_of_params> [0,1]
   <&mand_rest_param || @&opt_rest_param default_list_arg> [0,1]
   <expression> 1
 ```
+Omitting the `<:num_of_params>` part implies `:0` (a nullary function). Thus both expressions `Lambda 1` and `Lambda:0 1` for instance specify a function which takes no arguments and returns 1 when called, and are hence equivalent.
 
 #### Call
