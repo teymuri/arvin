@@ -29,13 +29,13 @@ main(int argc, char **argv)
 {
     size_t all_tokens_count;
     struct Token *toks;
-    size_t polished_tokens_count;
-    struct Token *polished_tokens;
+    size_t code_tokens_count;
+    struct Token *code_tokens;
     GList *unit_link;
     GNode *ast3;
     
     /* toplevel unit */
-    struct Unit tl_unit = {
+    struct Unit toplevel_unit = {
         .uuid = TOPLVLUID,
         .max_cap = -1,
         .is_atomic = false,
@@ -47,6 +47,8 @@ main(int argc, char **argv)
             .id = 0
         },
         .env = g_hash_table_new(g_str_hash, g_str_equal),
+        /* .env = g_hash_table_new_full(g_str_hash, */
+        /*                              g_str_equal), */
         /* type ??? */
         .type = UNDEFINED,
         .ival = 0,			/* ival */
@@ -87,18 +89,18 @@ main(int argc, char **argv)
     /*             /\* load core file *\/ */
     /*             all_tokens_count = 0; */
     /*             toks = tokenize_source__Hp(real_path, &all_tokens_count); */
-    /*             polished_tokens_count = 0;	/\*  *\/ */
-    /*             polished_tokens = polish_tokens(toks, &polished_tokens_count, all_tokens_count); */
-    /*             if (polished_tokens_count) { */
-    /*                 unit_link = unit_linked_list(polished_tokens, polished_tokens_count); */
-    /*                 unit_link = g_list_prepend(unit_link, &tl_unit); */
+    /*             code_tokens_count = 0;	/\*  *\/ */
+    /*             code_tokens = polish_tokens(toks, &code_tokens_count, all_tokens_count); */
+    /*             if (code_tokens_count) { */
+    /*                 unit_link = unit_linked_list(code_tokens, code_tokens_count); */
+    /*                 unit_link = g_list_prepend(unit_link, &toplevel_unit); */
     /*                 ast3 = parse3(unit_link); */
     /*                 /\* print_ast3(ast3); *\/ */
     /*                 post_parse_lambda_check(ast3); */
     /*                 post_parse_call_check(ast3); */
     /*                 post_parse_let_check(ast3); */
     /*                 /\* print_ast3(ast3); *\/ */
-    /*                 eval3(ast3, tl_unit.env); */
+    /*                 eval3(ast3, toplevel_unit.env); */
     /*                 /\* print(e); *\/ */
     /*             } */
     /*             free(real_path); */
@@ -125,23 +127,28 @@ main(int argc, char **argv)
             break;
         }
     }
+    
     if (run_repl) {
-        test_repl(tl_unit);
+        /* test_repl(toplevel_unit); */
     } else {
         /* load the script argv[1] */
+
+        /* source_token indicate every thing in a script/...
+           including all comments. code_token on the other hand are the executing
+           tokens, i.e. with comments already removed. */
         all_tokens_count = 0;
         toks = tokenize_source__Hp(argv[1], &all_tokens_count);
-        polished_tokens_count = 0;	/*  */
-        polished_tokens = polish_tokens(toks, &polished_tokens_count, all_tokens_count);
-        if (polished_tokens_count) {
-            unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
-            unit_link = g_list_prepend(unit_link, &tl_unit);
+        code_tokens_count = 0;	/*  */
+        code_tokens = polish_tokens(toks, &code_tokens_count, all_tokens_count);
+        if (code_tokens_count) {
+            unit_link = unit_linked_list(code_tokens, code_tokens_count);
+            unit_link = g_list_prepend(unit_link, &toplevel_unit);
             ast3 = parse3(unit_link);
             print_ast3(ast3);
-            eval3(ast3, tl_unit.env);
-            /* print(eval3(ast3, tl_unit.env)); */
+            eval3(ast3, toplevel_unit.env);
+            /* print(eval3(ast3, toplevel_unit.env)); */
         }        
-    }
-    
+    }    
+    g_hash_table_destroy(toplevel_unit.env);    
     exit(EXIT_SUCCESS);
 }

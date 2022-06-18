@@ -39,7 +39,7 @@
    global variables have 2 leading underscores and a Capital letter
 */
 
-int __Tokid = 1;		/* id 0 is reserved for the toplevel
+int Token_id = 1;		/* id 0 is reserved for the toplevel
 				   token */
 
 
@@ -61,41 +61,50 @@ int isempty(char *s) {
 
 
 
-char **read_lines__Hp(char *path, size_t *count)
+char **
+read_lines(char *path, size_t *lines_count)
 {
     FILE *stream;
     stream = fopen(path, "r");
     if (!stream) {
-        fprintf(stderr, "can't open source '%s'\n", path);
+        fprintf(stderr, "Arvin can't open the file '%s'\n", path);
         exit(EXIT_FAILURE);
     }
     char *lineptr = NULL;
     size_t n = 0;
-    char **srclns = NULL;
+    char **lines = NULL;
     while ((getline(&lineptr, &n, stream) != -1)) {
         if (!isempty(lineptr)) {
-            /* increment *count first, otherwise realloc will be called with size 0 :-O */
-            if ((srclns = realloc(srclns, (*count + 1) * sizeof(char *))) != NULL) {
-                *(srclns + (*count)++) = lineptr;
+            if ((lines = realloc(lines, (*lines_count + 1) * sizeof (char *)))) {
+                *(lines + *lines_count) = lineptr;
+                (*lines_count)++;
                 lineptr = NULL;
-            } else exit(EXIT_FAILURE);
+            } else
+                exit(EXIT_FAILURE);
         }
     }
     free(lineptr);
     fclose(stream);
-    return srclns;
+    return lines;
 }
 
-void free_lines(char **lines, size_t count)
+void
+free_lines(char **lines, size_t lines_count)
 {
-    char **base = lines;
-    while (count--) free(*lines++);
-    free(base);
+    for (size_t i = 0; i < lines_count; i++)
+        free(lines[i]);
+    free(lines);
+    /* char **base = lines; */
+    /* while (lines_count--) free(*lines++); */
+    /* free(base); */
 }
 
 /* Generates tokens */
-struct Token *tokenize_line__Hp
-(char *lnstr, size_t *line_toks_count, size_t *all_tokens_count, int ln)
+struct Token *
+tokenize_line__Hp(char *lnstr,
+                  size_t *line_toks_count,
+                  size_t *all_tokens_count,
+                  int ln)
 /* lnstr = line string content, ln = line number*/
 {
     regex_t re;
@@ -137,14 +146,14 @@ struct Token *tokenize_line__Hp
     }  
     regmatch_t match[1];	/* interesed only in the whole match */
     int offset = 0, tokstrlen;
-    struct Token *tokptr = NULL;
+    struct Token *line_tokens = NULL;
     /* overall size of memory allocated for tokens of the line sofar */
     size_t memsize = 0;
     /* int tokscnt = 0; */
     while (!regexec(&re, lnstr + offset, 1, match, REG_NOTBOL)) { /* a match found */
         /* make room for the new token */
         memsize += sizeof(struct Token);
-        if ((tokptr = realloc(tokptr, memsize)) != NULL) { /* new memory allocated successfully */
+        if ((line_tokens = realloc(line_tokens, memsize))) {
             tokstrlen = match[0].rm_eo - match[0].rm_so;
             struct Token t;
             memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen);
@@ -164,12 +173,12 @@ struct Token *tokenize_line__Hp
             }   
             /* t.numtype = numtype(t.str); */
             /* t.isprim = isprim(t.str); */
-            t.id = __Tokid++;
+            t.id = Token_id++;
             t.col_start_idx = offset + match[0].rm_so;
             t.col_end_idx = t.col_start_idx + tokstrlen;
             t.line = ln;
             t.comment_index = 0;
-            *(tokptr + *line_toks_count) = t;
+            *(line_tokens + *line_toks_count) = t;
             (*all_tokens_count)++;
             (*line_toks_count)++;
             offset += match[0].rm_eo;
@@ -184,38 +193,41 @@ struct Token *tokenize_line__Hp
     regfree(&reint);
     regfree(&refloat);
     regfree(&resym);
-    return tokptr;
+    return line_tokens;
 }
 
 
-struct Token *tokenize_source__Hp(char *path, size_t *all_tokens_count)
+struct Token *
+tokenize_source__Hp(char *path, size_t *all_tokens_count)
 {
     size_t lines_count = 0;
-    char **lines = read_lines__Hp(path, &lines_count);
-    struct Token *tokens = NULL;
-    struct Token *lntoks = NULL;
+    char **lines = read_lines(path, &lines_count);
+    /* source_tokens are all tokens found in the script, including
+     * comment tokens. */
+    struct Token *source_tokens = NULL;
+    struct Token *line_tokens = NULL;
     size_t line_toks_count, global_toks_count_cpy;
-    for (size_t l = 0; l < lines_count; l++) {
+    for (size_t i = 0; i < lines_count; i++) {
         line_toks_count = 0;
         /* take a snapshot of the number of source tokens sofar, before
            it's changed by tokenize_line__Hp */
         global_toks_count_cpy = *all_tokens_count;
-        lntoks = tokenize_line__Hp(lines[l], &line_toks_count, all_tokens_count, l);
-        if ((tokens = realloc(tokens, *all_tokens_count * sizeof(struct Token))) != NULL) {
+        line_tokens = tokenize_line__Hp(lines[i], &line_toks_count, all_tokens_count, i);
+        if ((source_tokens = realloc(source_tokens, *all_tokens_count * sizeof (struct Token)))) {
             for (size_t i = 0; i < line_toks_count; i++) {
-                *(tokens + i + global_toks_count_cpy) = lntoks[i];
+                *(source_tokens + i + global_toks_count_cpy) = line_tokens[i];
             }
         } else {
             exit(EXIT_FAILURE);
         }
-        free(lntoks);
-        lntoks=NULL;
+        free(line_tokens);
+        line_tokens = NULL;
     }
     free_lines(lines, lines_count);
-    return tokens;
+    return source_tokens;
 }
 
-struct Token *tokenize_lines__Hp(char **srclns, size_t lines_count,
+struct Token *tokenize_lines__Hp(char **lines, size_t lines_count,
                                  size_t *all_tokens_count)
 {
     struct Token *tokens = NULL;
@@ -226,7 +238,7 @@ struct Token *tokenize_lines__Hp(char **srclns, size_t lines_count,
         /* take a snapshot of the number of source tokens sofar, before
            it's changed by tokenize_line__Hp */
         global_toks_count_cpy = *all_tokens_count;
-        lntoks = tokenize_line__Hp(srclns[l], &line_toks_count, all_tokens_count, l);
+        lntoks = tokenize_line__Hp(lines[l], &line_toks_count, all_tokens_count, l);
         if ((tokens = realloc(tokens, *all_tokens_count * sizeof(struct Token))) != NULL) {
             for (size_t i = 0; i < line_toks_count; i++) {
                 *(tokens + i + global_toks_count_cpy) = lntoks[i];
@@ -258,13 +270,16 @@ void index_comments(struct Token *tokens, size_t all_tokens_count)
     }
 }
 
-struct Token *polish_tokens(struct Token *toks, size_t *nctok_count,
-                            size_t all_tokens_count) /* nct = non-comment token */
+struct Token *
+polish_tokens(struct Token *toks,
+              size_t *nctok_count,
+              size_t all_tokens_count) /* nct = non-comment token */
 {
     index_comments(toks, all_tokens_count);
     struct Token *nctoks = NULL;	/* non-comment tokens */
     int isincom = false;		/* are we inside of a comment block? */
     for (size_t i = 0; i < all_tokens_count; i++) {
+        printf("????");
         if (toks[i].comment_index == 1) {
             if (isincom) isincom = false;
             else isincom = true;
