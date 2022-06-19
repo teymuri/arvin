@@ -16,7 +16,7 @@ struct Unit {
        capacity, else definite capacity*/
     int max_cap;
     int call_rpt_cnt;
-    struct Token token;
+    struct Token *token;
     int toklen;
     enum Type type;
     bool is_atomic;
@@ -31,8 +31,8 @@ struct Unit {
 enum Type unit_type(struct Unit *);
 
 GList *brick_slist(struct Token tokens[], size_t count);
-GList *unit_linked_list(struct Token toks[], size_t toks_n);
-typedef struct Unit * unitp_t;
+GList *unit_list(struct Token **toks, size_t toks_n);
+/* typedef struct Unit * struct Unit *; */
 bool is_of_type(struct Unit *, enum Type);
 
 

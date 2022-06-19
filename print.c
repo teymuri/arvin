@@ -23,13 +23,13 @@ print_node(GNode *node, gpointer data)
 {
     print_indent((guint)g_node_depth(node) - 1);
     printf(UNIT_FORMAT,
-           ((struct Unit *)node->data)->token.str,
+           ((struct Unit *)node->data)->token->string,
            /* token line starts at 0, add 1 to get the physical
             * line number! */
-           ((struct Unit *)node->data)->token.line + 1,
-           ((struct Unit *)node->data)->token.col_start_idx,
-           ((struct Unit *)node->data)->token.col_end_idx,
-           ((unitp_t)node->data)->uuid,
+           ((struct Unit *)node->data)->token->line + 1,
+           ((struct Unit *)node->data)->token->col_start_idx,
+           ((struct Unit *)node->data)->token->col_end_idx,
+           ((struct Unit *)node->data)->uuid,
            stringify_type(unit_type((struct Unit *)node->data)),
            (gpointer)node,
            (gpointer)node->data,

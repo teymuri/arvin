@@ -19,36 +19,39 @@
 #include "print.h"
 #include "repl.h"
 
-#define TOPLVLTOKSTR "TLTS"     /* toplevel token string */
-#define TOPLVLUID 0             /* toplevel unit id */
+#define TOPLEVEL_TOKEN_STRING "_TLTS_"
+#define TOPLEVEL_TOKEN_STRING_SIZE 6
+#define TOPLEVEL_UINT_ID 0             /* toplevel unit id */
 
 
 
 int
 main(int argc, char **argv)
 {
-    size_t all_tokens_count;
-    struct Token *toks;
+    size_t source_tokens_count;
+    struct Token **source_tokens;
     size_t code_tokens_count;
-    struct Token *code_tokens;
+    struct Token **code_tokens;
     GList *unit_link;
     GNode *ast3;
+    struct Token toplevel_token = (struct Token){
+        .str = TOPLEVEL_TOKEN_STRING,
+        /* .string = TOPLEVEL_TOKEN_STRING, */
+        .string_size = TOPLEVEL_TOKEN_STRING_SIZE,
+        .col_start_idx = -1,
+        .col_end_idx = 100,		/* ????????set auf maximum*/
+        .line = -1,
+        .id = 0
+    };
+    toplevel_token.string = malloc(TOPLEVEL_TOKEN_STRING_SIZE);
+    memcpy(toplevel_token.string, TOPLEVEL_TOKEN_STRING, TOPLEVEL_TOKEN_STRING_SIZE);
     
-    /* toplevel unit */
-    struct Unit toplevel_unit = {
-        .uuid = TOPLVLUID,
+    struct Unit toplevel_unit = (struct Unit){
+        .uuid = TOPLEVEL_UINT_ID,
         .max_cap = -1,
         .is_atomic = false,
-        .token = {
-            .str = TOPLVLTOKSTR,
-            .col_start_idx = -1,
-            .col_end_idx = 100,		/* ???????????????????????????????????????? set auf maximum*/
-            .line = -1,
-            .id = 0
-        },
+        .token = &toplevel_token,
         .env = g_hash_table_new(g_str_hash, g_str_equal),
-        /* .env = g_hash_table_new_full(g_str_hash, */
-        /*                              g_str_equal), */
         /* type ??? */
         .type = UNDEFINED,
         .ival = 0,			/* ival */
@@ -87,12 +90,12 @@ main(int argc, char **argv)
     /*             printf("Loading %s\n", ent->fts_path); */
     /*             char *real_path = realpath(ent->fts_path, NULL); */
     /*             /\* load core file *\/ */
-    /*             all_tokens_count = 0; */
-    /*             toks = tokenize_source__Hp(real_path, &all_tokens_count); */
+    /*             source_tokens_count = 0; */
+    /*             toks = tokenize_source(real_path, &source_tokens_count); */
     /*             code_tokens_count = 0;	/\*  *\/ */
-    /*             code_tokens = polish_tokens(toks, &code_tokens_count, all_tokens_count); */
+    /*             code_tokens = remove_comments(toks, &code_tokens_count, source_tokens_count); */
     /*             if (code_tokens_count) { */
-    /*                 unit_link = unit_linked_list(code_tokens, code_tokens_count); */
+    /*                 unit_link = unit_list(code_tokens, code_tokens_count); */
     /*                 unit_link = g_list_prepend(unit_link, &toplevel_unit); */
     /*                 ast3 = parse3(unit_link); */
     /*                 /\* print_ast3(ast3); *\/ */
@@ -136,12 +139,14 @@ main(int argc, char **argv)
         /* source_token indicate every thing in a script/...
            including all comments. code_token on the other hand are the executing
            tokens, i.e. with comments already removed. */
-        all_tokens_count = 0;
-        toks = tokenize_source__Hp(argv[1], &all_tokens_count);
+        source_tokens_count = 0;
+        source_tokens = tokenize_source(argv[1], &source_tokens_count);
         code_tokens_count = 0;	/*  */
-        code_tokens = polish_tokens(toks, &code_tokens_count, all_tokens_count);
+        code_tokens = remove_comments(source_tokens,
+                                      &code_tokens_count,
+                                      source_tokens_count);
         if (code_tokens_count) {
-            unit_link = unit_linked_list(code_tokens, code_tokens_count);
+            unit_link = unit_list(code_tokens, code_tokens_count);
             unit_link = g_list_prepend(unit_link, &toplevel_unit);
             ast3 = parse3(unit_link);
             print_ast3(ast3);

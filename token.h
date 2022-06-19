@@ -83,6 +83,8 @@
 
 struct Token {
     char str[MAX_TOKLEN];	/* token's string */
+    char *string;               /* to be malloced */
+    size_t string_size;
     int col_start_idx;			/* start index in line (column start index) */
     int col_end_idx;			/* end index in line (column end index) */
     int line;			/* line number */

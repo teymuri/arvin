@@ -44,9 +44,9 @@ test_repl(struct Unit tl_unit) {
                     all_tokens_count = 0;
                     toks = tokenize_lines__Hp(xs, lines_count, &all_tokens_count);
                     polished_tokens_count = 0;	/*  */
-                    polished_tokens = polish_tokens(toks, &polished_tokens_count, all_tokens_count);
+                    polished_tokens = remove_comments(toks, &polished_tokens_count, all_tokens_count);
                     if (polished_tokens_count) {
-                        unit_link = unit_linked_list(polished_tokens, polished_tokens_count);
+                        unit_link = unit_list(polished_tokens, polished_tokens_count);
                         unit_link = g_list_prepend(unit_link, &tl_unit);
                         ast3 = parse3(unit_link);
                         print(eval3(ast3, tl_unit.env));
