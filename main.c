@@ -132,7 +132,7 @@ main(int argc, char **argv)
     }
     
     if (run_repl) {
-        /* test_repl(toplevel_unit); */
+        test_repl(toplevel_unit);
     } else {
         /* load the script argv[1] */
 
@@ -149,7 +149,8 @@ main(int argc, char **argv)
             unit_link = unit_list(code_tokens, code_tokens_count);
             unit_link = g_list_prepend(unit_link, &toplevel_unit);
             ast3 = parse3(unit_link);
-            print_ast3(ast3);
+            g_list_free(unit_link);
+            /* print_ast3(ast3); */
             eval3(ast3, toplevel_unit.env);
             /* print(eval3(ast3, toplevel_unit.env)); */
         }        

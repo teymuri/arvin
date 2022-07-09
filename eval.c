@@ -71,6 +71,8 @@ eval_show_op(struct Arv_data **return_data,
         break;
     }
     printf("\n");
+    free_unit((struct Unit *)node->data); /* also frees token and it's string */
+    g_node_destroy(node);
 }
 
 gint get_param_index(GList *list, char *str) {

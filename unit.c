@@ -71,7 +71,7 @@ GList *
 unit_list(struct Token **code_tokens,
           size_t code_tokens_count)
 {
-    GList *link = NULL; /* the return singly linked list */
+    GList *list = NULL; /* the returned singly linked list */
     /* struct Unit *unit = NULL; */
     for (size_t i = 0; i < code_tokens_count; i++) {
         struct Unit *unit = malloc(sizeof (struct Unit));
@@ -105,9 +105,9 @@ unit_list(struct Token **code_tokens,
         /* unit->max_cap = -1; */
         set_unit_value(unit);
         set_unit_type(unit);
-        link = g_list_prepend(link, unit);
+        list = g_list_prepend(list, unit);
     }
-    link = g_list_reverse(link);
+    list = g_list_reverse(list);
     free(code_tokens);
-    return link;
+    return list;
 }

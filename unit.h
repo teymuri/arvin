@@ -34,6 +34,6 @@ GList *brick_slist(struct Token tokens[], size_t count);
 GList *unit_list(struct Token **toks, size_t toks_n);
 /* typedef struct Unit * struct Unit *; */
 bool is_of_type(struct Unit *, enum Type);
-
+void free_unit(struct Unit *);
 
 #endif	/* LET_UNIT_H */
