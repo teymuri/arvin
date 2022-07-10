@@ -55,10 +55,10 @@ void set_data(struct Arv_data *dest, struct Arv_data *src) {
         dest->type = BOOL;
         dest->slots.tila_bool = src->slots.tila_bool;
         break;
-    case PACK:
-        dest->type = PACK;
-        dest->slots.pack = src->slots.pack;
-        break;
+    /* case PACK: */
+    /*     dest->type = PACK; */
+    /*     dest->slots.pack = src->slots.pack; */
+    /*     break; */
     case LIST:
         dest->type = LIST;
         dest->slots.arv_list = src->slots.arv_list;

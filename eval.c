@@ -863,38 +863,38 @@ void eval_lambda2(struct Arv_data **return_data, GNode *node, GHashTable *env)
 
 
 
-/* pack contains Arv_data pointers */
-/* pack start upto end children, when end == 0 packt alle kinder bis zum ende */
-void eval_cpack(struct Arv_data **result, GNode *node,
-                GHashTable *env, guint start, guint end) {
-    guint n = end ? end : g_node_n_children(node);
-    GList *pack = NULL;
-    for (guint i = start; i < n; i++)
-        pack = g_list_append(pack, eval3(g_node_nth_child(node, i), env));
-    (*result)->type = PACK;
-    (*result)->slots.pack = pack;
-}
+/* /\* pack contains Arv_data pointers *\/ */
+/* /\* pack start upto end children, when end == 0 packt alle kinder bis zum ende *\/ */
+/* void eval_cpack(struct Arv_data **result, GNode *node, */
+/*                 GHashTable *env, guint start, guint end) { */
+/*     guint n = end ? end : g_node_n_children(node); */
+/*     GList *pack = NULL; */
+/*     for (guint i = start; i < n; i++) */
+/*         pack = g_list_append(pack, eval3(g_node_nth_child(node, i), env)); */
+/*     (*result)->type = PACK; */
+/*     (*result)->slots.pack = pack; */
+/* } */
 
 
-void eval_named_rest_args(struct Arv_data **result, GNode *node, GHashTable *env)
-{
-    GList *pack = NULL;
-    guint count = g_node_n_children(node);
-    for (guint n = 0; n < count; n++)
-        pack = g_list_append(pack, eval3(g_node_nth_child(node, n), env));
-    (*result)->type = PACK;
-    (*result)->slots.pack = pack;
-}
-void eval_unnamed_rest_args(struct Arv_data **result, GNode *node, GHashTable *env)
-{
-    GList *pack = NULL;
-    while (node) {
-        pack = g_list_append(pack, eval3(node, env));
-        node = node->next;      /* node's sibling */
-    }
-    (*result)->type = PACK;
-    (*result)->slots.pack = pack;
-}
+/* void eval_named_rest_args(struct Arv_data **result, GNode *node, GHashTable *env) */
+/* { */
+/*     GList *pack = NULL; */
+/*     guint count = g_node_n_children(node); */
+/*     for (guint n = 0; n < count; n++) */
+/*         pack = g_list_append(pack, eval3(g_node_nth_child(node, n), env)); */
+/*     (*result)->type = PACK; */
+/*     (*result)->slots.pack = pack; */
+/* } */
+/* void eval_unnamed_rest_args(struct Arv_data **result, GNode *node, GHashTable *env) */
+/* { */
+/*     GList *pack = NULL; */
+/*     while (node) { */
+/*         pack = g_list_append(pack, eval3(node, env)); */
+/*         node = node->next;      /\* node's sibling *\/ */
+/*     } */
+/*     (*result)->type = PACK; */
+/*     (*result)->slots.pack = pack; */
+/* } */
 
 void eval_let(struct Arv_data **result, GNode *node, GHashTable *env) {
     ((struct Unit *)node->data)->env = clone_hash_table(env);
@@ -1158,6 +1158,7 @@ eval3(GNode *node, GHashTable *env)
         case INT:
             return_data->type = INT;
             return_data->slots.tila_int = ((struct Unit *)node->data)->ival;
+            free_unit(node->data);
             break;
         case FLOAT:
             return_data->type = FLOAT;
@@ -1201,9 +1202,9 @@ eval3(GNode *node, GHashTable *env)
         /* else if (is_let((struct Unit *)node->data)) { */
         /*     eval_let(&return_data, node, env); */
         /* } */
-        else if (is_cpack((struct Unit *)node->data)) {
-            eval_cpack(&return_data, node, env, 0, 0);
-        }
+        /* else if (is_cpack((struct Unit *)node->data)) { */
+        /*     eval_cpack(&return_data, node, env, 0, 0); */
+        /* } */
         /* else if (is_call((struct Unit *)node->data)) { */
         /*     for (int i = 0; i < ((struct Unit *)node->data)->call_rpt_cnt; i++) */
         /*         eval_call(&return_data, node, env); */

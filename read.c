@@ -99,6 +99,15 @@ free_lines(char **lines, size_t lines_count)
     /* free(base); */
 }
 
+void
+free_line_toks(struct Token **line_toks,
+               size_t line_toks_count)
+{
+    for (size_t i = 0; i < line_toks_count; i++)
+        free(line_toks[i]);
+    free(line_toks);
+}
+
 /* Generates tokens */
 struct Token *
 tokenize_line__Hp(char *lnstr,
@@ -271,7 +280,7 @@ tokenize_line(char *lnstr,
             struct Token *token = malloc(sizeof (struct Token));
             token_size = match[0].rm_eo - match[0].rm_so; /* remove this!!! look below */
             token->string_size = match[0].rm_eo - match[0].rm_so;
-            token->string = (char *)malloc(token_size);
+            token->string = malloc(token->string_size + 1); /* for null terminator? */
             /* struct Token t; */
             /* memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen); */
             /* t.str[tokstrlen] = '\0'; */
@@ -323,13 +332,14 @@ tokenize_source(char *path,
 {
     size_t lines_count = 0;
     char **lines = read_lines(path, &lines_count);
-    /* source_tokens are all tokens found in the script, including
-     * comment tokens. */
+    /* source_tokens are all the tokens found in a script, including
+     * comments.*/
     struct Token **source_tokens = NULL;
     /* struct Token *line_tokens = NULL; */
     struct Token **line_tokens = NULL;
     size_t line_toks_count, global_toks_count_cpy;
     for (size_t i = 0; i < lines_count; i++) {
+        /* struct Token **line_tokens = NULL; */
         line_toks_count = 0;
         /* take a snapshot of the number of source tokens sofar, before
            it's changed by tokenize_line__Hp */

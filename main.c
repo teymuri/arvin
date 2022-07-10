@@ -43,8 +43,11 @@ main(int argc, char **argv)
         .line = -1,
         .id = 0
     };
-    toplevel_token.string = malloc(TOPLEVEL_TOKEN_STRING_SIZE);
-    memcpy(toplevel_token.string, TOPLEVEL_TOKEN_STRING, TOPLEVEL_TOKEN_STRING_SIZE);
+    toplevel_token.string = TOPLEVEL_TOKEN_STRING;
+    toplevel_token.string_size = TOPLEVEL_TOKEN_STRING_SIZE;
+    /* toplevel_token.string = malloc(TOPLEVEL_TOKEN_STRING_SIZE+1); */
+    /* memcpy(toplevel_token.string, TOPLEVEL_TOKEN_STRING, TOPLEVEL_TOKEN_STRING_SIZE); */
+    /* toplevel_token.string[TOPLEVEL_TOKEN_STRING_SIZE]='\0'; */
     
     struct Unit toplevel_unit = (struct Unit){
         .uuid = TOPLEVEL_UINT_ID,
@@ -132,7 +135,7 @@ main(int argc, char **argv)
     }
     
     if (run_repl) {
-        test_repl(toplevel_unit);
+        /* test_repl(toplevel_unit); */
     } else {
         /* load the script argv[1] */
 
@@ -149,11 +152,16 @@ main(int argc, char **argv)
             unit_link = unit_list(code_tokens, code_tokens_count);
             unit_link = g_list_prepend(unit_link, &toplevel_unit);
             ast3 = parse3(unit_link);
+            for (guint i = 0; i < g_list_length(unit_link); i++) {
+                free_unit(g_list_nth_data(unit_link, i));
+            }
             g_list_free(unit_link);
+            g_node_destroy(ast3);
             /* print_ast3(ast3); */
-            eval3(ast3, toplevel_unit.env);
+            /* struct Arv_data *x = eval3(ast3, toplevel_unit.env); */
+            /* free(x); */
             /* print(eval3(ast3, toplevel_unit.env)); */
-        }        
+        }
     }    
     g_hash_table_destroy(toplevel_unit.env);    
     exit(EXIT_SUCCESS);

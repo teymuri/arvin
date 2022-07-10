@@ -79,7 +79,7 @@ unit_list(struct Token **code_tokens,
             .env = NULL,
             .uuid = i + 1,
             .token = code_tokens[i],
-            .toklen = code_tokens[i]->string_size,
+            .toklen = code_tokens[i]->string_size, /* not needed really if i've the token already!!! */
             .max_cap = -1,
             
         };

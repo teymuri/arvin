@@ -61,7 +61,7 @@ struct Arv_data {
         int tila_int;
         float tila_float;
         struct Lambda *tila_lambda;
-        GList *pack;
+        /* GList *pack; */
         struct List *arv_list;
         bool tila_bool;
     } slots;

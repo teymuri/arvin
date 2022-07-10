@@ -635,8 +635,8 @@ void set_listop_maxcap(struct Unit *u)
 GNode *parse3(GList *ulink)
 {    
     GList *tl_ulink = ulink;      /* toplevel unit link */
-    ulink = ulink->next;
     GNode *root = g_node_new((struct Unit *)tl_ulink->data);
+    ulink = ulink->next;
     /* effective binding units are units which introduce bindings,
        e.g. lambda, let, pass */
     struct Unit *curr_bind_unit = NULL; /* current binding unit */
