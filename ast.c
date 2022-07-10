@@ -888,58 +888,58 @@ assert_func_param(GNode *node, GNode *last_child)
     }
 }
 
-gboolean sanify_lambda(GNode *node, gpointer data) {
-    if (is_lambda_node(node)) {
-        if (g_node_n_children(node)) {
-            GNode *last_child = g_node_last_child(node);
-            /* first assert that every child node except with the last one
-               is a binding (ie a parameter decleration) */
-            g_node_children_foreach(node, G_TRAVERSE_ALL,
-                                    (GNodeForeachFunc)assert_func_param,
-                                    last_child);
-            /* if the last node is a mandatory parameter (i.e. a parameter
-               without default value, which i could take out as the lambda
-               expression), it is an error! */
-            if (((struct Unit *)last_child->data)->type == BINDING ||
-                unit_type((struct Unit *)last_child->data) == PACK_BINDING) {
-                fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n",
-                        ((struct Unit *)last_child->data)->token->string);
-                exit(EXIT_FAILURE);
-                /* if the last node LOOKS LIKE a parameter with a default
-                   argument (i.e. optional argument/bound binding), we treat
-                   it's default argument as the final expression of lambda */
-            } else if (unit_type((struct Unit *)last_child->data) == BOUND_BINDING ||
-                       unit_type((struct Unit *)last_child->data) == BOUND_PACK_BINDING) {
-                GNode *bound_value = g_node_last_child(last_child);
-                g_node_unlink(bound_value);
-                g_node_insert(node, -1, bound_value);
-                /* and reset the parameter types to their mandatory versions */
-                if (unit_type((struct Unit *)last_child->data) == BOUND_BINDING)
-                    ((struct Unit *)last_child->data)->type = BINDING;
-                /* if we took the last and only child of the bound pack
-                   binding out as the lambda expression and it has no
-                   children, change it's type to a simple pack binding without
-                   default arguments */
-                else if (g_node_n_children(last_child) == 0)
-                    ((struct Unit *)last_child->data)->type = PACK_BINDING;
-            }
-        } else {
-            fprintf(stderr, "malformed lambda\n");
-            print_node(node, NULL);
-            fprintf(stderr, "missing expression\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-    return false;
-}
+/* gboolean sanify_lambda(GNode *node, gpointer data) { */
+/*     if (is_lambda_node(node)) { */
+/*         if (g_node_n_children(node)) { */
+/*             GNode *last_child = g_node_last_child(node); */
+/*             /\* first assert that every child node except with the last one */
+/*                is a binding (ie a parameter decleration) *\/ */
+/*             g_node_children_foreach(node, G_TRAVERSE_ALL, */
+/*                                     (GNodeForeachFunc)assert_func_param, */
+/*                                     last_child); */
+/*             /\* if the last node is a mandatory parameter (i.e. a parameter */
+/*                without default value, which i could take out as the lambda */
+/*                expression), it is an error! *\/ */
+/*             if (((struct Unit *)last_child->data)->type == BINDING || */
+/*                 unit_type((struct Unit *)last_child->data) == PACK_BINDING) { */
+/*                 fprintf(stderr, "binding '%s' kann nicht ende von deinem lambda sein\n", */
+/*                         ((struct Unit *)last_child->data)->token->string); */
+/*                 exit(EXIT_FAILURE); */
+/*                 /\* if the last node LOOKS LIKE a parameter with a default */
+/*                    argument (i.e. optional argument/bound binding), we treat */
+/*                    it's default argument as the final expression of lambda *\/ */
+/*             } else if (unit_type((struct Unit *)last_child->data) == BOUND_BINDING || */
+/*                        unit_type((struct Unit *)last_child->data) == BOUND_PACK_BINDING) { */
+/*                 GNode *bound_value = g_node_last_child(last_child); */
+/*                 g_node_unlink(bound_value); */
+/*                 g_node_insert(node, -1, bound_value); */
+/*                 /\* and reset the parameter types to their mandatory versions *\/ */
+/*                 if (unit_type((struct Unit *)last_child->data) == BOUND_BINDING) */
+/*                     ((struct Unit *)last_child->data)->type = BINDING; */
+/*                 /\* if we took the last and only child of the bound pack */
+/*                    binding out as the lambda expression and it has no */
+/*                    children, change it's type to a simple pack binding without */
+/*                    default arguments *\/ */
+/*                 else if (g_node_n_children(last_child) == 0) */
+/*                     ((struct Unit *)last_child->data)->type = PACK_BINDING; */
+/*             } */
+/*         } else { */
+/*             fprintf(stderr, "malformed lambda\n"); */
+/*             print_node(node, NULL); */
+/*             fprintf(stderr, "missing expression\n"); */
+/*             exit(EXIT_FAILURE); */
+/*         } */
+/*     } */
+/*     return false; */
+/* } */
 
-void post_parse_lambda_check(GNode *root) {
-    puts("parse-time lambda sanify");
-    g_node_traverse(root, G_PRE_ORDER,
-                    G_TRAVERSE_ALL, -1,
-                    (GNodeTraverseFunc)sanify_lambda, NULL);
-    puts("  lambdas sanified");
-}
+/* void post_parse_lambda_check(GNode *root) { */
+/*     puts("parse-time lambda sanify"); */
+/*     g_node_traverse(root, G_PRE_ORDER, */
+/*                     G_TRAVERSE_ALL, -1, */
+/*                     (GNodeTraverseFunc)sanify_lambda, NULL); */
+/*     puts("  lambdas sanified"); */
+/* } */
 
 
 /* schmelz die 2 zusammen mit der obigen */

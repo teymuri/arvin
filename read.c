@@ -324,6 +324,169 @@ tokenize_line(char *lnstr,
     return line_tokens;
 }
 
+void
+tokenize_line2(char *lnstr,
+               int ln,
+               struct Token **source_tokens,
+               size_t *source_tokens_count
+               /* char *source_path */
+    )
+/* lnstr = line string content, ln = line number*/
+{
+    /* size_t lines_count = 0; */
+    /* char **lines = read_lines(source_path, &lines_count); */
+
+    regex_t re;
+    int errcode;			
+    if ((errcode = regcomp(&re, TOKPATT, REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+        size_t buff_size = regerror(errcode, &re, NULL, 0); /* inspect the required buffer size */
+        char buff[buff_size+1];	/* need +1 for the null terminator??? */
+        (void)regerror(errcode, &re, buff, buff_size);
+        fprintf(stderr, "parse error\n");
+        fprintf(stderr, "regcomp failed with: %s\n", buff);
+        exit(errcode);
+    }
+
+    /* For type guessing */
+    regex_t reint, refloat, resym;
+    if ((errcode = regcomp(&reint, "^[-]*[0-9]+$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+        size_t buff_size = regerror(errcode, &reint, NULL, 0); /* inspect the required buffer size */
+        char buff[buff_size+1];	/* need +1 for the null terminator??? */
+        (void)regerror(errcode, &reint, buff, buff_size);
+        fprintf(stderr, "parse error\n");
+        fprintf(stderr, "regcomp failed with: %s\n", buff);
+        exit(EXIT_FAILURE);
+    }
+    if ((errcode = regcomp(&refloat, "^[-]*[0-9]*\\.([0-9]*)?$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+        size_t buff_size = regerror(errcode, &refloat, NULL, 0); /* inspect the required buffer size */
+        char buff[buff_size+1];	/* need +1 for the null terminator??? */
+        (void)regerror(errcode, &refloat, buff, buff_size);
+        fprintf(stderr, "parse error\n");
+        fprintf(stderr, "regcomp failed with: %s\n", buff);
+        exit(EXIT_FAILURE);
+    }
+    if ((errcode = regcomp(&resym, TOKPATT, REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+        size_t buff_size = regerror(errcode, &resym, NULL, 0); /* inspect the required buffer size */
+        char buff[buff_size+1];	/* need +1 for the null terminator??? */
+        (void)regerror(errcode, &resym, buff, buff_size);
+        fprintf(stderr, "parse error\n");
+        fprintf(stderr, "regcomp failed with: %s\n", buff);
+        exit(EXIT_FAILURE);
+    }  
+    regmatch_t match[1];	/* interesed only in the whole match */
+    int offset = 0;
+    int token_size;
+    
+    /* struct Token **line_tokens = NULL; */
+    
+    /* overall size of memory allocated for tokens of the line sofar */
+    /* size_t memsize = 0; */
+    /* int tokscnt = 0; */
+    /* struct Token *source_tokens = NULL; */
+    
+    while (!regexec(&re, lnstr + offset, 1, match, REG_NOTBOL)) { /* a match found */
+        /* make room for the new token */
+        /* memsize += sizeof(struct Token); */
+
+        
+        struct Token *token_ptr = malloc(sizeof (struct Token));
+        token_size = match[0].rm_eo - match[0].rm_so; /* remove this!!! look below */
+        token_ptr->string_size = match[0].rm_eo - match[0].rm_so;
+        token_ptr->string = malloc(token_ptr->string_size + 1); /* for null terminator? */
+        /* struct Token t; */
+        /* memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen); */
+        /* t.str[tokstrlen] = '\0'; */
+        memcpy(token_ptr->string, lnstr + offset + match[0].rm_so, token_size);
+        token_ptr->string[token_size] = '\0';
+        /* guess type */
+        if (!regexec(&reint, token_ptr->string, 0, NULL, 0)) {
+            /* t.type = INT; */
+            token_ptr->type = INT;
+        } else if (!regexec(&refloat, token_ptr->string, 0, NULL, 0)) {
+            token_ptr->type = FLOAT;
+        } else if (!regexec(&resym, token_ptr->string, 0, NULL, 0)) {
+            token_ptr->type = NAME;
+        } else {
+            /* fprintf(stderr, "couldn't guess type of token %s", t.str); */
+            /* exit(EXIT_FAILURE); */
+            token_ptr->type = UNDEFINED;
+        }   
+        /* t.numtype = numtype(t.str); */
+        /* t.isprim = isprim(t.str); */
+        token_ptr->id = Token_id++;
+        token_ptr->col_start_idx = offset + match[0].rm_so;
+        token_ptr->col_end_idx = token_ptr->col_start_idx + token_ptr->string_size;
+        token_ptr->line = ln;
+        token_ptr->comment_index = 0;
+
+        if ((*source_tokens = realloc(*source_tokens, (*source_tokens_count + 1) * sizeof (struct Token)))) {
+            /* *(source_tokens[*source_tokens_count]) = token_ptr; */
+            source_tokens[*source_tokens_count] = token_ptr;
+            /* source_tokens + *source_tokens_count = token_ptr; */
+            (*source_tokens_count)++;
+        } else {
+            fprintf(stderr, "tokenize_line2 failed while reallocing\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        /* *(line_tokens + *line_toks_count) = token; */
+        /* (*all_tokens_count)++; */
+        /* (*line_toks_count)++; */
+        offset += match[0].rm_eo;
+        
+
+        
+        /* if ((line_tokens = realloc(line_tokens, */
+        /*                            (*line_toks_count + 1) * sizeof (struct Token *)))) { */
+        /*     struct Token *token = malloc(sizeof (struct Token)); */
+        /*     token_size = match[0].rm_eo - match[0].rm_so; /\* remove this!!! look below *\/ */
+        /*     token->string_size = match[0].rm_eo - match[0].rm_so; */
+        /*     token->string = malloc(token->string_size + 1); /\* for null terminator? *\/ */
+        /*     /\* struct Token t; *\/ */
+        /*     /\* memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen); *\/ */
+        /*     /\* t.str[tokstrlen] = '\0'; *\/ */
+        /*     memcpy(token->string, lnstr + offset + match[0].rm_so, token_size); */
+        /*     token->string[token_size] = '\0'; */
+        /*     /\* guess type *\/ */
+        /*     if (!regexec(&reint, token->string, 0, NULL, 0)) { */
+        /*         /\* t.type = INT; *\/ */
+        /*         token->type = INT; */
+        /*     } else if (!regexec(&refloat, token->string, 0, NULL, 0)) { */
+        /*         token->type = FLOAT; */
+        /*     } else if (!regexec(&resym, token->string, 0, NULL, 0)) { */
+        /*         token->type = NAME; */
+        /*     } else { */
+        /*         /\* fprintf(stderr, "couldn't guess type of token %s", t.str); *\/ */
+        /*         /\* exit(EXIT_FAILURE); *\/ */
+        /*         token->type = UNDEFINED; */
+        /*     }    */
+        /*     /\* t.numtype = numtype(t.str); *\/ */
+        /*     /\* t.isprim = isprim(t.str); *\/ */
+        /*     token->id = Token_id++; */
+        /*     token->col_start_idx = offset + match[0].rm_so; */
+        /*     token->col_end_idx = token->col_start_idx + token->string_size; */
+        /*     token->line = ln; */
+        /*     token->comment_index = 0; */
+        /*     *(line_tokens + *line_toks_count) = token; */
+        /*     (*all_tokens_count)++; */
+        /*     (*line_toks_count)++; */
+        /*     offset += match[0].rm_eo; */
+        /* } else { */
+        /*     fprintf(stderr, "realloc failed while tokenizing line '%d' at token '%s'", ln, "???"); */
+        /*     /\* just break out of executaion if haven't enough memory for the */
+        /*        next token. leave the freeing & cleanup over for the os! *\/ */
+        /*     exit(EXIT_FAILURE); */
+        /* } */
+
+        
+    }
+    regfree(&re);
+    regfree(&reint);
+    regfree(&refloat);
+    regfree(&resym);
+    /* return source_tokens; */
+}
+
 
 
 struct Token **
@@ -338,6 +501,7 @@ tokenize_source(char *path,
     /* struct Token *line_tokens = NULL; */
     struct Token **line_tokens = NULL;
     size_t line_toks_count, global_toks_count_cpy;
+    
     for (size_t i = 0; i < lines_count; i++) {
         /* struct Token **line_tokens = NULL; */
         line_toks_count = 0;
@@ -359,6 +523,51 @@ tokenize_source(char *path,
     free_lines(lines, lines_count);
     return source_tokens;
 }
+
+struct Token *
+tokenize_source2(char *path,
+                 size_t *source_tokens_count)
+{
+    size_t lines_count = 0;
+    char **lines = read_lines(path, &lines_count);
+    /* source_tokens are all the tokens found in a script, including
+     * comments.*/
+    struct Token *source_tokens = NULL;
+    /* struct Token **source_tokens = malloc(sizeof(struct Token)); */
+    /* struct Token *line_tokens = NULL; */
+    /* struct Token **line_tokens = NULL; */
+    /* size_t line_toks_count, global_toks_count_cpy; */
+
+    for (size_t i = 0; i < lines_count; i++) {
+        tokenize_line2(lines[i],
+                       i,
+                       &source_tokens,
+                       source_tokens_count);
+    }
+    
+    /* for (size_t i = 0; i < lines_count; i++) { */
+    /*     /\* struct Token **line_tokens = NULL; *\/ */
+    /*     line_toks_count = 0; */
+    /*     /\* take a snapshot of the number of source tokens sofar, before */
+    /*        it's changed by tokenize_line__Hp *\/ */
+    /*     global_toks_count_cpy = *source_tokens_count; */
+    /*     /\* line_tokens = tokenize_line__Hp(lines[i], &line_toks_count, source_tokens_count, i); *\/ */
+    /*     line_tokens = tokenize_line(lines[i], &line_toks_count, source_tokens_count, i); */
+    /*     if ((source_tokens = realloc(source_tokens, *source_tokens_count * sizeof (struct Token)))) { */
+    /*         for (size_t i = 0; i < line_toks_count; i++) { */
+    /*             *(source_tokens + i + global_toks_count_cpy) = line_tokens[i]; */
+    /*         } */
+    /*     } else { */
+    /*         exit(EXIT_FAILURE); */
+    /*     } */
+    /*     free(line_tokens); */
+    /*     line_tokens = NULL; */
+    /* } */
+    
+    free_lines(lines, lines_count);
+    return source_tokens;
+}
+
 
 struct Token *tokenize_lines__Hp(char **lines, size_t lines_count,
                                  size_t *all_tokens_count)
@@ -401,19 +610,20 @@ is_comment_closing(struct Token *tok)
 /* comment index 1 is the start of an outer-most comment block. this
    function is the equivalent of set_commidx_ip(toks) in the let.py
    file. */
-void index_comments(struct Token **tokens, size_t source_tokens_count)
+static void
+index_comments(struct Token *tokens, size_t source_tokens_count)
 {
     int idx = 1;
     for (size_t i = 0; i < source_tokens_count; i++) {
-        if (is_comment_opening(tokens[i]))
-            tokens[i]->comment_index = idx++;
-        else if (is_comment_closing(tokens[i]))
-            tokens[i]->comment_index = --idx;
+        if (is_comment_opening(tokens+i))
+            (tokens+i)->comment_index = idx++;
+        else if (is_comment_closing(tokens+i))
+            (tokens+i)->comment_index = --idx;
     }
 }
 
 struct Token **
-remove_comments(struct Token **source_tokens,
+remove_comments(struct Token *source_tokens,
                 size_t *code_tokens_count,
                 size_t source_tokens_count) /* nct = non-comment token */
 {
@@ -421,14 +631,14 @@ remove_comments(struct Token **source_tokens,
     struct Token **code_tokens = NULL;	/* non-comment tokens */
     int isincom = false;		/* are we inside of a comment block? */
     for (size_t i = 0; i < source_tokens_count; i++) {
-        if (source_tokens[i]->comment_index == 1) {
+        if ((source_tokens+i)->comment_index == 1) {
             if (isincom) isincom = false;
             else isincom = true;
         } else if (!isincom) {
             /* not in a comment block, allocate space for the new non-comment token */
             /* (*code_tokens_count)++; */
             if ((code_tokens = realloc(code_tokens, (*code_tokens_count + 1) * sizeof(struct Token)))) {
-                *(code_tokens + *code_tokens_count) = source_tokens[i];
+                *(code_tokens + *code_tokens_count) = (source_tokens+i);
                 (*code_tokens_count)++;
             } 
             else

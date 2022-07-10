@@ -29,8 +29,8 @@ int
 main(int argc, char **argv)
 {
     size_t source_tokens_count;
-    struct Token **source_tokens;
-    size_t code_tokens_count;
+    struct Token *source_tokens;
+    size_t code_tokens_count = 0;
     struct Token **code_tokens;
     GList *unit_link;
     GNode *ast3;
@@ -143,7 +143,8 @@ main(int argc, char **argv)
            including all comments. code_token on the other hand are the executing
            tokens, i.e. with comments already removed. */
         source_tokens_count = 0;
-        source_tokens = tokenize_source(argv[1], &source_tokens_count);
+        source_tokens = tokenize_source2(argv[1],
+                                         &source_tokens_count);
         code_tokens_count = 0;	/*  */
         code_tokens = remove_comments(source_tokens,
                                       &code_tokens_count,
@@ -152,12 +153,17 @@ main(int argc, char **argv)
             unit_link = unit_list(code_tokens, code_tokens_count);
             unit_link = g_list_prepend(unit_link, &toplevel_unit);
             ast3 = parse3(unit_link);
+
+            eval3(ast3, toplevel_unit.env);
+            
             for (guint i = 0; i < g_list_length(unit_link); i++) {
                 free_unit(g_list_nth_data(unit_link, i));
             }
             g_list_free(unit_link);
             g_node_destroy(ast3);
-            /* print_ast3(ast3); */
+
+            
+            print_ast3(ast3);
             /* struct Arv_data *x = eval3(ast3, toplevel_unit.env); */
             /* free(x); */
             /* print(eval3(ast3, toplevel_unit.env)); */
