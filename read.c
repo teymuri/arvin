@@ -206,10 +206,10 @@ tokenize_line__Hp(char *lnstr,
 }
 
 void
-free_token(struct Token *token)
+free_token(struct Token *token_ptr)
 {
-    free(token->string);
-    free(token);
+    free(token_ptr->string);
+    free(token_ptr);
 }
 
 /* void */
@@ -640,11 +640,45 @@ remove_comments(struct Token *source_tokens,
             if ((code_tokens = realloc(code_tokens, (*code_tokens_count + 1) * sizeof(struct Token)))) {
                 *(code_tokens + *code_tokens_count) = (source_tokens+i);
                 (*code_tokens_count)++;
-            } 
+            }
             else
                 exit(EXIT_FAILURE);
         }
     }
     free(source_tokens);
     return code_tokens;
+}
+
+
+static void
+tag_comments(GList *src_tokens_list)
+{
+    int tag = 1;
+    for (guint i = 0; i < g_list_length(src_tokens_list); i++) {
+        struct Token *token_ptr = g_list_nth_data(src_tokens_list, i);
+        if (is_com_bgn(token_ptr))
+            token_ptr->comment_index = tag++;
+        else if (is_com_end(token_ptr))
+            token_ptr->comment_index = --tag;
+    }
+}
+GList *
+remove_comments2(GList *src_tokens_list)
+{
+    /* https://gitlab.gnome.org/GNOME/glib/-/blob/main/glib/glist.c#L93 */
+    tag_comments(src_tokens_list);
+    /* are we inside of a comment block? */
+    bool is_in_comment = false;
+    GList *list = src_tokens_list;
+    while (list != NULL) {
+        GList *next = list->next;
+        if (list->data->comment_index == 1) {
+            free_token(list->data);
+            src_tokens_list = g_list_delete_link(src_tokens_list, list);
+            if (is_in_comment) is_in_comment = false;
+            else is_in_comment = true;
+        }
+        list = next;
+    }
+    return src_tokens_list;
 }
