@@ -662,7 +662,9 @@ tag_comments(GList *src_tokens_list)
             token_ptr->comment_index = --tag;
     }
 }
-GList *
+
+
+void
 remove_comments2(GList *src_tokens_list)
 {
     /* https://gitlab.gnome.org/GNOME/glib/-/blob/main/glib/glist.c#L93 */
@@ -680,5 +682,4 @@ remove_comments2(GList *src_tokens_list)
         }
         list = next;
     }
-    return src_tokens_list;
 }
