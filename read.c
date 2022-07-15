@@ -595,16 +595,16 @@ struct Token *tokenize_lines__Hp(char **lines, size_t lines_count,
 }
 
 
-int
-is_comment_opening(struct Token *tok)
+static int
+is_comment_begin(struct Token *tok)
 {
     return !strcmp(tok->string, COMMENT_OPENING);
 }
 
-int
-is_comment_closing(struct Token *tok)
+static int
+is_comment_end(struct Token *tok_ptr)
 {
-    return !strcmp(tok->string, COMMENT_CLOSING);
+    return !strcmp(tok_ptr->string, COMMENT_CLOSING);
 }
 
 /* comment index 1 is the start of an outer-most comment block. this
@@ -615,9 +615,9 @@ index_comments(struct Token *tokens, size_t source_tokens_count)
 {
     int idx = 1;
     for (size_t i = 0; i < source_tokens_count; i++) {
-        if (is_comment_opening(tokens+i))
+        if (is_comment_begin(tokens+i))
             (tokens+i)->comment_index = idx++;
-        else if (is_comment_closing(tokens+i))
+        else if (is_comment_end(tokens+i))
             (tokens+i)->comment_index = --idx;
     }
 }
@@ -656,9 +656,9 @@ tag_comments(GList *src_tokens_list)
     int tag = 1;
     for (guint i = 0; i < g_list_length(src_tokens_list); i++) {
         struct Token *token_ptr = g_list_nth_data(src_tokens_list, i);
-        if (is_com_bgn(token_ptr))
+        if (is_comment_begin(token_ptr))
             token_ptr->comment_index = tag++;
-        else if (is_com_end(token_ptr))
+        else if (is_comment_end(token_ptr))
             token_ptr->comment_index = --tag;
     }
 }
@@ -674,7 +674,7 @@ remove_comments2(GList *src_tokens_list)
     GList *list = src_tokens_list;
     while (list != NULL) {
         GList *next = list->next;
-        if (list->data->comment_index == 1) {
+        if (((struct Token *)(list->data))->comment_index == 1) {
             free_token(list->data);
             src_tokens_list = g_list_delete_link(src_tokens_list, list);
             if (is_in_comment) is_in_comment = false;
