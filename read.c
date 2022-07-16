@@ -110,11 +110,11 @@ free_line_toks(struct Token **line_toks,
 
 /* Generates tokens */
 struct Token *
-tokenize_line__Hp(char *lnstr,
+tokenize_line__Hp(char *line,
                   size_t *line_toks_count,
                   size_t *all_tokens_count,
                   int ln)
-/* lnstr = line string content, ln = line number*/
+/* line = line string content, ln = line number*/
 {
     regex_t re;
     int errcode;			
@@ -159,13 +159,13 @@ tokenize_line__Hp(char *lnstr,
     /* overall size of memory allocated for tokens of the line sofar */
     size_t memsize = 0;
     /* int tokscnt = 0; */
-    while (!regexec(&re, lnstr + offset, 1, match, REG_NOTBOL)) { /* a match found */
+    while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
         /* make room for the new token */
         memsize += sizeof(struct Token);
         if ((line_tokens = realloc(line_tokens, memsize))) {
             tokstrlen = match[0].rm_eo - match[0].rm_so;
             struct Token t;
-            memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen);
+            memcpy(t.str, line + offset + match[0].rm_so, tokstrlen);
             t.str[tokstrlen] = '\0';
 
             /* guess type */
@@ -222,11 +222,11 @@ free_token(struct Token *token_ptr)
 /* } */
 
 struct Token **
-tokenize_line(char *lnstr,
+tokenize_line(char *line,
               size_t *line_toks_count,
               size_t *all_tokens_count,
               int ln)
-/* lnstr = line string content, ln = line number*/
+/* line = line string content, ln = line number*/
 {
     regex_t re;
     int errcode;			
@@ -272,7 +272,7 @@ tokenize_line(char *lnstr,
     /* overall size of memory allocated for tokens of the line sofar */
     /* size_t memsize = 0; */
     /* int tokscnt = 0; */
-    while (!regexec(&re, lnstr + offset, 1, match, REG_NOTBOL)) { /* a match found */
+    while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
         /* make room for the new token */
         /* memsize += sizeof(struct Token); */
         if ((line_tokens = realloc(line_tokens,
@@ -282,9 +282,9 @@ tokenize_line(char *lnstr,
             token->string_size = match[0].rm_eo - match[0].rm_so;
             token->string = malloc(token->string_size + 1); /* for null terminator? */
             /* struct Token t; */
-            /* memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen); */
+            /* memcpy(t.str, line + offset + match[0].rm_so, tokstrlen); */
             /* t.str[tokstrlen] = '\0'; */
-            memcpy(token->string, lnstr + offset + match[0].rm_so, token_size);
+            memcpy(token->string, line + offset + match[0].rm_so, token_size);
             token->string[token_size] = '\0';
             /* guess type */
             if (!regexec(&reint, token->string, 0, NULL, 0)) {
@@ -324,14 +324,14 @@ tokenize_line(char *lnstr,
     return line_tokens;
 }
 
-void
-tokenize_line2(char *lnstr,
+static void
+tokenize_line2(char *line,
                int ln,
                struct Token **source_tokens,
                size_t *source_tokens_count
                /* char *source_path */
     )
-/* lnstr = line string content, ln = line number*/
+/* line = line string content, ln = line number*/
 {
     /* size_t lines_count = 0; */
     /* char **lines = read_lines(source_path, &lines_count); */
@@ -384,7 +384,7 @@ tokenize_line2(char *lnstr,
     /* int tokscnt = 0; */
     /* struct Token *source_tokens = NULL; */
     
-    while (!regexec(&re, lnstr + offset, 1, match, REG_NOTBOL)) { /* a match found */
+    while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
         /* make room for the new token */
         /* memsize += sizeof(struct Token); */
 
@@ -394,9 +394,9 @@ tokenize_line2(char *lnstr,
         token_ptr->string_size = match[0].rm_eo - match[0].rm_so;
         token_ptr->string = malloc(token_ptr->string_size + 1); /* for null terminator? */
         /* struct Token t; */
-        /* memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen); */
+        /* memcpy(t.str, line + offset + match[0].rm_so, tokstrlen); */
         /* t.str[tokstrlen] = '\0'; */
-        memcpy(token_ptr->string, lnstr + offset + match[0].rm_so, token_size);
+        memcpy(token_ptr->string, line + offset + match[0].rm_so, token_size);
         token_ptr->string[token_size] = '\0';
         /* guess type */
         if (!regexec(&reint, token_ptr->string, 0, NULL, 0)) {
@@ -443,9 +443,9 @@ tokenize_line2(char *lnstr,
         /*     token->string_size = match[0].rm_eo - match[0].rm_so; */
         /*     token->string = malloc(token->string_size + 1); /\* for null terminator? *\/ */
         /*     /\* struct Token t; *\/ */
-        /*     /\* memcpy(t.str, lnstr + offset + match[0].rm_so, tokstrlen); *\/ */
+        /*     /\* memcpy(t.str, line + offset + match[0].rm_so, tokstrlen); *\/ */
         /*     /\* t.str[tokstrlen] = '\0'; *\/ */
-        /*     memcpy(token->string, lnstr + offset + match[0].rm_so, token_size); */
+        /*     memcpy(token->string, line + offset + match[0].rm_so, token_size); */
         /*     token->string[token_size] = '\0'; */
         /*     /\* guess type *\/ */
         /*     if (!regexec(&reint, token->string, 0, NULL, 0)) { */
@@ -485,6 +485,104 @@ tokenize_line2(char *lnstr,
     regfree(&refloat);
     regfree(&resym);
     /* return source_tokens; */
+}
+static void
+tokenize_line3(char *line,
+               size_t line_num,
+               GList **src_toks_list)
+/* line = line string content, line_num = line number*/
+{
+    /* size_t lines_count = 0; */
+    /* char **lines = read_lines(source_path, &lines_count); */
+
+    regex_t re;
+    int errcode;			
+    if ((errcode = regcomp(&re, TOKPATT, REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+        size_t buff_size = regerror(errcode, &re, NULL, 0); /* inspect the required buffer size */
+        char buff[buff_size+1];	/* need +1 for the null terminator??? */
+        (void)regerror(errcode, &re, buff, buff_size);
+        fprintf(stderr, "parse error\n");
+        fprintf(stderr, "regcomp failed with: %s\n", buff);
+        exit(errcode);
+    }
+
+    /* For type guessing */
+    regex_t reint, refloat, resym;
+    if ((errcode = regcomp(&reint, "^[-]*[0-9]+$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+        size_t buff_size = regerror(errcode, &reint, NULL, 0); /* inspect the required buffer size */
+        char buff[buff_size+1];	/* need +1 for the null terminator??? */
+        (void)regerror(errcode, &reint, buff, buff_size);
+        fprintf(stderr, "parse error\n");
+        fprintf(stderr, "regcomp failed with: %s\n", buff);
+        exit(EXIT_FAILURE);
+    }
+    if ((errcode = regcomp(&refloat, "^[-]*[0-9]*\\.([0-9]*)?$", REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+        size_t buff_size = regerror(errcode, &refloat, NULL, 0); /* inspect the required buffer size */
+        char buff[buff_size+1];	/* need +1 for the null terminator??? */
+        (void)regerror(errcode, &refloat, buff, buff_size);
+        fprintf(stderr, "parse error\n");
+        fprintf(stderr, "regcomp failed with: %s\n", buff);
+        exit(EXIT_FAILURE);
+    }
+    if ((errcode = regcomp(&resym, TOKPATT, REG_EXTENDED))) { /* compilation failed (0 = successful compilation) */
+        size_t buff_size = regerror(errcode, &resym, NULL, 0); /* inspect the required buffer size */
+        char buff[buff_size+1];	/* need +1 for the null terminator??? */
+        (void)regerror(errcode, &resym, buff, buff_size);
+        fprintf(stderr, "parse error\n");
+        fprintf(stderr, "regcomp failed with: %s\n", buff);
+        exit(EXIT_FAILURE);
+    }  
+    regmatch_t match[1];	/* interesed only in the whole match */
+    int offset = 0;
+    int token_size;
+    
+    /* struct Token **line_tokens = NULL; */
+    
+    /* overall size of memory allocated for tokens of the line sofar */
+    /* size_t memsize = 0; */
+    /* int tokscnt = 0; */
+    /* struct Token *source_tokens = NULL; */
+    
+    while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
+        /* make room for the new token */
+        /* memsize += sizeof(struct Token); */
+
+        
+        struct Token *token_ptr = malloc(sizeof (struct Token));
+        token_size = match[0].rm_eo - match[0].rm_so; /* remove this!!! look below */
+        token_ptr->string_size = match[0].rm_eo - match[0].rm_so;
+        token_ptr->string = malloc(token_ptr->string_size + 1); /* for null terminator? */
+        /* struct Token t; */
+        /* memcpy(t.str, line + offset + match[0].rm_so, tokstrlen); */
+        /* t.str[tokstrlen] = '\0'; */
+        memcpy(token_ptr->string, line + offset + match[0].rm_so, token_size);
+        token_ptr->string[token_size] = '\0';
+        /* guess type */
+        if (!regexec(&reint, token_ptr->string, 0, NULL, 0)) {
+            /* t.type = INT; */
+            token_ptr->type = INT;
+        } else if (!regexec(&refloat, token_ptr->string, 0, NULL, 0)) {
+            token_ptr->type = FLOAT;
+        } else if (!regexec(&resym, token_ptr->string, 0, NULL, 0)) {
+            token_ptr->type = NAME;
+        } else {
+            /* fprintf(stderr, "couldn't guess type of token %s", t.str); */
+            /* exit(EXIT_FAILURE); */
+            token_ptr->type = UNDEFINED;
+        }   
+        token_ptr->id = Token_id++;
+        token_ptr->col_start_idx = offset + match[0].rm_so;
+        token_ptr->col_end_idx = token_ptr->col_start_idx + token_ptr->string_size;
+        token_ptr->line = line_num;
+        token_ptr->comment_index = 0;
+        
+        *src_toks_list = g_list_append(*src_toks_list, token_ptr);
+        offset += match[0].rm_eo;
+    }
+    regfree(&re);
+    regfree(&reint);
+    regfree(&refloat);
+    regfree(&resym);
 }
 
 
@@ -567,6 +665,25 @@ tokenize_source2(char *path,
     free_lines(lines, lines_count);
     return source_tokens;
 }
+
+GList *
+tokenize_src(char *src_path)
+{
+    size_t lines_count = 0;
+    char **lines = read_lines(src_path, &lines_count);
+    /* source_tokens are all the tokens found in a script, including
+     * comments.*/
+    GList *src_toks_list = NULL;
+    /* struct Token *source_tokens = NULL; */
+    for (size_t i = 0; i < lines_count; i++) {
+        tokenize_line3(lines[i],
+                       i,
+                       &src_toks_list);
+    }
+    free_lines(lines, lines_count);
+    return src_toks_list;
+}
+
 
 
 struct Token *tokenize_lines__Hp(char **lines, size_t lines_count,
@@ -651,11 +768,11 @@ remove_comments(struct Token *source_tokens,
 
 
 static void
-tag_comments(GList *src_tokens_list)
+tag_comments(GList **src_toks_list)
 {
     int tag = 1;
-    for (guint i = 0; i < g_list_length(src_tokens_list); i++) {
-        struct Token *token_ptr = g_list_nth_data(src_tokens_list, i);
+    for (guint i = 0; i < g_list_length(*src_toks_list); i++) {
+        struct Token *token_ptr = g_list_nth_data(*src_toks_list, i);
         if (is_comment_begin(token_ptr))
             token_ptr->comment_index = tag++;
         else if (is_comment_end(token_ptr))
@@ -665,18 +782,18 @@ tag_comments(GList *src_tokens_list)
 
 
 void
-remove_comments2(GList *src_tokens_list)
+rm_comments2(GList **src_toks_list)
 {
     /* https://gitlab.gnome.org/GNOME/glib/-/blob/main/glib/glist.c#L93 */
-    tag_comments(src_tokens_list);
+    tag_comments(src_toks_list);
     /* are we inside of a comment block? */
     bool is_in_comment = false;
-    GList *list = src_tokens_list;
+    GList *list = *src_toks_list;
     while (list != NULL) {
         GList *next = list->next;
         if (((struct Token *)(list->data))->comment_index == 1) {
             free_token(list->data);
-            src_tokens_list = g_list_delete_link(src_tokens_list, list);
+            *src_toks_list = g_list_delete_link(*src_toks_list, list);
             if (is_in_comment) is_in_comment = false;
             else is_in_comment = true;
         }

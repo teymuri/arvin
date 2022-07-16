@@ -142,13 +142,18 @@ main(int argc, char **argv)
         /* source_token indicate every thing in a script/...
            including all comments. code_token on the other hand are the executing
            tokens, i.e. with comments already removed. */
-        source_tokens_count = 0;
-        source_tokens = tokenize_source2(argv[1],
-                                         &source_tokens_count);
-        code_tokens_count = 0;	/*  */
-        code_tokens = remove_comments(source_tokens,
-                                      &code_tokens_count,
-                                      source_tokens_count);
+        
+        /* source_tokens_count = 0; */
+        /* source_tokens = tokenize_source2(argv[1], */
+        /*                                  &source_tokens_count); */
+        /* code_tokens_count = 0;	/\*  *\/ */
+        /* code_tokens = remove_comments(source_tokens, */
+        /*                               &code_tokens_count, */
+        /*                               source_tokens_count); */
+        
+        GList *src_toks_list = tokenize_src(argv[1]);
+        rm_comments2(&src_toks_list);
+        
         if (code_tokens_count) {
             unit_link = unit_list(code_tokens, code_tokens_count);
             unit_link = g_list_prepend(unit_link, &toplevel_unit);
