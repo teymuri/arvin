@@ -390,40 +390,40 @@ tokenize_line2(char *line,
         /* memsize += sizeof(struct Token); */
 
         
-        struct Token *token_ptr = malloc(sizeof (struct Token));
+        struct Token *tok_ptr = malloc(sizeof (struct Token));
         token_size = match[0].rm_eo - match[0].rm_so; /* remove this!!! look below */
-        token_ptr->string_size = match[0].rm_eo - match[0].rm_so;
-        token_ptr->string = malloc(token_ptr->string_size + 1); /* for null terminator? */
+        tok_ptr->string_size = match[0].rm_eo - match[0].rm_so;
+        tok_ptr->string = malloc(tok_ptr->string_size + 1); /* for null terminator? */
         /* struct Token t; */
         /* memcpy(t.str, line + offset + match[0].rm_so, tokstrlen); */
         /* t.str[tokstrlen] = '\0'; */
-        memcpy(token_ptr->string, line + offset + match[0].rm_so, token_size);
-        token_ptr->string[token_size] = '\0';
+        memcpy(tok_ptr->string, line + offset + match[0].rm_so, token_size);
+        tok_ptr->string[token_size] = '\0';
         /* guess type */
-        if (!regexec(&reint, token_ptr->string, 0, NULL, 0)) {
+        if (!regexec(&reint, tok_ptr->string, 0, NULL, 0)) {
             /* t.type = INT; */
-            token_ptr->type = INT;
-        } else if (!regexec(&refloat, token_ptr->string, 0, NULL, 0)) {
-            token_ptr->type = FLOAT;
-        } else if (!regexec(&resym, token_ptr->string, 0, NULL, 0)) {
-            token_ptr->type = NAME;
+            tok_ptr->type = INT;
+        } else if (!regexec(&refloat, tok_ptr->string, 0, NULL, 0)) {
+            tok_ptr->type = FLOAT;
+        } else if (!regexec(&resym, tok_ptr->string, 0, NULL, 0)) {
+            tok_ptr->type = NAME;
         } else {
             /* fprintf(stderr, "couldn't guess type of token %s", t.str); */
             /* exit(EXIT_FAILURE); */
-            token_ptr->type = UNDEFINED;
+            tok_ptr->type = UNDEFINED;
         }   
         /* t.numtype = numtype(t.str); */
         /* t.isprim = isprim(t.str); */
-        token_ptr->id = Token_id++;
-        token_ptr->col_start_idx = offset + match[0].rm_so;
-        token_ptr->col_end_idx = token_ptr->col_start_idx + token_ptr->string_size;
-        token_ptr->line = ln;
-        token_ptr->comment_couple_tag = 0;
+        tok_ptr->id = Token_id++;
+        tok_ptr->col_start_idx = offset + match[0].rm_so;
+        tok_ptr->col_end_idx = tok_ptr->col_start_idx + tok_ptr->string_size;
+        tok_ptr->line = ln;
+        tok_ptr->comment_couple_tag = 0;
 
         if ((*source_tokens = realloc(*source_tokens, (*source_tokens_count + 1) * sizeof (struct Token)))) {
-            /* *(source_tokens[*source_tokens_count]) = token_ptr; */
-            source_tokens[*source_tokens_count] = token_ptr;
-            /* source_tokens + *source_tokens_count = token_ptr; */
+            /* *(source_tokens[*source_tokens_count]) = tok_ptr; */
+            source_tokens[*source_tokens_count] = tok_ptr;
+            /* source_tokens + *source_tokens_count = tok_ptr; */
             (*source_tokens_count)++;
         } else {
             fprintf(stderr, "tokenize_line2 failed while reallocing\n");
@@ -537,31 +537,31 @@ tokenize_line3(char *line,
     int offset = 0;
     int token_size;
     while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
-        struct Token *token_ptr = malloc(sizeof (struct Token));
+        struct Token *tok_ptr = malloc(sizeof (struct Token));
         token_size = match[0].rm_eo - match[0].rm_so; /* remove this!!! look below */
-        token_ptr->string_size = match[0].rm_eo - match[0].rm_so;
-        token_ptr->string = malloc(token_ptr->string_size + 1); /* for null terminator? */
-        memcpy(token_ptr->string, line + offset + match[0].rm_so, token_size);
-        token_ptr->string[token_size] = '\0';
+        tok_ptr->string_size = match[0].rm_eo - match[0].rm_so;
+        tok_ptr->string = malloc(tok_ptr->string_size + 1); /* for null terminator? */
+        memcpy(tok_ptr->string, line + offset + match[0].rm_so, token_size);
+        tok_ptr->string[token_size] = '\0';
         /* guess type */
-        if (!regexec(&reint, token_ptr->string, 0, NULL, 0)) {
-            token_ptr->type = INT;
-        } else if (!regexec(&refloat, token_ptr->string, 0, NULL, 0)) {
-            token_ptr->type = FLOAT;
-        } else if (!regexec(&resym, token_ptr->string, 0, NULL, 0)) {
-            token_ptr->type = NAME;
+        if (!regexec(&reint, tok_ptr->string, 0, NULL, 0)) {
+            tok_ptr->type = INT;
+        } else if (!regexec(&refloat, tok_ptr->string, 0, NULL, 0)) {
+            tok_ptr->type = FLOAT;
+        } else if (!regexec(&resym, tok_ptr->string, 0, NULL, 0)) {
+            tok_ptr->type = NAME;
         } else {                /* what case can this else cover?!!! */
             /* fprintf(stderr, "couldn't guess type of token %s", t.str); */
             /* exit(EXIT_FAILURE); */
-            token_ptr->type = UNDEFINED;
+            tok_ptr->type = UNDEFINED;
         }   
-        token_ptr->id = Token_id++;
-        token_ptr->col_start_idx = offset + match[0].rm_so;
-        token_ptr->col_end_idx = token_ptr->col_start_idx + token_ptr->string_size;
-        token_ptr->line = line_num;
-        token_ptr->comment_couple_tag = 0;
+        tok_ptr->id = Token_id++;
+        tok_ptr->col_start_idx = offset + match[0].rm_so;
+        tok_ptr->col_end_idx = tok_ptr->col_start_idx + tok_ptr->string_size;
+        tok_ptr->line = line_num;
+        tok_ptr->comment_couple_tag = 0;
         
-        *src_tok_list = g_list_append(*src_tok_list, token_ptr);
+        *src_tok_list = g_list_append(*src_tok_list, tok_ptr);
         offset += match[0].rm_eo;
     }
     regfree(&re);
@@ -661,9 +661,7 @@ tokenize_src(char *src_path)
     GList *src_tok_list = NULL;
     /* struct Token *source_tokens = NULL; */
     for (size_t i = 0; i < lines_count; i++) {
-        tokenize_line3(lines[i],
-                       i,
-                       &src_tok_list);
+        tokenize_line3(lines[i], i, &src_tok_list);
     }
     free_lines(lines, lines_count);
     return src_tok_list;
@@ -763,11 +761,11 @@ tag_comments(GList **src_tok_list)
      * parentheses couples as they blong together. */
     int tag = 1;
     for (guint i = 0; i < g_list_length(*src_tok_list); i++) {
-        struct Token *token_ptr = g_list_nth_data(*src_tok_list, i);
-        if (is_comment_start(token_ptr))
-            token_ptr->comment_couple_tag = tag++;
-        else if (is_comment_end(token_ptr))
-            token_ptr->comment_couple_tag = --tag;
+        struct Token *tok_ptr = g_list_nth_data(*src_tok_list, i);
+        if (is_comment_start(tok_ptr))
+            tok_ptr->comment_couple_tag = tag++;
+        else if (is_comment_end(tok_ptr))
+            tok_ptr->comment_couple_tag = --tag;
     }
 }
 

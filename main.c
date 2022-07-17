@@ -153,6 +153,7 @@ main(int argc, char **argv)
         
         GList *src_tok_list = tokenize_src(argv[1]);
         remove_comments2(&src_tok_list);
+        /* Continue if after comment cleanup something is left to parse. */
         if (src_tok_list != NULL) {
             GList *ulist = unit_list2(&src_tok_list);
             ulist = g_list_prepend(ulist, &toplevel_unit);

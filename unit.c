@@ -127,6 +127,9 @@ unit_list2(GList **src_tok_list)
         set_unit_type(unit);
         list = g_list_append(list, unit);
     }
+    /* Free the list but not it's data (tokens), as these are now
+     * transferred into the created units
+     * (https://gitlab.gnome.org/GNOME/glib/-/blob/main/glib/glist.c#L183). */
     g_list_free(*src_tok_list);
     return list;
 }
