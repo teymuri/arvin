@@ -71,8 +71,8 @@ eval_show_op(struct Arv_data **return_data,
         break;
     }
     printf("\n");
-    free_unit((struct Unit *)node->data); /* also frees token and it's string */
-    g_node_destroy(node);
+    /* free_unit((struct Unit *)node->data); /\* also frees token and it's string *\/ */
+    /* g_node_destroy(node); */
 }
 
 gint get_param_index(GList *list, char *str) {
@@ -176,7 +176,7 @@ eval_lfold_op(struct Arv_data **result, GNode *node, GHashTable *env)
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda->node, param_idx)),
                                     rest_args);
-                g_node_destroy(args_node);
+                /* g_node_destroy(args_node); */
                 break;
             } else {
                 g_hash_table_insert(call_env,
@@ -234,7 +234,7 @@ eval_lfold_op2(struct Arv_data **result, GNode *node, GHashTable *env)
                 g_hash_table_insert(call_env,
                                     binding_node_name(g_node_nth_child(lambda->node, param_idx)),
                                     rest_args);
-                g_node_destroy(args_node);
+                /* g_node_destroy(args_node); */
                 break;
             } else {
                 g_hash_table_insert(call_env,
@@ -1158,7 +1158,7 @@ eval3(GNode *node, GHashTable *env)
         case INT:
             return_data->type = INT;
             return_data->slots.tila_int = ((struct Unit *)node->data)->ival;
-            free_unit(node->data);
+            /* free_unit(node->data); */
             break;
         case FLOAT:
             return_data->type = FLOAT;

@@ -19,7 +19,7 @@
 #include "print.h"
 #include "repl.h"
 
-#define TOPLEVEL_TOKEN_STRING "_TLTS_"
+#define ARV_TOPLEVEL_TOKSTR "_ARV_TOPLEVEL_TOKSTR_"
 #define TOPLEVEL_TOKEN_STRING_SIZE 6
 #define TOPLEVEL_UINT_ID 0             /* toplevel unit id */
 
@@ -35,18 +35,18 @@ main(int argc, char **argv)
     GList *unit_link;
     GNode *ast3;
     struct Token toplevel_token = (struct Token){
-        .str = TOPLEVEL_TOKEN_STRING,
-        /* .string = TOPLEVEL_TOKEN_STRING, */
+        .str = ARV_TOPLEVEL_TOKSTR,
+        /* .string = ARV_TOPLEVEL_TOKSTR, */
         .string_size = TOPLEVEL_TOKEN_STRING_SIZE,
         .col_start_idx = -1,
         .col_end_idx = 100,		/* ????????set auf maximum*/
         .line = -1,
         .id = 0
     };
-    toplevel_token.string = TOPLEVEL_TOKEN_STRING;
+    toplevel_token.string = ARV_TOPLEVEL_TOKSTR;
     toplevel_token.string_size = TOPLEVEL_TOKEN_STRING_SIZE;
     /* toplevel_token.string = malloc(TOPLEVEL_TOKEN_STRING_SIZE+1); */
-    /* memcpy(toplevel_token.string, TOPLEVEL_TOKEN_STRING, TOPLEVEL_TOKEN_STRING_SIZE); */
+    /* memcpy(toplevel_token.string, ARV_TOPLEVEL_TOKSTR, TOPLEVEL_TOKEN_STRING_SIZE); */
     /* toplevel_token.string[TOPLEVEL_TOKEN_STRING_SIZE]='\0'; */
     
     struct Unit toplevel_unit = (struct Unit){
@@ -151,29 +151,33 @@ main(int argc, char **argv)
         /*                               &code_tokens_count, */
         /*                               source_tokens_count); */
         
-        GList *src_toks_list = tokenize_src(argv[1]);
-        rm_comments2(&src_toks_list);
-        
-        if (code_tokens_count) {
-            unit_link = unit_list(code_tokens, code_tokens_count);
-            unit_link = g_list_prepend(unit_link, &toplevel_unit);
-            ast3 = parse3(unit_link);
-
-            eval3(ast3, toplevel_unit.env);
-            
-            for (guint i = 0; i < g_list_length(unit_link); i++) {
-                free_unit(g_list_nth_data(unit_link, i));
-            }
-            g_list_free(unit_link);
-            g_node_destroy(ast3);
-
-            
-            print_ast3(ast3);
-            /* struct Arv_data *x = eval3(ast3, toplevel_unit.env); */
-            /* free(x); */
-            /* print(eval3(ast3, toplevel_unit.env)); */
+        GList *src_tok_list = tokenize_src(argv[1]);
+        remove_comments2(&src_tok_list);
+        if (src_tok_list != NULL) {
+            GList *ulist = unit_list2(&src_tok_list);
+            ulist = g_list_prepend(ulist, &toplevel_unit);
+            GNode *ast = parse3(ulist);
+            print_ast3(ast);
+            eval3(ast, toplevel_unit.env);
         }
+        /* if (code_tokens_count) { */
+        /*     unit_link = unit_list(code_tokens, code_tokens_count); */
+        /*     unit_link = g_list_prepend(unit_link, &toplevel_unit); */
+        /*     ast3 = parse3(unit_link); */
+
+        /*     eval3(ast3, toplevel_unit.env); */
+            
+        /*     for (guint i = 0; i < g_list_length(unit_link); i++) { */
+        /*         free_unit(g_list_nth_data(unit_link, i)); */
+        /*     } */
+        /*     g_list_free(unit_link); */
+        /*     g_node_destroy(ast3);             */
+        /*     print_ast3(ast3); */
+        /*     /\* struct Arv_data *x = eval3(ast3, toplevel_unit.env); *\/ */
+        /*     /\* free(x); *\/ */
+        /*     /\* print(eval3(ast3, toplevel_unit.env)); *\/ */
+        /* } */
     }    
-    g_hash_table_destroy(toplevel_unit.env);    
+    /* g_hash_table_destroy(toplevel_unit.env);     */
     exit(EXIT_SUCCESS);
 }

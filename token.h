@@ -1,5 +1,5 @@
-#ifndef LET_TOK_H
-#define LET_TOK_H
+#ifndef ARV_TOK_H
+#define ARV_TOK_H
 
 #include "type.h"
 
@@ -89,8 +89,8 @@ struct Token {
     int col_end_idx;			/* end index in line (column end index) */
     int line;			/* line number */
     int id;			/* id of this token (tracked globally) */
-    int comment_index;			/* comment indices: 0 = (, 1 = ) */
+    size_t comment_couple_tag;
     enum Type type;		/* guessed types at token-generation time */
 };
 
-#endif	/* LET_TOK_H */
+#endif	/* ARV_TOK_H */

@@ -111,3 +111,30 @@ unit_list(struct Token **code_tokens,
     free(code_tokens);
     return list;
 }
+
+GList *
+unit_list2(GList **src_toks_list)
+{
+    GList *list = NULL; /* the returned singly linked list */
+    size_t i = 1;
+    for (GList *link = *src_toks_list;
+         link != NULL;
+         link = link->next) {
+        struct Unit *unit = malloc(sizeof (struct Unit));
+        *unit = (struct Unit){
+            .env = NULL,
+            .uuid = i++,
+            .token = link->data,
+            .toklen = ((struct Token *)link->data)->string_size,
+            /* .token = code_tokens[i], */
+            /* .toklen = code_tokens[i]->string_size, /\* not needed really if i've the token already!!! *\/ */
+            .max_cap = -1
+        };
+        set_unit_value(unit);
+        set_unit_type(unit);
+        list = g_list_append(list, unit);
+    }
+    /* free(code_tokens); */
+    g_list_free(*src_toks_list);
+    return list;
+}

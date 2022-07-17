@@ -12,6 +12,6 @@ struct Token *tokenize_line__Hp
 void free_token(struct Token *);
 
 GList *tokenize_src(char *);
-void rm_comments2(GList **);
+void remove_comments2(GList **);
 
 #endif	/* LET_READ_H */

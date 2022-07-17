@@ -6,8 +6,9 @@ Define multi
 Define dbl Call:1 multi 2
 Define tripl Call:1 multi 3
 
-Show Call:1 dbl 3
+
 Show Call:1 tripl 3
+Show Call:1 dbl 3
 Show Call:1 Call:1 multi 10 3
 Show multi
 Show multi

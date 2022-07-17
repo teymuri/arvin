@@ -186,7 +186,7 @@ tokenize_line__Hp(char *line,
             t.col_start_idx = offset + match[0].rm_so;
             t.col_end_idx = t.col_start_idx + tokstrlen;
             t.line = ln;
-            t.comment_index = 0;
+            t.comment_couple_tag = 0;
             *(line_tokens + *line_toks_count) = t;
             (*all_tokens_count)++;
             (*line_toks_count)++;
@@ -206,10 +206,11 @@ tokenize_line__Hp(char *line,
 }
 
 void
-free_token(struct Token *token_ptr)
+free_token(struct Token *tok_ptr)
 {
-    free(token_ptr->string);
-    free(token_ptr);
+    free(tok_ptr->string);
+    free(tok_ptr);
+    tok_ptr = NULL;
 }
 
 /* void */
@@ -305,7 +306,7 @@ tokenize_line(char *line,
             token->col_start_idx = offset + match[0].rm_so;
             token->col_end_idx = token->col_start_idx + token->string_size;
             token->line = ln;
-            token->comment_index = 0;
+            token->comment_couple_tag = 0;
             *(line_tokens + *line_toks_count) = token;
             (*all_tokens_count)++;
             (*line_toks_count)++;
@@ -417,7 +418,7 @@ tokenize_line2(char *line,
         token_ptr->col_start_idx = offset + match[0].rm_so;
         token_ptr->col_end_idx = token_ptr->col_start_idx + token_ptr->string_size;
         token_ptr->line = ln;
-        token_ptr->comment_index = 0;
+        token_ptr->comment_couple_tag = 0;
 
         if ((*source_tokens = realloc(*source_tokens, (*source_tokens_count + 1) * sizeof (struct Token)))) {
             /* *(source_tokens[*source_tokens_count]) = token_ptr; */
@@ -466,7 +467,7 @@ tokenize_line2(char *line,
         /*     token->col_start_idx = offset + match[0].rm_so; */
         /*     token->col_end_idx = token->col_start_idx + token->string_size; */
         /*     token->line = ln; */
-        /*     token->comment_index = 0; */
+        /*     token->comment_couple_tag = 0; */
         /*     *(line_tokens + *line_toks_count) = token; */
         /*     (*all_tokens_count)++; */
         /*     (*line_toks_count)++; */
@@ -489,7 +490,7 @@ tokenize_line2(char *line,
 static void
 tokenize_line3(char *line,
                size_t line_num,
-               GList **src_toks_list)
+               GList **src_tok_list)
 /* line = line string content, line_num = line number*/
 {
     /* size_t lines_count = 0; */
@@ -535,37 +536,21 @@ tokenize_line3(char *line,
     regmatch_t match[1];	/* interesed only in the whole match */
     int offset = 0;
     int token_size;
-    
-    /* struct Token **line_tokens = NULL; */
-    
-    /* overall size of memory allocated for tokens of the line sofar */
-    /* size_t memsize = 0; */
-    /* int tokscnt = 0; */
-    /* struct Token *source_tokens = NULL; */
-    
     while (!regexec(&re, line + offset, 1, match, REG_NOTBOL)) { /* a match found */
-        /* make room for the new token */
-        /* memsize += sizeof(struct Token); */
-
-        
         struct Token *token_ptr = malloc(sizeof (struct Token));
         token_size = match[0].rm_eo - match[0].rm_so; /* remove this!!! look below */
         token_ptr->string_size = match[0].rm_eo - match[0].rm_so;
         token_ptr->string = malloc(token_ptr->string_size + 1); /* for null terminator? */
-        /* struct Token t; */
-        /* memcpy(t.str, line + offset + match[0].rm_so, tokstrlen); */
-        /* t.str[tokstrlen] = '\0'; */
         memcpy(token_ptr->string, line + offset + match[0].rm_so, token_size);
         token_ptr->string[token_size] = '\0';
         /* guess type */
         if (!regexec(&reint, token_ptr->string, 0, NULL, 0)) {
-            /* t.type = INT; */
             token_ptr->type = INT;
         } else if (!regexec(&refloat, token_ptr->string, 0, NULL, 0)) {
             token_ptr->type = FLOAT;
         } else if (!regexec(&resym, token_ptr->string, 0, NULL, 0)) {
             token_ptr->type = NAME;
-        } else {
+        } else {                /* what case can this else cover?!!! */
             /* fprintf(stderr, "couldn't guess type of token %s", t.str); */
             /* exit(EXIT_FAILURE); */
             token_ptr->type = UNDEFINED;
@@ -574,9 +559,9 @@ tokenize_line3(char *line,
         token_ptr->col_start_idx = offset + match[0].rm_so;
         token_ptr->col_end_idx = token_ptr->col_start_idx + token_ptr->string_size;
         token_ptr->line = line_num;
-        token_ptr->comment_index = 0;
+        token_ptr->comment_couple_tag = 0;
         
-        *src_toks_list = g_list_append(*src_toks_list, token_ptr);
+        *src_tok_list = g_list_append(*src_tok_list, token_ptr);
         offset += match[0].rm_eo;
     }
     regfree(&re);
@@ -673,15 +658,15 @@ tokenize_src(char *src_path)
     char **lines = read_lines(src_path, &lines_count);
     /* source_tokens are all the tokens found in a script, including
      * comments.*/
-    GList *src_toks_list = NULL;
+    GList *src_tok_list = NULL;
     /* struct Token *source_tokens = NULL; */
     for (size_t i = 0; i < lines_count; i++) {
         tokenize_line3(lines[i],
                        i,
-                       &src_toks_list);
+                       &src_tok_list);
     }
     free_lines(lines, lines_count);
-    return src_toks_list;
+    return src_tok_list;
 }
 
 
@@ -713,7 +698,7 @@ struct Token *tokenize_lines__Hp(char **lines, size_t lines_count,
 
 
 static int
-is_comment_begin(struct Token *tok)
+is_comment_start(struct Token *tok)
 {
     return !strcmp(tok->string, COMMENT_OPENING);
 }
@@ -732,10 +717,10 @@ index_comments(struct Token *tokens, size_t source_tokens_count)
 {
     int idx = 1;
     for (size_t i = 0; i < source_tokens_count; i++) {
-        if (is_comment_begin(tokens+i))
-            (tokens+i)->comment_index = idx++;
+        if (is_comment_start(tokens+i))
+            (tokens+i)->comment_couple_tag = idx++;
         else if (is_comment_end(tokens+i))
-            (tokens+i)->comment_index = --idx;
+            (tokens+i)->comment_couple_tag = --idx;
     }
 }
 
@@ -748,7 +733,7 @@ remove_comments(struct Token *source_tokens,
     struct Token **code_tokens = NULL;	/* non-comment tokens */
     int isincom = false;		/* are we inside of a comment block? */
     for (size_t i = 0; i < source_tokens_count; i++) {
-        if ((source_tokens+i)->comment_index == 1) {
+        if ((source_tokens+i)->comment_couple_tag == 1) {
             if (isincom) isincom = false;
             else isincom = true;
         } else if (!isincom) {
@@ -768,34 +753,62 @@ remove_comments(struct Token *source_tokens,
 
 
 static void
-tag_comments(GList **src_toks_list)
+tag_comments(GList **src_tok_list)
 {
+    /* Tag the comment start '(' and end ')' tokens beginning from 1
+     * (why not zero?!!!), e.g. '(a (comment (in) block))' will be
+     * tagged thus: ['(' tag: 1] ['a'] ['(' tag: 2] ['comment'] ['('
+     * tag: 3] ['in'] [')' tag: 3] ['block'] [')' tag: 2] [')' tag:
+     * 1]. These tags help recognizing nested comment blocks and their
+     * parentheses couples as they blong together. */
     int tag = 1;
-    for (guint i = 0; i < g_list_length(*src_toks_list); i++) {
-        struct Token *token_ptr = g_list_nth_data(*src_toks_list, i);
-        if (is_comment_begin(token_ptr))
-            token_ptr->comment_index = tag++;
+    for (guint i = 0; i < g_list_length(*src_tok_list); i++) {
+        struct Token *token_ptr = g_list_nth_data(*src_tok_list, i);
+        if (is_comment_start(token_ptr))
+            token_ptr->comment_couple_tag = tag++;
         else if (is_comment_end(token_ptr))
-            token_ptr->comment_index = --tag;
+            token_ptr->comment_couple_tag = --tag;
     }
 }
 
-
 void
-rm_comments2(GList **src_toks_list)
+remove_comments2(GList **src_tok_list)
 {
-    /* https://gitlab.gnome.org/GNOME/glib/-/blob/main/glib/glist.c#L93 */
-    tag_comments(src_toks_list);
-    /* are we inside of a comment block? */
+    /* First tag all comment's start and end tokens. Then iterate
+     * through the whole source tokens list and check if a token has a
+     * comment tag of 1: if yes this is either a comment's start token
+     * '(' or a comment's closing token ')' To answer this check if we
+     * have been inside of a comment or not (with is_in_comment): if
+     * we have been inside a comment block, then we are leaving the
+     * comment block, hence the tag 1 indicates the closing comment
+     * token ')', otherwise if we were not inside a comment block then
+     * we are entering a comment block, hence tag 1 indicates the
+     * starting comment token '('. Either way we will remove this
+     * token (starting or closing comment token), since this also
+     * doesn't belong to the source to be parsed. On following
+     * iterations (the second if clause below) we remove any other token
+     * if we are inside a comment block (i.e. is_in_comment has been
+     * set to true). */
+    tag_comments(src_tok_list);
     bool is_in_comment = false;
-    GList *list = *src_toks_list;
+    /* Using this technique for deleting a link from the list:
+     * https://gitlab.gnome.org/GNOME/glib/-/blob/main/glib/glist.c#L93 */
+    GList *list = *src_tok_list;
+    size_t comment_tag;
     while (list != NULL) {
         GList *next = list->next;
-        if (((struct Token *)(list->data))->comment_index == 1) {
-            free_token(list->data);
-            *src_toks_list = g_list_delete_link(*src_toks_list, list);
+        comment_tag = ((struct Token *)(list->data))->comment_couple_tag;
+        if (comment_tag == 1) {
             if (is_in_comment) is_in_comment = false;
             else is_in_comment = true;
+        }
+        /* Delete the token if it's placed in between two outer
+         * comment tokens '(' and ')' (i.e. we are inside a comment
+         * block) or if the token itself is one of the outer comment
+         * block's tokens (i.e. is tagged 1). */
+        if (is_in_comment || comment_tag == 1) {
+            free_token(list->data);
+            *src_tok_list = g_list_delete_link(*src_tok_list, list);
         }
         list = next;
     }

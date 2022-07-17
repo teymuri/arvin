@@ -18,7 +18,7 @@ Show Define sum
       s 4.3084
       Add a s
 )
-(Add:3 Let:1 a 2 Add:3 a a a 10 0.5
-Mul:3 Let:1 a 2 Mul:3 a a a 10 0.25)
+Show Add:3 Let:1 a 2 Add:3 a a a 10 0.5
+Show Mul:3 Let:1 a 2 Mul:3 a a a 10 0.25
 
-Div:3 1.0 2 3
+Show Div:3 1.0 2 3

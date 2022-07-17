@@ -35,5 +35,5 @@ GList *unit_list(struct Token **toks, size_t toks_n);
 /* typedef struct Unit * struct Unit *; */
 bool is_of_type(struct Unit *, enum Type);
 void free_unit(struct Unit *);
-
+GList *unit_list2(GList **);
 #endif	/* LET_UNIT_H */
