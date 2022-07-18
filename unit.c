@@ -56,10 +56,11 @@ void set_unit_value(struct Unit *c)
 }
 
 void
-free_unit(struct Unit *unit)
+free_unit(struct Unit *unit_ptr)
 {
-    free_token(unit->token);
-    free(unit);
+    free_token(unit_ptr->token);
+    free(unit_ptr);
+    unit_ptr = NULL;
 }
 
 GList *
