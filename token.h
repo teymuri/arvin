@@ -89,7 +89,9 @@ struct Token {
     int col_end_idx;			/* end index in line (column end index) */
     int line;			/* line number */
     int id;			/* id of this token (tracked globally) */
-    size_t comment_couple_tag;
+    /* This is the tag number for the comment parenthesis couples,
+     * e.g. '((()))' would be tagged as 123321. */
+    size_t comment_paren_tag;
     enum Type type;		/* guessed types at token-generation time */
 };
 

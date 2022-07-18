@@ -186,7 +186,7 @@ tokenize_line__Hp(char *line,
             t.col_start_idx = offset + match[0].rm_so;
             t.col_end_idx = t.col_start_idx + tokstrlen;
             t.line = ln;
-            t.comment_couple_tag = 0;
+            t.comment_paren_tag = 0;
             *(line_tokens + *line_toks_count) = t;
             (*all_tokens_count)++;
             (*line_toks_count)++;
@@ -306,7 +306,7 @@ tokenize_line(char *line,
             token->col_start_idx = offset + match[0].rm_so;
             token->col_end_idx = token->col_start_idx + token->string_size;
             token->line = ln;
-            token->comment_couple_tag = 0;
+            token->comment_paren_tag = 0;
             *(line_tokens + *line_toks_count) = token;
             (*all_tokens_count)++;
             (*line_toks_count)++;
@@ -418,7 +418,7 @@ tokenize_line2(char *line,
         tok_ptr->col_start_idx = offset + match[0].rm_so;
         tok_ptr->col_end_idx = tok_ptr->col_start_idx + tok_ptr->string_size;
         tok_ptr->line = ln;
-        tok_ptr->comment_couple_tag = 0;
+        tok_ptr->comment_paren_tag = 0;
 
         if ((*source_tokens = realloc(*source_tokens, (*source_tokens_count + 1) * sizeof (struct Token)))) {
             /* *(source_tokens[*source_tokens_count]) = tok_ptr; */
@@ -467,7 +467,7 @@ tokenize_line2(char *line,
         /*     token->col_start_idx = offset + match[0].rm_so; */
         /*     token->col_end_idx = token->col_start_idx + token->string_size; */
         /*     token->line = ln; */
-        /*     token->comment_couple_tag = 0; */
+        /*     token->comment_paren_tag = 0; */
         /*     *(line_tokens + *line_toks_count) = token; */
         /*     (*all_tokens_count)++; */
         /*     (*line_toks_count)++; */
@@ -559,7 +559,7 @@ tokenize_line3(char *line,
         tok_ptr->col_start_idx = offset + match[0].rm_so;
         tok_ptr->col_end_idx = tok_ptr->col_start_idx + tok_ptr->string_size;
         tok_ptr->line = line_num;
-        tok_ptr->comment_couple_tag = 0;
+        tok_ptr->comment_paren_tag = 0;
         
         *src_tok_list = g_list_append(*src_tok_list, tok_ptr);
         offset += match[0].rm_eo;
@@ -716,9 +716,9 @@ index_comments(struct Token *tokens, size_t source_tokens_count)
     int idx = 1;
     for (size_t i = 0; i < source_tokens_count; i++) {
         if (is_comment_start(tokens+i))
-            (tokens+i)->comment_couple_tag = idx++;
+            (tokens+i)->comment_paren_tag = idx++;
         else if (is_comment_end(tokens+i))
-            (tokens+i)->comment_couple_tag = --idx;
+            (tokens+i)->comment_paren_tag = --idx;
     }
 }
 
@@ -731,7 +731,7 @@ remove_comments(struct Token *source_tokens,
     struct Token **code_tokens = NULL;	/* non-comment tokens */
     int isincom = false;		/* are we inside of a comment block? */
     for (size_t i = 0; i < source_tokens_count; i++) {
-        if ((source_tokens+i)->comment_couple_tag == 1) {
+        if ((source_tokens+i)->comment_paren_tag == 1) {
             if (isincom) isincom = false;
             else isincom = true;
         } else if (!isincom) {
@@ -763,9 +763,9 @@ tag_comments(GList **src_tok_list)
     for (guint i = 0; i < g_list_length(*src_tok_list); i++) {
         struct Token *tok_ptr = g_list_nth_data(*src_tok_list, i);
         if (is_comment_start(tok_ptr))
-            tok_ptr->comment_couple_tag = tag++;
+            tok_ptr->comment_paren_tag = tag++;
         else if (is_comment_end(tok_ptr))
-            tok_ptr->comment_couple_tag = --tag;
+            tok_ptr->comment_paren_tag = --tag;
     }
 }
 
@@ -795,7 +795,7 @@ remove_comments2(GList **src_tok_list)
     size_t comment_tag;
     while (list != NULL) {
         GList *next = list->next;
-        comment_tag = ((struct Token *)(list->data))->comment_couple_tag;
+        comment_tag = ((struct Token *)(list->data))->comment_paren_tag;
         if (comment_tag == 1) {
             if (is_in_comment) is_in_comment = false;
             else is_in_comment = true;
